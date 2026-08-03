@@ -16,6 +16,8 @@ Current phase: desktop-baseline save/address-model work after passing the Apple 
 - ACreTeam's current `forest` port already integrates Aurora services, but disables Aurora GX and uses rendering stubs; it is not a playable baseline.
 - The pinned 64-bit fork plus tracked patches compiles all 4,000 units and links ARM64 Mach-O executables with both Apple Clang 21.0.0 and GCC 16.1.0 in independent build directories.
 - The Apple Clang executable has been launched against the ignored supported image and visibly reaches the correctly rendered title screen at 60 FPS.
+- A debugger sample identified the title cleanup invalid-free as static-pool corruption: an 840-byte ARM64 `SHRINE_ACTOR` occupied an 832-byte `STRUCTURE_ACTOR` slot and overwrote the following actor's identity fields.
+- Current PC-port commit `7fa20d75…` independently fixes this class of structure-pool overflow. Bellpad ports the design with 0x400-byte host slots; Apple Clang and GCC rebuild, and repeated automatic title teardown/reload cycles no longer panic.
 - The local image validates as `GAFE01`, revision 0, with correct GameCube disc magic; its size and SHA-256 are stored only in an ignored local record.
 - The baseline reads the image directly, indexes 10 disc files, decompresses the REL, and loads 14,495 assets without extracting them.
 - A bug in the desktop DVD shim was reproduced and fixed locally: a 32-byte-aligned read of the final 56-byte file at a trimmed image's physical EOF retried forever. Clamping to the declared file length and zero-filling only the alignment tail unlocks boot.
@@ -24,14 +26,14 @@ Current phase: desktop-baseline save/address-model work after passing the Apple 
 - A minimal keyboard-edge latch carries non-repeating GameCube button events to the next `PADRead`; with it, all K.K. pages, Rover dialogue, choices, and both name-entry screens advance correctly.
 - The desktop SDL text adapter accepted the test player name `Bell` and town name `Cedar` through the in-game editors.
 - The full train sequence completed, a new town was generated, the player arrived at the station, exited into town, moved outdoors, met Tom Nook, and reached the house-selection area.
-- Tracked scripts now reproduce the pinned checkout, apply all three clean compatibility patches idempotently, build an Apple Clang ARM64 Mach-O by default, allow an isolated GCC cross-check, and optionally link (never copy) a local image.
+- Tracked scripts now reproduce the pinned checkout, apply all four clean compatibility patches idempotently, build an Apple Clang ARM64 Mach-O by default, allow an isolated GCC cross-check, and optionally link (never copy) a local image.
 - A fresh scripted build was run from an empty ignored checkout and reached the title loop with disc/archive/audio initialization complete. A targeted `SIGTERM` test terminated that clean process.
 
 ## Active blockers
 
 - Apple Clang compilation no longer blocks iOS work, but the address model still needs sanitizer coverage and a complete audit of guest offsets versus native pointers.
-- A timing-dependent title transition jumped from action 3 directly to action 6 and triggered an invalid-free panic in the game arena. The normal timed fade path did not reproduce it, so the state-machine/cleanup race remains open.
 - The new town has not yet reached its first successful GCI write, controlled in-game exit, and reload, so persistence remains unproven.
+- Computer Use key synthesis is not consistently delivered to SDL in the current app-wrapper harness. It does not invalidate the earlier gameplay/input proof, but repeatable UI automation needs a dedicated test-input path before save/relaunch testing can be fully automated.
 - SDL window close/Command-Q and full cleanup still require a clean retest. The earlier instrumented app-wrapper run needed `SIGKILL`, while the fresh scripted executable terminates on `SIGTERM`; the conflicting evidence is kept explicit.
 - No Animal Crossing-on-Aurora-GX render has been demonstrated locally.
 - No native iOS/iPadOS target exists yet.

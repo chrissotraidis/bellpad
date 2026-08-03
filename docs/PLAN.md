@@ -29,6 +29,7 @@ This is a provisional selection. Milestone 1 build and runtime evidence can chan
 3. [x] Verify the image identity before launch: `GAFE01`, USA Rev 0, and record its size/hash only in an ignored local validation record.
 4. [ ] Run from trademark/title through town creation, save, process exit, relaunch, and persistence. Current evidence completes names, train arrival, town generation, station exit, movement, and the housing area; save creation and relaunch remain.
 5. Record rendering, audio, input, RTC, memory, and sanitizer evidence. Rendering, 32 kHz stereo audio, keyboard buttons, analog movement, and desktop text input have initial evidence; RTC, memory, and sanitizers remain.
+   The title cleanup overflow is fixed with a padded host structure-actor pool; repeated teardown/reload is now part of the regression set.
 6. Rebase or forward-port the 64-bit work onto the current bug-fixed native port.
 7. [x] Remove compiler-blocking GCC-only pointer truncation behavior so Apple Clang can compile and run the core. Continue the broader address audit and sanitizer work; compiler acceptance alone is not proof that every guest/native boundary is correct.
 

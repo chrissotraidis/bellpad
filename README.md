@@ -15,7 +15,7 @@ As of 2026-08-03:
 - The desktop baseline renders the title, setup, train, and generated town at 60 FPS and starts 32 kHz stereo audio.
 - A trimmed-image aligned-read bug was identified and corrected locally.
 - Player and town naming work through the port's native SDL text-input path; a test player entered and moved around a newly generated town.
-- Save creation/relaunch, a title cleanup race, and app-window lifecycle remain under investigation. A clean baseline process does terminate on `SIGTERM`.
+- Save creation/relaunch and app-window lifecycle remain under investigation. The title cleanup invalid-free was traced to an undersized static structure-actor pool and repaired with an upstream-derived host slot layout.
 - Aurora is the selected production compatibility-layer candidate, subject to an Animal Crossing GX coverage proof.
 - Native iOS and iPadOS targets, Metal integration, touch controls, Files import, and IPA packaging have not been implemented yet.
 
@@ -123,7 +123,7 @@ See [TESTING.md](docs/TESTING.md).
 ## Known issues
 
 - Apple Clang compilation is proven, but the full guest-address/pointer-width audit and sanitizer run are not complete.
-- One title timing path skips cleanup and reaches an invalid arena free.
+- Automated keyboard delivery into the SDL window is harness-dependent; game input itself remains validated through the earlier native run.
 - Save creation and relaunch persistence have not yet been completed in the local baseline.
 - App-window close and lifecycle teardown still need a clean retest; `SIGTERM` exits the clean scripted build.
 - Aurora GX coverage for this game has not yet been demonstrated.

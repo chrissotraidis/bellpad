@@ -11,7 +11,7 @@ No gameplay test is marked passed without a dated result, device/OS, build revis
 | Configure/build native ARM64 | Mach-O arm64 executable | Pass — 2026-08-03, M2/macOS 26.5; independent full builds with Apple Clang 21.0.0 and GCC 16.1.0 |
 | Apple toolchain runtime smoke test | Native binary reaches visible game output | Pass — Apple Clang build rendered the title correctly at 60 FPS using the ignored supported image |
 | Validate supported disc | Accept `GAFE01` USA Rev 0 only | Partial pass — local header/revision/magic/hash validated; product hash allowlist pending |
-| Trademark/title | Correct render/audio/input | Partial pass — correct 60 FPS rendering and 32 kHz stereo; A/Start works through a latched test path; transition race remains |
+| Trademark/title | Correct render/audio/input | Partial pass — correct 60 FPS rendering and 32 kHz stereo; A/Start works through a latched native test path; cleanup overflow fixed; repeatable UI automation pending |
 | Character/town creation | Completes with text entry | Partial pass — player/town names, train, and town generation completed; first house/save not yet finalized |
 | Enter town | Stable outdoor rendering and movement | Pass — station exit, outdoor movement, Nook greeting, and housing area observed |
 | Save/exit/relaunch | Same town loads from GCI | Pending |
@@ -21,7 +21,7 @@ No gameplay test is marked passed without a dated result, device/OS, build revis
 ### Baseline defects reproduced on 2026-08-03
 
 - Trimmed-image EOF: the 56-byte final file is requested as 64 aligned bytes; the original host shim retries forever. A local file-length clamp plus zero-filled alignment tail fixes boot.
-- Title transition: one input/timing sequence skipped from title action 3 to 6 and repeatedly panicked on an invalid arena free; the normal 3→4→5 sequence reaches K.K. and does not reproduce it.
+- Title cleanup overflow: debugger sampling showed `play_cleanup → Actor_info_dt → Actor_info_delete → zelda_free`, with the invalid pointer inside `aSTR_actor_cl`. Clang record layouts measured `STRUCTURE_ACTOR=832` and `SHRINE_ACTOR=840`; the Shrine tail overwrote the next 832-byte slot. A 0x400-byte host slot, based on current upstream's equivalent 32-bit repair, survives repeated teardown/reload cycles under Apple Clang; GCC also rebuilds.
 - Short keyboard edges: synthesized native key taps could end between `PADRead` calls. An event-edge latch fixes dialogue advancement and is now a tracked patch.
 - Shutdown evidence differs by harness: app-wrapper sessions have needed SIGKILL, while one targeted raw-process `SIGTERM` test exited. A later Clang wrapper again needed SIGKILL, so window/app teardown remains open.
 
@@ -33,6 +33,7 @@ No gameplay test is marked passed without a dated result, device/OS, build revis
 - Exited the station, moved outdoors, met Tom Nook, and reached house selection.
 - Rendering and audio remained active throughout; no panic occurred on the normal title path.
 - No GCI file was created before the session ended, so save/reload is not marked passed.
+- The current Computer Use wrapper does not consistently deliver synthesized keys to SDL. Manual/native input evidence is retained, while future automated runs require an explicit test-input adapter rather than relying on window automation timing.
 
 ## Functional gameplay matrix
 

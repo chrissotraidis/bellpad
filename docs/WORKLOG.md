@@ -33,3 +33,7 @@
 - Removed the 64-bit Clang configuration ban. Apple Clang 21.0.0 compiled all 4,000 units and linked a native ARM64 executable; a runtime smoke test visibly reached the correctly rendered title at 60 FPS.
 - Rebuilt the same patched checkout in an independent directory with GCC 16.1.0. All 4,000 units compiled and the ARM64 executable linked, showing the portability changes did not regress the previous compiler path.
 - Made Apple Clang the default reproducible desktop compiler and retained explicit compiler/build-directory overrides for compatibility testing.
+- Reproduced the title teardown fault under the Apple Clang build and captured a native `sample`/LLDB stack at `play_cleanup → Actor_info_delete → zelda_free → __osFree`.
+- Resolved the invalid pointer to `aSTR_actor_cl + 2496`. Clang layout output proved that `SHRINE_ACTOR` is 840 bytes but each static slot was only the 832-byte `STRUCTURE_ACTOR`, so the Shrine tail overwrote the next actor's ID/name fields.
+- Found current PC-port commit `7fa20d75…`, which independently repairs the same structure-pool sizing mistake on its 32-bit target. Ported that storage design using 0x400-byte host slots for 64-bit safety.
+- Rebuilt the repair with Apple Clang 21 and GCC 16. Repeated automatic title teardown/reload cycles completed without the former invalid-free panic.
