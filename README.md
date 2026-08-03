@@ -17,7 +17,8 @@ As of 2026-08-03:
 - Player and town naming work through the port's native SDL text-input path; a test player entered and moved around a newly generated town.
 - Save creation/relaunch and app-window lifecycle remain under investigation. The title cleanup invalid-free was traced to an undersized static structure-actor pool and repaired with an upstream-derived host slot layout.
 - Aurora is the selected production compatibility-layer candidate, subject to an Animal Crossing GX coverage proof.
-- Native iOS and iPadOS targets, Metal integration, touch controls, Files import, and IPA packaging have not been implemented yet.
+- Aurora's pinned GX example now builds and visibly renders through Metal on macOS ARM64 and sequential iPhone/iPad simulators. This proves the compatibility-layer platform path, not Animal Crossing rendering.
+- Native Bellpad macOS/iOS/iPadOS product targets, touch controls, Files import, and IPA packaging have not been implemented yet.
 
 See [STATUS.md](docs/STATUS.md), [PLAN.md](docs/PLAN.md), and [WORKLOG.md](docs/WORKLOG.md) for evidence and current blockers.
 
@@ -26,8 +27,8 @@ See [STATUS.md](docs/STATUS.md), [PLAN.md](docs/PLAN.md), and [WORKLOG.md](docs/
 | Platform | Status |
 |---|---|
 | Apple Silicon macOS | Research baseline builds and reaches a generated town |
-| iPhone Simulator/device | Planned; no target yet |
-| iPad Simulator/device | Planned; no target yet |
+| iPhone Simulator/device | Aurora dependency probe passes; Bellpad target planned |
+| iPad Simulator/device | Aurora dependency probe passes sequentially; Bellpad target planned |
 | Intel macOS, Windows, Linux | Upstream-reference platforms, not Bellpad release targets |
 
 ## Game-data requirements
@@ -58,7 +59,7 @@ The current desktop-only development procedure is documented in [BUILDING.md](do
 
 ## Build instructions
 
-There is no product build yet. To reproduce the pinned desktop investigation on Apple Silicon, install Xcode, CMake, Ninja, and SDL2 compatibility, then run the tracked fetch/build scripts described in [BUILDING.md](docs/BUILDING.md). Apple Clang is the default; GCC 16 is an optional compatibility cross-check.
+There is no Bellpad product build yet. To reproduce the pinned desktop investigation or the macOS/iOS-Simulator Aurora Metal probes on Apple Silicon, install Xcode, CMake, Ninja, and SDL2 compatibility, then run the tracked scripts described in [BUILDING.md](docs/BUILDING.md). Apple Clang is the default; GCC 16 is an optional desktop compatibility cross-check.
 
 Before committing or packaging anything, run:
 
@@ -126,7 +127,7 @@ See [TESTING.md](docs/TESTING.md).
 - Automated window-key delivery is harness-dependent. Guarded LLDB QA helpers can feed button taps, persistent left-stick values, and alphanumeric text through the same normalized APIs planned for Apple platform adapters.
 - Save creation and relaunch persistence have not yet been completed in the local baseline.
 - App-window close and lifecycle teardown still need a clean retest; `SIGTERM` exits the clean scripted build.
-- Aurora GX coverage for this game has not yet been demonstrated.
+- Aurora's Apple Metal/GX example path is proven, but Aurora GX coverage for this game has not yet been demonstrated.
 - No iOS/iPadOS app, touch UI, native keyboard, Files import, or unsigned IPA exists yet.
 
 ## Research and credits

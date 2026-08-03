@@ -71,6 +71,21 @@ For every meaningful milestone:
 
 Simulator sessions must never overlap. Physical hardware is required for final Metal performance, Files security scopes, audio interruption/route changes, haptics, controller reconnect, memory pressure, suspension, and thermal validation.
 
+### Compatibility-layer probe evidence — 2026-08-03
+
+| Test | Result |
+|---|---|
+| macOS ARM64 Aurora GX/Metal | Pass — visible blue GX clear; Dawn selected Apple M2 / Metal |
+| iPhone 17 Pro Simulator install/launch | Pass — ARM64 `IOSSIMULATOR` bundle installed, launched, and visibly rendered blue through Metal |
+| Stop iPhone before iPad | Pass — app terminated and phone simulator reported `Shutdown` before iPad boot |
+| iPad Pro 13-inch Simulator install/launch | Pass — same bundle launched and visibly rendered in an iPadOS resizable window; logs selected Apple iOS simulator GPU / Metal |
+| Bellpad/game-core rendering | Not tested by this probe |
+
+The upstream example's empty bundle identifier was replaced only in the ignored
+generated probe bundle. Its portrait phone presentation and resizable iPad
+window are not accepted product layouts; they are evidence that Bellpad must own
+scene/orientation/safe-area policy and adaptive touch controls.
+
 ## Safety and package tests
 
 - Scan Git index, archive, app bundle, and IPA case-insensitively for ISO/GCM/CISO/RVZ/WIA/WBFS/GCZ, extracted retail files, GCI/raw saves, credentials, certificates, and provisioning profiles.

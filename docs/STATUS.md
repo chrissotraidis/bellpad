@@ -2,7 +2,7 @@
 
 Last updated: 2026-08-03
 
-Current phase: desktop-baseline save/address-model hardening after passing the Apple Clang compiler gate.
+Current phase: Apple platform foundation after proving the desktop core and Aurora Metal path on macOS and the iOS Simulator.
 
 ## Confirmed
 
@@ -13,6 +13,9 @@ Current phase: desktop-baseline save/address-model hardening after passing the A
 - The current upstream PC port remains deliberately 32-bit.
 - A separate 64-bit migration at commit `915fb86…` documents and has community validation for macOS ARM64, Windows/Linux 64-bit, audio, GCI save, and reload.
 - Aurora supports macOS/iOS/tvOS, Metal through Dawn/WebGPU, SDL3, nod-backed disc images including RVZ, controller input, RTC fixes for iOS, and GCI/raw-card storage.
+- Pinned Aurora commit `5027ed63…` now builds and runs its GX example natively on macOS ARM64 through Dawn's Metal backend. Runtime logs identify the Apple M2 Metal adapter and the visible example framebuffer renders correctly.
+- The same pinned Aurora GX example now compiles as an ARM64 `IOSSIMULATOR` executable with vendored SDL3 and source-built Dawn. It installs and visibly renders through the Apple iOS simulator Metal GPU on an iPhone 17 Pro simulator and, only after stopping that session, an iPad Pro 13-inch simulator.
+- The iOS probe establishes compatibility-layer feasibility, not a Bellpad product target. Upstream's packaged Dawn iOS archive is device-only; simulator builds require source Dawn plus Ninja at this revision. The upstream generic example also needs product-owned bundle metadata and adaptive window/layout policy.
 - ACreTeam's current `forest` port already integrates Aurora services, but disables Aurora GX and uses rendering stubs; it is not a playable baseline.
 - The pinned 64-bit fork plus tracked patches compiles all 4,000 units and links ARM64 Mach-O executables with both Apple Clang 21.0.0 and GCC 16.1.0 in independent build directories.
 - The Apple Clang executable has been launched against the ignored supported image and visibly reaches the correctly rendered title screen at 60 FPS.
@@ -50,9 +53,9 @@ Current phase: desktop-baseline save/address-model hardening after passing the A
 - The current fresh run reached a villager house after the planting tutorial, but its resident was visibly outdoors, so the closed door did not exercise scene allocation. The process staying alive at that door is not counted as patch-7/8 proof.
 - A later occupied-house route was derived from the runtime town combination table and collision grids. The targeted villager left home before Bell arrived, and a second occupied target likewise changed to outdoors during the route. Runtime `is_home` flags and the visible villagers agreed, so patch-7/8 runtime status remains pending without manufacturing a false pass.
 - SDL window close/Command-Q and full cleanup still require a clean retest. The earlier instrumented app-wrapper run needed `SIGKILL`, while the fresh scripted executable terminates on `SIGTERM`; the conflicting evidence is kept explicit.
-- No Animal Crossing-on-Aurora-GX render has been demonstrated locally.
-- No native iOS/iPadOS target exists yet.
-- Simulator and physical-device gameplay evidence do not yet exist.
+- No Animal Crossing-on-Aurora-GX render has been demonstrated locally; only Aurora's clean GX clear/example path is proven.
+- No native Bellpad macOS/iOS/iPadOS application target exists yet. The next implementation slice is the shared Apple shell and normalized touch/controller adapter, followed by game-core/Aurora integration.
+- iPhone/iPad dependency-probe evidence exists, but simulator and physical-device Animal Crossing gameplay evidence do not.
 
 ## Requested completion criteria
 
@@ -63,8 +66,8 @@ Current phase: desktop-baseline save/address-model hardening after passing the A
 | 3 | No leaked source | Policy established; audit pending |
 | 4 | User image selection/validation | Local desktop header/hash validation only; native picker pending |
 | 5 | Runtime resources produced/loaded | Desktop direct-image load proven; product flow pending |
-| 6 | iPhone Simulator installs/launches | Not started |
-| 7 | iPad Simulator installs/launches | Not started |
+| 6 | iPhone Simulator installs/launches | Partial — pinned Aurora Metal/GX dependency probe installs, launches, and renders; Bellpad product pending |
+| 7 | iPad Simulator installs/launches | Partial — same probe launches after the iPhone session is stopped; Bellpad product pending |
 | 8–10 | Title/setup/town entry | Desktop pass — names, train, generated town, and outdoor movement observed |
 | 11–21 | Rendering/platform behavior | Desktop rendering/audio/input/text partial pass; saves, RTC, lifecycle, memory, and mobile pending |
 | 22 | Reproducible unsigned IPA | Not started |

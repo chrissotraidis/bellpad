@@ -2,7 +2,7 @@
 
 Last updated: 2026-08-03
 
-The repository is not yet buildable as an iOS application. These are the current reproducible research/baseline steps.
+The repository is not yet buildable as the Bellpad iOS application. It can now reproduce both the desktop game baseline and pinned Aurora Metal/GX platform probes.
 
 ## Host
 
@@ -53,3 +53,33 @@ Run the tracked-content safety check before every commit and package build:
 ```sh
 ./scripts/audit-tracked-content.sh
 ```
+
+## Aurora Apple-platform probes
+
+These game-data-free probes validate the selected compatibility layer on Apple
+ARM64. They are not Bellpad product targets and do not run Animal Crossing.
+
+```sh
+./scripts/build-aurora-platform-probe.sh macos
+./scripts/build-aurora-platform-probe.sh ios-simulator
+```
+
+Both commands verify pinned Aurora commit
+`5027ed63a73dfba28de9eceed00481fb09a19c35`. The macOS probe uses Aurora's
+prebuilt Darwin ARM64 Dawn package. The iOS Simulator probe builds Dawn and SDL3
+from pinned source dependencies with Ninja because Aurora's released iOS Dawn
+archive is device-only. A first simulator build compiles roughly 1,100 units and
+can take several minutes; subsequent builds are incremental. Set
+`BELLPAD_AURORA_BUILD_DIR` to isolate or reuse a build directory.
+
+The generated upstream example has only probe metadata. Install it with
+`xcrun simctl install` and launch `dev.bellpad.aurora-probe`; always terminate
+and shut down the iPhone simulator before booting the iPad simulator. The
+eventual Bellpad product will own its Info.plist, scenes, safe areas, windowing,
+icons, signing, and packaging rather than post-processing an upstream example.
+
+Observed 2026-08-03: macOS selected the Apple M2 Metal adapter and rendered the
+GX example. The ARM64 `IOSSIMULATOR` executable selected the Apple iOS simulator
+GPU through Metal and rendered on an iPhone 17 Pro simulator, then an iPad Pro
+13-inch simulator after the phone was stopped. The iPad used a resizable window,
+which correctly exposes product window/layout work still to be implemented.

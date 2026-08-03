@@ -46,7 +46,8 @@ This is a provisional selection. Milestone 1 build and runtime evidence can chan
 
 ## Milestone 2 — Aurora rendering spike
 
-1. Build Aurora's Metal-backed example for macOS ARM64.
+1. [x] Build and visibly run Aurora's Metal-backed example for macOS ARM64.
+   [x] Build the same pinned GX example for ARM64 iOS Simulator and launch it sequentially on iPhone and iPad simulators. This is a dependency proof, not a Bellpad app pass.
 2. Create a minimal Animal Crossing target using Aurora core/VI/MTX/OS/PAD/DVD/CARD.
 3. Inventory every GX/GD function called by the game and compare it to Aurora exports.
 4. Feed representative Animal Crossing display lists through Aurora GX.
@@ -57,7 +58,7 @@ GX reaches Metal as: game/JSystem/emu64 GX calls → Aurora GX command processor
 
 ## Milestone 3 — mobile targets and data import
 
-- Generate native iOS and iPadOS application targets sharing one arm64 game-core target.
+- Generate a native macOS application and a universal iOS/iPadOS application target sharing one ARM64 game-core target. Establish a real product bundle, lifecycle owner, Metal surface, and adaptive touch overlay before claiming an Apple application pass.
 - Use a document picker for security-scoped ISO/GCM/CISO/RVZ selection.
 - Validate disc header, revision, size, and known supported hashes before retaining data.
 - Prefer direct indexed reads through Aurora/nod because it supports compressed formats and avoids duplicating copyrighted data. If measurements show unacceptable random-read latency, build a local, versioned index or extracted cache under Application Support; that cache remains excluded from packages and backups as appropriate.

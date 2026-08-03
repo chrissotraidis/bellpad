@@ -53,6 +53,22 @@ N64 GBI display list → emu64 → GX → Aurora → Dawn/WebGPU → Metal
 
 The OpenGL 3.3 renderer remains a temporary reference for Milestone 1. It is unsuitable as the final iOS path because iOS exposes OpenGL ES rather than desktop OpenGL 3.3 and OpenGL ES is deprecated on Apple platforms.
 
+Pinned Aurora has now crossed the first platform gate. Its GX example runs on
+macOS ARM64 with Dawn selecting the Apple M2 Metal adapter, and an independently
+linked ARM64 iOS Simulator build renders on both iPhone and iPad simulators.
+This proves `GX → Dawn/WebGPU → Metal` is available on every intended Apple
+platform family; it does not yet prove Animal Crossing's complete GX/GD call
+surface or retained `emu64` display lists.
+
+Aurora's released Dawn archive for iOS is device-platform only. Simulator builds
+therefore compile Dawn from source with Ninja, vendored SDL3, protobuf disabled,
+and Tint IR binary serialization disabled. At pinned commit `5027ed63…`, the
+Xcode generator leaves Dawn object libraries without the final archives needed
+by the app link, while Ninja emits `libwebgpu_dawn.a` correctly. Xcode remains
+the product build/sign/package tool; this implementation detail is isolated to
+the compatibility-layer dependency build until an upstream universal package
+or generator fix is available.
+
 ## Disc and assets
 
 The app bundle contains no retail data. The user selects a supported image through Files. A validator reads only the header and required metadata before a nod-backed disc reader indexes the filesystem. The initial preference is direct reading from a private Application Support copy or a durable security-scoped bookmark. Any derived cache is local, versioned by image hash, removable, and excluded from source and release packages.

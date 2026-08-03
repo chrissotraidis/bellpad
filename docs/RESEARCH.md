@@ -24,6 +24,7 @@ All checkouts below live under ignored `ref/` paths. A commit pin records what w
 - PC-port PR #48 (`915fb86…`): maintained full 64-bit migration. Reports include macOS ARM64 launch, Windows/Linux gameplay, audio, and save/reload. Known UI line artifacts remain and the PR is too large for upstream to merge without deeper review.
 - PC-port issues show current gaps around RVZ, island/town travel, NES/slot B, letters/passwords, and several gameplay softlocks; tests must cover them rather than assuming title-screen success.
 - Aurora history includes iOS time-overflow fixes, iPhone haptics, Metal warnings/fixes, GCI-folder and raw-card work, large-file fixes, controller persistence, and mobile GPU fixes.
+- Local build evidence at pinned commit `5027ed63…` now confirms Aurora's GX example selects Dawn's Metal backend and renders on macOS ARM64. An ARM64 iOS Simulator source build also installs and renders sequentially on iPhone and iPad simulators. Aurora's release assets contain `dawn-ios-arm64.tar.gz` for device, but no simulator archive; source Dawn built with Ninja is the proven simulator route. Xcode-generator Dawn object libraries did not emit the final expected archives at this revision, so that route is not selected.
 
 ## Architecture comparison
 
