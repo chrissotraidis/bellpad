@@ -1,0 +1,74 @@
+# macOS metadata
+.DS_Store
+**/.DS_Store
+
+# User-supplied optical-disc images (never commit or package)
+*.iso
+*.ISO
+*.gcm
+*.GCM
+*.ciso
+*.CISO
+*.rvz
+*.RVZ
+*.wia
+*.WIA
+*.wbfs
+*.WBFS
+*.nkit.iso
+*.nkit.gcz
+*.gcz
+*.GCZ
+
+# Extracted or generated retail game data
+ref/extracted/
+ref/game-data/
+ref/runtime-data/
+ref/.image-validation.txt
+ref/upstream/
+ref/harkinianpad/
+game-data/
+runtime-data/
+Application Support/
+
+# User saves and memory-card data
+*.gci
+*.GCI
+*.raw
+*.RAW
+*.sav
+*.srm
+saves/
+SaveData/
+
+# Apple/Xcode build products and local configuration
+build/
+DerivedData/
+*.xcarchive
+*.ipa
+*.dSYM
+*.dSYM.zip
+xcuserdata/
+*.xcuserstate
+*.xccheckout
+*.moved-aside
+.swiftpm/
+
+# Signing material, credentials, and local secrets
+*.p12
+*.mobileprovision
+*.cer
+*.key
+*.pem
+*.provisionprofile
+.env
+.env.*
+!.env.example
+
+# Common native build outputs
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+compile_commands.json
+out/
+dist/

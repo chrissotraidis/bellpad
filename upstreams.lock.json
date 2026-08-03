@@ -1,0 +1,86 @@
+{
+  "schema": 1,
+  "updated": "2026-08-03",
+  "projects": [
+    {
+      "name": "ac-decomp",
+      "url": "https://github.com/ACreTeam/ac-decomp.git",
+      "branch": "master",
+      "commit": "09ca8e8b5b24e6ab44047ee980cf0088ad7ecb4c",
+      "license": "CC0-1.0",
+      "disposition": "candidate game core"
+    },
+    {
+      "name": "ACGC-PC-Port",
+      "url": "https://github.com/flyngmt/ACGC-PC-Port.git",
+      "branch": "master",
+      "commit": "4099d246c927e75b4fd342ca13f4ac4395c55af5",
+      "license": "CC0-1.0 decomp; MIT PC layer",
+      "disposition": "behavior oracle and fix source"
+    },
+    {
+      "name": "ACGC-PC-Port-64bit",
+      "url": "https://github.com/birabittoh/ACGC-PC-Port.git",
+      "branch": "master",
+      "commit": "915fb86ba9a6c2144dabda9143d93af7a3f92be7",
+      "license": "CC0-1.0 decomp; MIT PC layer",
+      "disposition": "desktop fault-isolation baseline"
+    },
+    {
+      "name": "ACGC-macOS-Port",
+      "url": "https://github.com/Dimillian/ACGC-macOS-Port.git",
+      "branch": "master",
+      "commit": "d552ede1bbe3910759ce749b18fd4d2d670b117a",
+      "license": "inherits CC0-1.0/MIT source tree",
+      "disposition": "reference only"
+    },
+    {
+      "name": "aurora",
+      "url": "https://github.com/encounter/aurora.git",
+      "branch": "main",
+      "commit": "5027ed63a73dfba28de9eceed00481fb09a19c35",
+      "license": "MIT",
+      "disposition": "intended compatibility-layer dependency after GX spike"
+    },
+    {
+      "name": "forest",
+      "url": "https://github.com/ACreTeam/forest.git",
+      "branch": "main",
+      "commit": "2151e11e7520b1d07f544984af4c3113a1f8023f",
+      "license": "CC0-1.0; tracked aram.bin excluded pending provenance review",
+      "disposition": "Aurora integration reference only"
+    },
+    {
+      "name": "OpenCrossing-Anbernic",
+      "url": "https://github.com/GabeConway/OpenCrossing-Anbernic.git",
+      "branch": "main",
+      "commit": "762ea7a5a5c3d9325ef9fa4a767b17b9f33b0f01",
+      "license": "CC0-1.0 decomp; MIT PC layer",
+      "disposition": "ARM handheld reference"
+    },
+    {
+      "name": "HarkinianPad",
+      "url": "https://github.com/chrissotraidis/harkinianpad.git",
+      "branch": "main",
+      "commit": "1197472956cd2c4dd3f03fb6fe5f2dfb28d30ad7",
+      "license": "integration code all-rights-reserved unless a file states otherwise",
+      "disposition": "architecture and UX reference only"
+    },
+    {
+      "name": "ACGC-Vita-Port",
+      "url": "https://github.com/Brendonm17/ACGC-Vita-Port.git",
+      "branch": "master",
+      "commit": "46fb6b4cc4beb187e898b04a7fb075d0bd93a463",
+      "license": "no repository license metadata observed",
+      "disposition": "reference only; no reuse"
+    },
+    {
+      "name": "ACGC-Android-Experimental",
+      "url": "https://github.com/YlPorts/ACGC-Android-Experimental-chatgpt-5.6-.git",
+      "branch": "master",
+      "commit": "99af0864b8508834b0aab6be740fd4af2e4def74",
+      "license": "no repository license metadata observed",
+      "disposition": "reference only; no reuse"
+    }
+  ]
+}
