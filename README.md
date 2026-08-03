@@ -9,6 +9,7 @@ The repository is in active research and desktop-baseline development. It does n
 As of 2026-08-03:
 
 - A pinned 64-bit source-port fork builds locally as a native macOS ARM64 executable.
+- The same patched source now builds with both Apple Clang 21 and GCC 16; the Apple Clang binary reaches the correctly rendered 60 FPS title screen.
 - The pinned checkout, local patches, and build are now reproducible with tracked scripts.
 - A user-supplied `GAFE01` revision 0 image is validated and read directly without extracting or bundling its assets.
 - The desktop baseline renders the title, setup, train, and generated town at 60 FPS and starts 32 kHz stereo audio.
@@ -57,7 +58,7 @@ The current desktop-only development procedure is documented in [BUILDING.md](do
 
 ## Build instructions
 
-There is no product build yet. To reproduce the pinned desktop investigation on Apple Silicon, install CMake, Ninja, SDL2 compatibility, and Homebrew GCC 16, then run the tracked fetch/build scripts described in [BUILDING.md](docs/BUILDING.md).
+There is no product build yet. To reproduce the pinned desktop investigation on Apple Silicon, install Xcode, CMake, Ninja, and SDL2 compatibility, then run the tracked fetch/build scripts described in [BUILDING.md](docs/BUILDING.md). Apple Clang is the default; GCC 16 is an optional compatibility cross-check.
 
 Before committing or packaging anything, run:
 
@@ -65,7 +66,7 @@ Before committing or packaging anything, run:
 ./scripts/audit-tracked-content.sh
 ```
 
-The final build must use Apple Clang for iOS. Removing the remaining GCC-only pointer-width assumptions is a required desktop milestone, not optional cleanup.
+The final build must use Apple Clang for iOS. The initial compiler gate is now passed; the remaining address-model audit, sanitizers, save/reload proof, and mobile platform migration are still required.
 
 ## Controls
 
@@ -121,7 +122,7 @@ See [TESTING.md](docs/TESTING.md).
 
 ## Known issues
 
-- The current 64-bit reference needs GCC; Apple Clang rejects remaining pointer-to-`u32` static initialization.
+- Apple Clang compilation is proven, but the full guest-address/pointer-width audit and sanitizer run are not complete.
 - One title timing path skips cleanup and reaches an invalid arena free.
 - Save creation and relaunch persistence have not yet been completed in the local baseline.
 - App-window close and lifecycle teardown still need a clean retest; `SIGTERM` exits the clean scripted build.

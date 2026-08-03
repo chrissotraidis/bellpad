@@ -8,7 +8,8 @@ No gameplay test is marked passed without a dated result, device/OS, build revis
 
 | Test | Expected | Current evidence |
 |---|---|---|
-| Configure/build native ARM64 | Mach-O arm64 executable | Pass — 2026-08-03, M2/macOS 26.5, GCC 16.1.0 |
+| Configure/build native ARM64 | Mach-O arm64 executable | Pass — 2026-08-03, M2/macOS 26.5; independent full builds with Apple Clang 21.0.0 and GCC 16.1.0 |
+| Apple toolchain runtime smoke test | Native binary reaches visible game output | Pass — Apple Clang build rendered the title correctly at 60 FPS using the ignored supported image |
 | Validate supported disc | Accept `GAFE01` USA Rev 0 only | Partial pass — local header/revision/magic/hash validated; product hash allowlist pending |
 | Trademark/title | Correct render/audio/input | Partial pass — correct 60 FPS rendering and 32 kHz stereo; A/Start works through a latched test path; transition race remains |
 | Character/town creation | Completes with text entry | Partial pass — player/town names, train, and town generation completed; first house/save not yet finalized |
@@ -22,7 +23,7 @@ No gameplay test is marked passed without a dated result, device/OS, build revis
 - Trimmed-image EOF: the 56-byte final file is requested as 64 aligned bytes; the original host shim retries forever. A local file-length clamp plus zero-filled alignment tail fixes boot.
 - Title transition: one input/timing sequence skipped from title action 3 to 6 and repeatedly panicked on an invalid arena free; the normal 3→4→5 sequence reaches K.K. and does not reproduce it.
 - Short keyboard edges: synthesized native key taps could end between `PADRead` calls. An event-edge latch fixes dialogue advancement and is now a tracked patch.
-- Shutdown evidence differs by harness: the earlier temporary app wrapper needed SIGKILL, while targeted `SIGTERM` cleanly ends the fresh scripted executable. Window/app teardown remains open.
+- Shutdown evidence differs by harness: app-wrapper sessions have needed SIGKILL, while one targeted raw-process `SIGTERM` test exited. A later Clang wrapper again needed SIGKILL, so window/app teardown remains open.
 
 ### Gameplay evidence on 2026-08-03
 

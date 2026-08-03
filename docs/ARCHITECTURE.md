@@ -25,6 +25,8 @@ The app executes compiled C/C++ game code directly on Apple ARM64. Aurora is a s
 
 Host pointers are native-width. Game addresses, segmented N64 display-list addresses, file offsets, save fields, and on-disc structures remain explicitly fixed-width. Conversion crosses named, bounds-checked APIs; integer-to-pointer casts are not used as a generic address model.
 
+The first Apple Clang portability pass makes DVD/audio callbacks, task payload copies, heap headers, memory archives, ARAM, retrace messages, allocation APIs, and Famicom buffers native-width where they carry host state. It deliberately does not widen serialized or guest-visible fields. Both Apple Clang and GCC builds pass, but sanitizers and the complete boundary inventory remain required evidence.
+
 Static display lists must be registered with the resolver at startup rather than detected by assuming a low/fixed executable address. ARAM becomes an allocated host buffer whose guest addresses are offsets, not truncated host pointers.
 
 ## Graphics

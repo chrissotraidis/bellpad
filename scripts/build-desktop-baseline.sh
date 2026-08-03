@@ -4,26 +4,27 @@ set -eu
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 repo_root=$(CDPATH= cd -- "$script_dir/.." && pwd)
 source_dir="$repo_root/ref/upstream/acgc-64bit/pc"
-build_dir="$source_dir/build-macos-arm64"
 
 "$script_dir/fetch-desktop-baseline.sh"
 
 if [ -n "${BELLPAD_CC:-}" ]; then
     c_compiler=$BELLPAD_CC
 else
-    c_compiler=$(command -v gcc-16 || true)
+    c_compiler=$(command -v clang || true)
 fi
 if [ -n "${BELLPAD_CXX:-}" ]; then
     cxx_compiler=$BELLPAD_CXX
 else
-    cxx_compiler=$(command -v g++-16 || true)
+    cxx_compiler=$(command -v clang++ || true)
 fi
 
 if [ -z "$c_compiler" ] || [ -z "$cxx_compiler" ]; then
-    echo "Homebrew GCC 16 is required for the current baseline." >&2
-    echo "Install it with 'brew install gcc', or set BELLPAD_CC and BELLPAD_CXX." >&2
+    echo "Apple Clang is required for the default macOS baseline." >&2
+    echo "Install Xcode command-line tools, or set BELLPAD_CC and BELLPAD_CXX." >&2
     exit 1
 fi
+
+build_dir=${BELLPAD_BUILD_DIR:-"$source_dir/build-macos-arm64-clang"}
 
 cmake -S "$source_dir" -B "$build_dir" -G Ninja \
     -DCMAKE_C_COMPILER="$c_compiler" \

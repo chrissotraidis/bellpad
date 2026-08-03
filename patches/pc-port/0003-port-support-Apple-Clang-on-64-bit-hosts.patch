@@ -1,0 +1,644 @@
+diff --git a/include/JSystem/JGeometry.h b/include/JSystem/JGeometry.h
+index 89148c9..d9973b2 100644
+--- a/include/JSystem/JGeometry.h
++++ b/include/JSystem/JGeometry.h
+@@ -230 +230 @@ template <class T> struct TBox {
+-    TBox(const TBox& other) : i(other.f), f(other.y) {
++    TBox(const TBox& other) : i(other.i), f(other.f) {
+diff --git a/include/JSystem/JKernel/JKRArchive.h b/include/JSystem/JKernel/JKRArchive.h
+index fce524c..5bb0f98 100644
+--- a/include/JSystem/JKernel/JKRArchive.h
++++ b/include/JSystem/JKernel/JKRArchive.h
+@@ -204 +204 @@ class JKRArchive : public JKRFileLoader {
+-    JKRArchive(s32, EMountMode);
++    JKRArchive(intptr_t, EMountMode);
+@@ -226,2 +226,2 @@ class JKRArchive : public JKRFileLoader {
+-    static JKRArchive* check_mount_already(s32);
+-    static JKRArchive* check_mount_already(s32, JKRHeap*);
++    static JKRArchive* check_mount_already(intptr_t);
++    static JKRArchive* check_mount_already(intptr_t, JKRHeap*);
+@@ -267 +267 @@ class JKRArchive : public JKRFileLoader {
+-    s32 mEntryNum;                   // _40
++    intptr_t mEntryNum;              // _40 (pointer-sized for memory-backed archives on host)
+diff --git a/include/JSystem/JKernel/JKRExpHeap.h b/include/JSystem/JKernel/JKRExpHeap.h
+index a0f5c61..084de23 100644
+--- a/include/JSystem/JKernel/JKRExpHeap.h
++++ b/include/JSystem/JKernel/JKRExpHeap.h
+@@ -46 +46 @@ class JKRExpHeap : public JKRHeap {
+-            return (CMemBlock*)((u32)data + -0x10);
++            return static_cast<CMemBlock*>(data) - 1;
+diff --git a/include/JSystem/JSupport/JSUIosBase.h b/include/JSystem/JSupport/JSUIosBase.h
+index 66a9762..06d1057 100644
+--- a/include/JSystem/JSupport/JSUIosBase.h
++++ b/include/JSystem/JSupport/JSUIosBase.h
+@@ -10 +10 @@ class JSUIosBase {
+-    inline JSUIosBase() : mState(GOOD) {
++    inline JSUIosBase() : mState(JSU_GOOD) {
+diff --git a/include/JSystem/JSupport/JSUStreamEnum.h b/include/JSystem/JSupport/JSUStreamEnum.h
+index 91c9167..f822f8f 100644
+--- a/include/JSystem/JSupport/JSUStreamEnum.h
++++ b/include/JSystem/JSupport/JSUStreamEnum.h
+@@ -4,14 +4 @@
+-#ifdef TARGET_PC
+-/* On PC, SEEK_SET/SEEK_CUR/SEEK_END/EOF are macros from stdio.h.
+-   Undefine them so we can use them as enum values, then restore. */
+-#pragma push_macro("SEEK_SET")
+-#pragma push_macro("SEEK_CUR")
+-#pragma push_macro("SEEK_END")
+-#pragma push_macro("EOF")
+-#undef SEEK_SET
+-#undef SEEK_CUR
+-#undef SEEK_END
+-#undef EOF
+-#endif
+-
+-enum JSUStreamSeekFrom { SEEK_SET = 0, SEEK_CUR = 1, SEEK_END = 2 };
++enum JSUStreamSeekFrom { JSU_SEEK_SET = 0, JSU_SEEK_CUR = 1, JSU_SEEK_END = 2 };
+@@ -19,8 +6 @@ enum JSUStreamSeekFrom { SEEK_SET = 0, SEEK_CUR = 1, SEEK_END = 2 };
+-enum EIoState { GOOD = 0, EOF = 1 };
+-
+-#ifdef TARGET_PC
+-#pragma pop_macro("EOF")
+-#pragma pop_macro("SEEK_END")
+-#pragma pop_macro("SEEK_CUR")
+-#pragma pop_macro("SEEK_SET")
+-#endif
++enum EIoState { JSU_GOOD = 0, JSU_EOF = 1 };
+diff --git a/include/dolphin/ar.h b/include/dolphin/ar.h
+index 0769663..d2c2ba9 100644
+--- a/include/dolphin/ar.h
++++ b/include/dolphin/ar.h
+@@ -45 +45,2 @@ void ARQInit();
+-void ARQPostRequest(void* req, uintptr_t owner, u32 type, u32 prio, uintptr_t source, uintptr_t dest, u32 length, void* callback);
++void ARQPostRequest(void* req, uintptr_t owner, u32 type, u32 prio, uintptr_t source, uintptr_t dest, u32 length,
++                    ARQCallback callback);
+diff --git a/include/jaudio_NES/dvdthread.h b/include/jaudio_NES/dvdthread.h
+index 32b29d2..e7b80f3 100644
+--- a/include/jaudio_NES/dvdthread.h
++++ b/include/jaudio_NES/dvdthread.h
+@@ -7 +7,7 @@
+-typedef void (*Jac_DVDCallback)(u32);
++#ifdef TARGET_PC
++typedef uintptr_t Jac_DVDAddress;
++#else
++typedef u32 Jac_DVDAddress;
++#endif
++
++typedef void (*Jac_DVDCallback)(Jac_DVDAddress);
+@@ -21 +27,2 @@ extern s32 DVDT_LoadtoARAM_Main(void* arg);
+-extern s32 DVDT_LoadtoARAM(u32 owner, char* name, u32 dst, u32 src, u32 length, u32* status, Jac_DVDCallback callback);
++extern s32 DVDT_LoadtoARAM(Jac_DVDAddress owner, char* name, Jac_DVDAddress dst, Jac_DVDAddress src, u32 length,
++                           u32* status, Jac_DVDCallback callback);
+@@ -24,2 +31,4 @@ extern s32 DVDT_DRAMtoARAM_Main(void* arg);
+-extern s32 DVDT_ARAMtoDRAM(u32 owner, u32 dst, u32 src, u32 length, u32* status, Jac_DVDCallback callback);
+-extern s32 DVDT_DRAMtoARAM(u32 owner, u32 dst, u32 src, u32 length, u32* status, Jac_DVDCallback callback);
++extern s32 DVDT_ARAMtoDRAM(Jac_DVDAddress owner, Jac_DVDAddress dst, Jac_DVDAddress src, u32 length, u32* status,
++                           Jac_DVDCallback callback);
++extern s32 DVDT_DRAMtoARAM(Jac_DVDAddress owner, Jac_DVDAddress dst, Jac_DVDAddress src, u32 length, u32* status,
++                           Jac_DVDCallback callback);
+@@ -27 +36 @@ extern s32 DVDT_CheckFile(char* file);
+-extern s32 DVDT_CheckPass(u32 owner, u32* status, Jac_DVDCallback callback);
++extern s32 DVDT_CheckPass(Jac_DVDAddress owner, u32* status, Jac_DVDCallback callback);
+diff --git a/include/jaudio_NES/neosthread.h b/include/jaudio_NES/neosthread.h
+index 51b2b29..198e573 100644
+--- a/include/jaudio_NES/neosthread.h
++++ b/include/jaudio_NES/neosthread.h
+@@ -5,0 +6 @@
++#include "jaudio_NES/dvdthread.h"
+@@ -12 +13 @@ extern u32 Neos_Update(s16* dst);
+-extern void ImageLoaded(u32 param);
++extern void ImageLoaded(Jac_DVDAddress param);
+diff --git a/include/libforest/emu64/emu64.hpp b/include/libforest/emu64/emu64.hpp
+index 5ea9848..8d5b752 100644
+--- a/include/libforest/emu64/emu64.hpp
++++ b/include/libforest/emu64/emu64.hpp
+@@ -138 +138,7 @@ typedef va_list __tag_va_List;
+-float fastcast_float(register unsigned char* s) {
++#ifdef __MWERKS__
++#define EMU64_REGISTER register
++#else
++#define EMU64_REGISTER
++#endif
++
++float fastcast_float(EMU64_REGISTER unsigned char* s) {
+@@ -142 +148 @@ float fastcast_float(register unsigned char* s) {
+-    register float f;
++    EMU64_REGISTER float f;
+@@ -154 +160 @@ float fastcast_float(register unsigned char* s) {
+-float fastcast_float(register unsigned short* s) {
++float fastcast_float(EMU64_REGISTER unsigned short* s) {
+@@ -158 +164 @@ float fastcast_float(register unsigned short* s) {
+-    register float f;
++    EMU64_REGISTER float f;
+@@ -170 +176 @@ float fastcast_float(register unsigned short* s) {
+-float fastcast_float(register signed char* s) {
++float fastcast_float(EMU64_REGISTER signed char* s) {
+@@ -174 +180 @@ float fastcast_float(register signed char* s) {
+-    register float f;
++    EMU64_REGISTER float f;
+@@ -186 +192 @@ float fastcast_float(register signed char* s) {
+-float fastcast_float(register short* s) {
++float fastcast_float(EMU64_REGISTER short* s) {
+@@ -190 +196 @@ float fastcast_float(register short* s) {
+-    register float f;
++    EMU64_REGISTER float f;
+@@ -201,0 +208,2 @@ float fastcast_float(register short* s) {
++#undef EMU64_REGISTER
++
+diff --git a/pc/CMakeLists.txt b/pc/CMakeLists.txt
+index 7a67638..a6f4c91 100644
+--- a/pc/CMakeLists.txt
++++ b/pc/CMakeLists.txt
+@@ -391,7 +390,0 @@ if(CMAKE_C_COMPILER_ID MATCHES "Clang")
+-    if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+-        message(FATAL_ERROR
+-            "64-bit builds require GCC (Clang rejects pointer-to-u32 truncation in GBI static initializers).\n"
+-            "  macOS:  brew install gcc && cmake .. -DCMAKE_C_COMPILER=gcc-15 -DCMAKE_CXX_COMPILER=g++-15\n"
+-            "          (adjust version number to match installed GCC, e.g. gcc-14/g++-14)\n"
+-            "  Linux:  GCC is typically the default compiler.")
+-    endif()
+diff --git a/pc/src/pc_aram.c b/pc/src/pc_aram.c
+index b20208f..20a5571 100644
+--- a/pc/src/pc_aram.c
++++ b/pc/src/pc_aram.c
+@@ -2,0 +3 @@
++#include "dolphin/ar.h"
+@@ -27 +28 @@ uintptr_t ARAlloc(u32 size) {
+-        fprintf(stderr, "[PC/ARAM] Out of ARAM! Requested %lu, used %lu/%u\n",
++        fprintf(stderr, "[PC/ARAM] Out of ARAM! Requested %u, used %u/%u\n",
+@@ -36 +37 @@ uintptr_t ARAlloc(u32 size) {
+-void ARFree(u32* addr) {
++u32 ARFree(u32* addr) {
+@@ -37,0 +39 @@ void ARFree(u32* addr) {
++    return 0;
+@@ -75 +77 @@ void ARQPostRequest(void* req, uintptr_t owner, u32 type, u32 prio,
+-                    uintptr_t source, uintptr_t dest, u32 length, void* callback) {
++                    uintptr_t source, uintptr_t dest, u32 length, ARQCallback callback) {
+@@ -81 +83 @@ void ARQPostRequest(void* req, uintptr_t owner, u32 type, u32 prio,
+-    if (callback) ((void (*)(uintptr_t))callback)((uintptr_t)req);
++    if (callback) callback((uintptr_t)req);
+diff --git a/src/actor/ac_museum_insect_tonbo.c_inc b/src/actor/ac_museum_insect_tonbo.c_inc
+index b080b71..a8607da 100644
+--- a/src/actor/ac_museum_insect_tonbo.c_inc
++++ b/src/actor/ac_museum_insect_tonbo.c_inc
+@@ -129 +129 @@ void minsect_tonbo_suprised_near_player() {
+-    extern _strip(f32);
++    extern void _strip(f32);
+diff --git a/src/actor/ac_quest_talk_init.c b/src/actor/ac_quest_talk_init.c
+index 69dde39..fc6ce9b 100644
+--- a/src/actor/ac_quest_talk_init.c
++++ b/src/actor/ac_quest_talk_init.c
+@@ -910 +910 @@ static void aQMgr_actor_set_quest_info(QUEST_MANAGER_ACTOR* manager) {
+-static aQMgr_actor_clear_client_quest_info(QUEST_MANAGER_ACTOR* manager) {
++static void aQMgr_actor_clear_client_quest_info(QUEST_MANAGER_ACTOR* manager) {
+diff --git a/src/actor/npc/ac_npc_police2_move.c_inc b/src/actor/npc/ac_npc_police2_move.c_inc
+index 06c9606..163e7ac 100644
+--- a/src/actor/npc/ac_npc_police2_move.c_inc
++++ b/src/actor/npc/ac_npc_police2_move.c_inc
+@@ -7 +7 @@ static void aPOL2_set_animation(NPC_POLICE2_ACTOR* actor, int action) {
+-    static animeSeqNoTable[] = {
++    static int animeSeqNoTable[] = {
+diff --git a/src/game/m_all_grow_ovl.c b/src/game/m_all_grow_ovl.c
+index 3c3b22e..54d02c1 100644
+--- a/src/game/m_all_grow_ovl.c
++++ b/src/game/m_all_grow_ovl.c
+@@ -1759 +1759 @@ static int mAGrw_CheckTree000(mActor_name_t item) {
+-static mAGrw_CheckTree001(mActor_name_t item) {
++static int mAGrw_CheckTree001(mActor_name_t item) {
+@@ -1767 +1767 @@ static mAGrw_CheckTree001(mActor_name_t item) {
+-static mAGrw_CheckTree002(mActor_name_t item) {
++static int mAGrw_CheckTree002(mActor_name_t item) {
+@@ -1775 +1775 @@ static mAGrw_CheckTree002(mActor_name_t item) {
+-static mAGrw_CheckTree003(mActor_name_t item) {
++static int mAGrw_CheckTree003(mActor_name_t item) {
+@@ -1783 +1783 @@ static mAGrw_CheckTree003(mActor_name_t item) {
+-static mAGrw_CheckTree004(mActor_name_t item) {
++static int mAGrw_CheckTree004(mActor_name_t item) {
+diff --git a/src/game/m_bgm.c b/src/game/m_bgm.c
+index 54c7971..7ca394b 100644
+--- a/src/game/m_bgm.c
++++ b/src/game/m_bgm.c
+@@ -276 +276 @@ static int mBGM_check_ignore_collect_insects_volume(u8 bgm_num) {
+-static mBGMElem_default_set(mBGMElem* elem) {
++static void mBGMElem_default_set(mBGMElem* elem) {
+diff --git a/src/game/m_mail_password_check.c b/src/game/m_mail_password_check.c
+index cf9bdcd..2c12956 100644
+--- a/src/game/m_mail_password_check.c
++++ b/src/game/m_mail_password_check.c
+@@ -162,0 +163,2 @@ static void mMpswd_bit_shift(u8* pswd, int shift) {
++    extern int __abs(int);
++
+diff --git a/src/game/m_player_main_hold.c_inc b/src/game/m_player_main_hold.c_inc
+index 1851890..1e5aa4f 100644
+--- a/src/game/m_player_main_hold.c_inc
++++ b/src/game/m_player_main_hold.c_inc
+@@ -29,2 +29,2 @@ static int Player_actor_Check_able_request_main_hold(GAME* game) {
+-static Player_actor_request_main_hold(GAME* game, int ftr_no, int index, const xyz_t* pos, f32 speed, int flags,
+-                                      int priority) {
++static int Player_actor_request_main_hold(GAME* game, int ftr_no, int index, const xyz_t* pos, f32 speed, int flags,
++                                          int priority) {
+diff --git a/src/game/m_trademark.c b/src/game/m_trademark.c
+index 819c004..fb58f8b 100644
+--- a/src/game/m_trademark.c
++++ b/src/game/m_trademark.c
+@@ -33,0 +34 @@
++#include "dolphin/os.h"
+diff --git a/src/static/Famicom/famicom.cpp b/src/static/Famicom/famicom.cpp
+index 69cdccd..8d6fd0f 100644
+--- a/src/static/Famicom/famicom.cpp
++++ b/src/static/Famicom/famicom.cpp
+@@ -818 +818 @@ static void SetupInternalCommentImage(u8* data) {
+-    famicomCommon.memcard_game_header.comment_img_size = (u32)data - (u32)data_p;
++    famicomCommon.memcard_game_header.comment_img_size = (u32)((uintptr_t)data - (uintptr_t)data_p);
+@@ -1201 +1201 @@ static s32 memcard_data_load(
+-        FamicomSaveDataHeader* read_save_header = (FamicomSaveDataHeader*)((u32)buf + status.offsetData);
++        FamicomSaveDataHeader* read_save_header = (FamicomSaveDataHeader*)((u8*)buf + status.offsetData);
+@@ -2046 +2046 @@ static int SetupResBanner(const ResTIMG* img, u8* dst, size_t max_size, size_t*
+-        *size = (u32)data_p - (u32)dst;
++        *size = (u32)((uintptr_t)data_p - (uintptr_t)dst);
+@@ -2106 +2106 @@ static int SetupResIcon(const ResTIMG* img, u8* dst, size_t max_size, size_t* si
+-        *size_p = (u32)data_p - (u32)dst;
++        *size_p = (u32)((uintptr_t)data_p - (uintptr_t)dst);
+diff --git a/src/static/Famicom/famicom_nesinfo.cpp b/src/static/Famicom/famicom_nesinfo.cpp
+index f126f3d..9a6951c 100644
+--- a/src/static/Famicom/famicom_nesinfo.cpp
++++ b/src/static/Famicom/famicom_nesinfo.cpp
+@@ -553 +553 @@ static u16 calc_check_sum2(void* data, size_t size) {
+-    if (((u32)data & 1) == 0) {
++    if (((uintptr_t)data & 1) == 0) {
+diff --git a/src/static/Famicom/ks_nes_draw.cpp b/src/static/Famicom/ks_nes_draw.cpp
+index 37bc3ed..1dbb4b3 100644
+--- a/src/static/Famicom/ks_nes_draw.cpp
++++ b/src/static/Famicom/ks_nes_draw.cpp
+@@ -132,3 +132,4 @@ void ksNesDrawMakeBGIndTex(ksNesCommonWorkObj* wp, u32 mmc3) {
+-            if (((s32)nametable_p) >= 0) {
+-                nibble_acc = (((u32)nametable_p) & 3) | (nibble_acc << 4);
+-                tile_byte = (((u32)nametable_p) >> 8) & 0xFF;
++            u32 nametable_value = (u32)(uintptr_t)nametable_p;
++            if ((s32)nametable_value >= 0) {
++                nibble_acc = (nametable_value & 3) | (nibble_acc << 4);
++                tile_byte = (nametable_value >> 8) & 0xFF;
+@@ -175,3 +176,4 @@ void ksNesDrawMakeBGIndTexMMC5(ksNesCommonWorkObj* wp, ksNesStateObj* sp) {
+-            if (((s32)nametable_p) >= 0) {
+-                nibble_acc = (((u32)nametable_p) & 3) | (nibble_acc << 4);
+-                tile_byte = (((u32)nametable_p) >> 8) & 0xFF;
++            u32 nametable_value = (u32)(uintptr_t)nametable_p;
++            if ((s32)nametable_value >= 0) {
++                nibble_acc = (nametable_value & 3) | (nibble_acc << 4);
++                tile_byte = (nametable_value >> 8) & 0xFF;
+@@ -275,3 +277,4 @@ void ksNesDrawMakeBGIndTexMMC2(ksNesCommonWorkObj* wp, u32 default_bank) {
+-            if (((s32)nametable_p) >= 0) {
+-                nibble_acc = (((u32)nametable_p) & 3) | (nibble_acc << 4);
+-                tile_byte = (((u32)nametable_p) >> 8) & 0xFF;
++            u32 nametable_value = (u32)(uintptr_t)nametable_p;
++            if ((s32)nametable_value >= 0) {
++                nibble_acc = (nametable_value & 3) | (nibble_acc << 4);
++                tile_byte = (nametable_value >> 8) & 0xFF;
+diff --git a/src/static/JSystem/JFramework/JFWDisplay.cpp b/src/static/JSystem/JFramework/JFWDisplay.cpp
+index 41d39bb..60eb3cc 100644
+--- a/src/static/JSystem/JFramework/JFWDisplay.cpp
++++ b/src/static/JSystem/JFramework/JFWDisplay.cpp
+@@ -334,2 +334,2 @@ void waitForTick(u32 p1, u16 p2) {
+-        } while (((int)msg - (int)nextCount) < 0);
+-        nextCount = (int)msg + uVar1;
++        } while ((s32)((u32)(uintptr_t)msg - nextCount) < 0);
++        nextCount = (u32)(uintptr_t)msg + uVar1;
+diff --git a/src/static/JSystem/JKernel/JKRAramStream.cpp b/src/static/JSystem/JKernel/JKRAramStream.cpp
+index 75b9a79..954bbe5 100644
+--- a/src/static/JSystem/JKernel/JKRAramStream.cpp
++++ b/src/static/JSystem/JKernel/JKRAramStream.cpp
+@@ -93 +93 @@ s32 JKRAramStream::writeToAram(JKRAramStreamCommand* command) {
+-        command->mStream->seek(offset, SEEK_SET);
++        command->mStream->seek(offset, JSU_SEEK_SET);
+diff --git a/src/static/JSystem/JKernel/JKRArchivePri.cpp b/src/static/JSystem/JKernel/JKRArchivePri.cpp
+index b674a72..4e27710 100644
+--- a/src/static/JSystem/JKernel/JKRArchivePri.cpp
++++ b/src/static/JSystem/JKernel/JKRArchivePri.cpp
+@@ -18 +18 @@ JKRArchive::JKRArchive() {
+-JKRArchive::JKRArchive(s32 entryNum, JKRArchive::EMountMode mountMode) : JKRFileLoader() {
++JKRArchive::JKRArchive(intptr_t entryNum, JKRArchive::EMountMode mountMode) : JKRFileLoader() {
+diff --git a/src/static/JSystem/JKernel/JKRArchivePub.cpp b/src/static/JSystem/JKernel/JKRArchivePub.cpp
+index 5af20b9..dbf2db3 100644
+--- a/src/static/JSystem/JKernel/JKRArchivePub.cpp
++++ b/src/static/JSystem/JKernel/JKRArchivePub.cpp
+@@ -14 +14 @@
+-JKRArchive* JKRArchive::check_mount_already(s32 entryNum, JKRHeap* pHeap) {
++JKRArchive* JKRArchive::check_mount_already(intptr_t entryNum, JKRHeap* pHeap) {
+@@ -34 +34 @@ JKRArchive* JKRArchive::check_mount_already(s32 entryNum, JKRHeap* pHeap) {
+-JKRArchive* JKRArchive::check_mount_already(s32 entryNum) {
++JKRArchive* JKRArchive::check_mount_already(intptr_t entryNum) {
+@@ -85 +85 @@ JKRArchive* JKRArchive::mount(void* p1, JKRHeap* heap, EMountDirection mountDire
+-    JKRArchive* archive = check_mount_already((s32)p1, heap);
++    JKRArchive* archive = check_mount_already((intptr_t)p1, heap);
+diff --git a/src/static/JSystem/JKernel/JKRDvdFile.cpp b/src/static/JSystem/JKernel/JKRDvdFile.cpp
+index 92893d7..f218043 100644
+--- a/src/static/JSystem/JKernel/JKRDvdFile.cpp
++++ b/src/static/JSystem/JKernel/JKRDvdFile.cpp
+@@ -114 +114 @@ s32 JKRDvdFile::sync() {
+-    return (s32)m;
++    return (s32)(intptr_t)m;
+diff --git a/src/static/JSystem/JKernel/JKRDvdRipper.cpp b/src/static/JSystem/JKernel/JKRDvdRipper.cpp
+index de21f93..77b6b6f 100644
+--- a/src/static/JSystem/JKernel/JKRDvdRipper.cpp
++++ b/src/static/JSystem/JKernel/JKRDvdRipper.cpp
+@@ -413,6 +412,0 @@ static u8* nextSrcData(u8* nowData) {
+-        // Oopsies, forgot to call the function
+-#ifndef FIXES
+-        if (JKRDvdRipper::isErrorRetry == false) {
+-            return nullptr;
+-        }
+-#else
+@@ -422 +415,0 @@ static u8* nextSrcData(u8* nowData) {
+-#endif
+diff --git a/src/static/JSystem/JKernel/JKRExpHeap.cpp b/src/static/JSystem/JKernel/JKRExpHeap.cpp
+index e1f3f28..4dcc835 100644
+--- a/src/static/JSystem/JKernel/JKRExpHeap.cpp
++++ b/src/static/JSystem/JKernel/JKRExpHeap.cpp
+@@ -97 +97 @@ JKRExpHeap::JKRExpHeap(void* p1, u32 p2, JKRHeap* p3, bool p4) : JKRHeap(p1, p2,
+-    mHead->initiate(nullptr, nullptr, p2 - 0x10, 0, 0);
++    mHead->initiate(nullptr, nullptr, p2 - sizeof(CMemBlock), 0, 0);
+diff --git a/src/static/JSystem/JKernel/JKRHeap.cpp b/src/static/JSystem/JKernel/JKRHeap.cpp
+index 4c8c0ee..3211432 100644
+--- a/src/static/JSystem/JKernel/JKRHeap.cpp
++++ b/src/static/JSystem/JKernel/JKRHeap.cpp
+@@ -332 +332 @@ static inline bool pc_is_arena_ptr(void* p) {
+-void* operator new(u32 byteCount) {
++void* operator new(size_t byteCount) {
+@@ -335 +335 @@ void* operator new(u32 byteCount) {
+-void* operator new(u32 byteCount, int alignment) {
++void* operator new(size_t byteCount, int alignment) {
+@@ -338 +338 @@ void* operator new(u32 byteCount, int alignment) {
+-void* operator new[](u32 byteCount) {
++void* operator new[](size_t byteCount) {
+@@ -341 +341 @@ void* operator new[](u32 byteCount) {
+-void* operator new[](u32 byteCount, int alignment) {
++void* operator new[](size_t byteCount, int alignment) {
+@@ -362 +362 @@ void operator delete[](void* memory, size_t) {
+-void* operator new(u32 byteCount) {
++void* operator new(size_t byteCount) {
+@@ -365 +365 @@ void* operator new(u32 byteCount) {
+-void* operator new(u32 byteCount, int alignment) {
++void* operator new(size_t byteCount, int alignment) {
+@@ -368 +368 @@ void* operator new(u32 byteCount, int alignment) {
+-void* operator new[](u32 byteCount) {
++void* operator new[](size_t byteCount) {
+@@ -371 +371 @@ void* operator new[](u32 byteCount) {
+-void* operator new[](u32 byteCount, int alignment) {
++void* operator new[](size_t byteCount, int alignment) {
+@@ -381 +381 @@ void operator delete[](void* memory) {
+-void* operator new(u32 byteCount, JKRHeap* heap, int alignment) {
++void* operator new(size_t byteCount, JKRHeap* heap, int alignment) {
+@@ -384 +384 @@ void* operator new(u32 byteCount, JKRHeap* heap, int alignment) {
+-void* operator new[](u32 byteCount, JKRHeap* heap, int alignment) {
++void* operator new[](size_t byteCount, JKRHeap* heap, int alignment) {
+diff --git a/src/static/JSystem/JKernel/JKRMemArchive.cpp b/src/static/JSystem/JKernel/JKRMemArchive.cpp
+index 9752616..74eba72 100644
+--- a/src/static/JSystem/JKernel/JKRMemArchive.cpp
++++ b/src/static/JSystem/JKernel/JKRMemArchive.cpp
+@@ -30 +30 @@ JKRMemArchive::JKRMemArchive(s32 entryNum, EMountDirection mountDirection) : JKR
+-JKRMemArchive::JKRMemArchive(void* mem, u32 size, JKRMemBreakFlag breakFlag) : JKRArchive((s32)mem, MOUNT_MEM) {
++JKRMemArchive::JKRMemArchive(void* mem, u32 size, JKRMemBreakFlag breakFlag) : JKRArchive((intptr_t)mem, MOUNT_MEM) {
+diff --git a/src/static/JSystem/JSupport/JSUFileStream.cpp b/src/static/JSystem/JSupport/JSUFileStream.cpp
+index d79417a..cf5f5d9 100644
+--- a/src/static/JSystem/JSupport/JSUFileStream.cpp
++++ b/src/static/JSystem/JSupport/JSUFileStream.cpp
+@@ -28 +28 @@ int JSUFileInputStream::seekPos(s32 offset, JSUStreamSeekFrom from) {
+-        case SEEK_SET:
++        case JSU_SEEK_SET:
+@@ -32 +32 @@ int JSUFileInputStream::seekPos(s32 offset, JSUStreamSeekFrom from) {
+-        case SEEK_END:
++        case JSU_SEEK_END:
+@@ -36 +36 @@ int JSUFileInputStream::seekPos(s32 offset, JSUStreamSeekFrom from) {
+-        case SEEK_CUR:
++        case JSU_SEEK_CUR:
+diff --git a/src/static/JSystem/JSupport/JSUInputStream.cpp b/src/static/JSystem/JSupport/JSUInputStream.cpp
+index eec8ff3..560341b 100644
+--- a/src/static/JSystem/JSupport/JSUInputStream.cpp
++++ b/src/static/JSystem/JSupport/JSUInputStream.cpp
+@@ -9 +9 @@ int JSUInputStream::read(void* buf, s32 size) {
+-        this->setState(EOF);
++        this->setState(JSU_EOF);
+@@ -19 +19 @@ char* JSUInputStream::read(char* str) {
+-        this->setState(EOF);
++        this->setState(JSU_EOF);
+@@ -25 +25 @@ char* JSUInputStream::read(char* str) {
+-            this->setState(EOF);
++            this->setState(JSU_EOF);
+@@ -37 +37 @@ char* JSUInputStream::readString() {
+-        this->setState(EOF);
++        this->setState(JSU_EOF);
+@@ -45 +45 @@ char* JSUInputStream::readString() {
+-        this->setState(EOF);
++        this->setState(JSU_EOF);
+@@ -57 +57 @@ char* JSUInputStream::readString(char* buf, u16 len) {
+-        this->setState(EOF);
++        this->setState(JSU_EOF);
+@@ -71 +71 @@ int JSUInputStream::skip(s32 amount) {
+-            this->setState(EOF);
++            this->setState(JSU_EOF);
+@@ -82 +82 @@ int JSURandomInputStream::skip(s32 amount) {
+-    int s = this->seekPos(amount, SEEK_CUR);
++    int s = this->seekPos(amount, JSU_SEEK_CUR);
+@@ -84 +84 @@ int JSURandomInputStream::skip(s32 amount) {
+-        this->setState(EOF);
++        this->setState(JSU_EOF);
+@@ -96 +96 @@ int JSURandomInputStream::align(s32 alignment) {
+-        int s = this->seekPos(aligned, SEEK_SET);
++        int s = this->seekPos(aligned, JSU_SEEK_SET);
+@@ -98 +98 @@ int JSURandomInputStream::align(s32 alignment) {
+-            this->setState(EOF);
++            this->setState(JSU_EOF);
+@@ -110 +110 @@ int JSURandomInputStream::peek(void* buf, s32 len) {
+-        this->seekPos(pos, SEEK_SET);
++        this->seekPos(pos, JSU_SEEK_SET);
+@@ -118 +118 @@ int JSURandomInputStream::seek(s32 offset, JSUStreamSeekFrom from) {
+-    this->clrState(EOF);
++    this->clrState(JSU_EOF);
+diff --git a/src/static/jaudio_NES/game/game64.c_inc b/src/static/jaudio_NES/game/game64.c_inc
+index 41068dd..86af44e 100644
+--- a/src/static/jaudio_NES/game/game64.c_inc
++++ b/src/static/jaudio_NES/game/game64.c_inc
+@@ -338,0 +339 @@ const SOU_LEV_ONGEN_DATA sou_lev_ongen_data_init = {
++    {0,0},
+@@ -1861 +1862 @@ void Na_InitAudio(void (*fatal_callback)(), u8* load_addr, size_t load_size, u8*
+-    BootSound((u32)bootsound, bootsound_size);
++    BootSound((Jac_DVDAddress)bootsound, bootsound_size);
+diff --git a/src/static/jaudio_NES/game/game64_dummy.c_inc b/src/static/jaudio_NES/game/game64_dummy.c_inc
+index 142933e..9e3f954 100644
+--- a/src/static/jaudio_NES/game/game64_dummy.c_inc
++++ b/src/static/jaudio_NES/game/game64_dummy.c_inc
+@@ -168 +168 @@ u8 NIN_WAVE[] ATTRIBUTE_ALIGN(32) = {
+-void __OK(u32 a) {
++void __OK(Jac_DVDAddress a) {
+@@ -174 +174 @@ void __OK(u32 a) {
+-u32 bootsound_ptr;
++Jac_DVDAddress bootsound_ptr;
+@@ -203 +203 @@ extern int Bank_Regist(void*, u32);
+-void BootSound(u32 a, u32 b) {
++void BootSound(Jac_DVDAddress a, u32 b) {
+diff --git a/src/static/jaudio_NES/internal/audiothread.c b/src/static/jaudio_NES/internal/audiothread.c
+index a5e489a..dbbaf2c 100644
+--- a/src/static/jaudio_NES/internal/audiothread.c
++++ b/src/static/jaudio_NES/internal/audiothread.c
+@@ -3,0 +4 @@
++#include "dolphin/ai.h"
+diff --git a/src/static/jaudio_NES/internal/dummyrom.c b/src/static/jaudio_NES/internal/dummyrom.c
+index 7a2e8d5..6df4d02 100644
+--- a/src/static/jaudio_NES/internal/dummyrom.c
++++ b/src/static/jaudio_NES/internal/dummyrom.c
+@@ -40 +40 @@ extern u32 SetPreCopy_NeosRom(u8* load_addr, u32 load_size, BOOL cut_flag) {
+-extern void mesg_finishcall(u32 mq) {
++extern void mesg_finishcall(Jac_DVDAddress mq) {
+diff --git a/src/static/jaudio_NES/internal/dvdthread.c b/src/static/jaudio_NES/internal/dvdthread.c
+index 94f3416..55983ec 100644
+--- a/src/static/jaudio_NES/internal/dvdthread.c
++++ b/src/static/jaudio_NES/internal/dvdthread.c
+@@ -11 +11 @@ typedef struct DVDCall_ {
+-    u32 owner;
++    Jac_DVDAddress owner;
+@@ -13,2 +13,2 @@ typedef struct DVDCall_ {
+-    u32 dst;
+-    u32 src;
++    Jac_DVDAddress dst;
++    Jac_DVDAddress src;
+@@ -198 +198,2 @@ extern s32 DVDT_LoadtoARAM_Main(void* arg) {
+-extern s32 DVDT_LoadtoARAM(u32 owner, char* name, u32 dst, u32 src, u32 length, u32* status, Jac_DVDCallback callback) {
++extern s32 DVDT_LoadtoARAM(Jac_DVDAddress owner, char* name, Jac_DVDAddress dst, Jac_DVDAddress src, u32 length,
++                           u32* status, Jac_DVDCallback callback) {
+@@ -209 +210 @@ extern s32 DVDT_LoadtoARAM(u32 owner, char* name, u32 dst, u32 src, u32 length,
+-    DVDT_AddTask(DVDT_LoadtoARAM_Main, (void*)&call, 0x58);
++    DVDT_AddTask(DVDT_LoadtoARAM_Main, (void*)&call, sizeof(call));
+@@ -229 +230,2 @@ extern s32 DVDT_DRAMtoARAM_Main(void* arg) {
+-extern s32 DVDT_ARAMtoDRAM(u32 owner, u32 dst, u32 src, u32 length, u32* status, Jac_DVDCallback callback) {
++extern s32 DVDT_ARAMtoDRAM(Jac_DVDAddress owner, Jac_DVDAddress dst, Jac_DVDAddress src, u32 length, u32* status,
++                           Jac_DVDCallback callback) {
+@@ -238 +240 @@ extern s32 DVDT_ARAMtoDRAM(u32 owner, u32 dst, u32 src, u32 length, u32* status,
+-    DVDT_AddTaskHigh(DVDT_ARAMtoDRAM_Main, (void*)&call, 0x58);
++    DVDT_AddTaskHigh(DVDT_ARAMtoDRAM_Main, (void*)&call, sizeof(call));
+@@ -242 +244,2 @@ extern s32 DVDT_ARAMtoDRAM(u32 owner, u32 dst, u32 src, u32 length, u32* status,
+-extern s32 DVDT_DRAMtoARAM(u32 owner, u32 dst, u32 src, u32 length, u32* status, Jac_DVDCallback callback) {
++extern s32 DVDT_DRAMtoARAM(Jac_DVDAddress owner, Jac_DVDAddress dst, Jac_DVDAddress src, u32 length, u32* status,
++                           Jac_DVDCallback callback) {
+@@ -251 +254 @@ extern s32 DVDT_DRAMtoARAM(u32 owner, u32 dst, u32 src, u32 length, u32* status,
+-    DVDT_AddTaskHigh(DVDT_DRAMtoARAM_Main, (void*)&call, 0x58);
++    DVDT_AddTaskHigh(DVDT_DRAMtoARAM_Main, (void*)&call, sizeof(call));
+@@ -511 +514,2 @@ extern s32 DVDT_LoadtoARAM_Main(void* arg) {
+-extern s32 DVDT_LoadtoARAM(u32 owner, char* name, u32 dst, u32 src, u32 length, u32* status, Jac_DVDCallback callback) {
++extern s32 DVDT_LoadtoARAM(Jac_DVDAddress owner, char* name, Jac_DVDAddress dst, Jac_DVDAddress src, u32 length,
++                           u32* status, Jac_DVDCallback callback) {
+@@ -573 +577,2 @@ extern s32 DVDT_DRAMtoARAM_Main(void* arg) {
+-extern s32 DVDT_ARAMtoDRAM(u32 owner, u32 dst, u32 src, u32 length, u32* status, Jac_DVDCallback callback) {
++extern s32 DVDT_ARAMtoDRAM(Jac_DVDAddress owner, Jac_DVDAddress dst, Jac_DVDAddress src, u32 length, u32* status,
++                           Jac_DVDCallback callback) {
+@@ -594 +599,2 @@ extern s32 DVDT_ARAMtoDRAM(u32 owner, u32 dst, u32 src, u32 length, u32* status,
+-extern s32 DVDT_DRAMtoARAM(u32 owner, u32 dst, u32 src, u32 length, u32* status, Jac_DVDCallback callback) {
++extern s32 DVDT_DRAMtoARAM(Jac_DVDAddress owner, Jac_DVDAddress dst, Jac_DVDAddress src, u32 length, u32* status,
++                           Jac_DVDCallback callback) {
+@@ -635 +641 @@ extern s32 DVDT_CheckFile(char* file) {
+-extern s32 DVDT_CheckPass(u32 owner, u32* status, Jac_DVDCallback callback) {
++extern s32 DVDT_CheckPass(Jac_DVDAddress owner, u32* status, Jac_DVDCallback callback) {
+@@ -643 +649 @@ extern s32 DVDT_CheckPass(u32 owner, u32* status, Jac_DVDCallback callback) {
+-    return DVDT_AddTask((TaskCallback)__DVDT_CheckBack, cb, 0x58);
++    return DVDT_AddTask((TaskCallback)__DVDT_CheckBack, cb, sizeof(call));
+diff --git a/src/static/jaudio_NES/internal/heapctrl.c b/src/static/jaudio_NES/internal/heapctrl.c
+index 1267443..ad6bbc1 100644
+--- a/src/static/jaudio_NES/internal/heapctrl.c
++++ b/src/static/jaudio_NES/internal/heapctrl.c
+@@ -18,0 +19,3 @@ static u32 global_id = 0;
++#ifdef TARGET_PC
++static void ARAMFinish(uintptr_t msg)
++#else
+@@ -19,0 +23 @@ static void ARAMFinish(u32 msg)
++#endif
+@@ -404 +408 @@ BOOL Jac_DeleteHeap(jaheap_* heap)
+-				heap->parent->usedSize = NULL;
++				heap->parent->usedSize = 0;
+diff --git a/src/static/jaudio_NES/internal/jammain_2.c b/src/static/jaudio_NES/internal/jammain_2.c
+index c6a452d..9231d8d 100644
+--- a/src/static/jaudio_NES/internal/jammain_2.c
++++ b/src/static/jaudio_NES/internal/jammain_2.c
+@@ -1395 +1395 @@ void Jam_UpdateTrackAll(seqp_* track)
+-static void OSf32tos8(register f32* in, volatile register s8* out)
++static void OSf32tos8(f32* in, volatile s8* out)
+diff --git a/src/static/jaudio_NES/internal/memory.c b/src/static/jaudio_NES/internal/memory.c
+index 777ff4e..dc33632 100644
+--- a/src/static/jaudio_NES/internal/memory.c
++++ b/src/static/jaudio_NES/internal/memory.c
+@@ -284 +284 @@ void Nas_SzStayClear(SZStay* p1) {
+-    p1->heap.count = NULL;
++    p1->heap.count = 0;
+diff --git a/src/static/jaudio_NES/internal/neosthread.c b/src/static/jaudio_NES/internal/neosthread.c
+index fc51ae5..b32be4d 100644
+--- a/src/static/jaudio_NES/internal/neosthread.c
++++ b/src/static/jaudio_NES/internal/neosthread.c
+@@ -65 +65 @@ extern u32 Neos_Update(s16* dst) {
+-extern void ImageLoaded(u32 param) {
++extern void ImageLoaded(Jac_DVDAddress param) {
+@@ -125 +125 @@ extern u32 Neos_Update(s16* dst) {
+-extern void ImageLoaded(u32 param) {
++extern void ImageLoaded(Jac_DVDAddress param) {
+diff --git a/src/static/jaudio_NES/internal/system.c b/src/static/jaudio_NES/internal/system.c
+index 52e5a9d..3a69192 100644
+--- a/src/static/jaudio_NES/internal/system.c
++++ b/src/static/jaudio_NES/internal/system.c
+@@ -654 +654 @@ static void Nas_BankOfsToAddr_Inner_PC(s32 bank_id, u8* ctrl_p, WaveMedia* wave_
+-static s32 Nas_GetSyncDummy(u8* param0, s32 param1);
++static void* Nas_GetSyncDummy(u8* param0, s32 param1);
+@@ -2047,2 +2047,2 @@ void Nas_BgDmaFrameWork(s32 reset_status) {
+-static s32 Nas_GetSyncDummy(u8* param0, s32 param1) {
+-    return 0;
++static void* Nas_GetSyncDummy(u8* param0, s32 param1) {
++    return NULL;
+diff --git a/src/static/libc64/sleep.c b/src/static/libc64/sleep.c
+index 156cac5..71c0376 100644
+--- a/src/static/libc64/sleep.c
++++ b/src/static/libc64/sleep.c
+@@ -2,0 +3 @@
++#include "libultra/osMesg.h"
+diff --git a/src/static/libforest/emu64/emu64.c b/src/static/libforest/emu64/emu64.c
+index 1429d70..a7fa9eb 100644
+--- a/src/static/libforest/emu64/emu64.c
++++ b/src/static/libforest/emu64/emu64.c
+@@ -345,8 +345,8 @@ __declspec(section ".rodata") const u16 emu64::fmtxtbl[8][4] = {
+-    { GX_TF_CMPR, -1, GX_TF_RGB5A3, GX_TF_RGBA8 }, /* G_IM_FMT_RGBA */
+-    { -1, -1, -1, -1 },                            /* G_IM_FMT_YUV */
+-    { GX_TF_C4, GX_TF_C8, 0xA, -1 },               /* G_IM_FMT_CI */
+-    { -1, GX_TF_IA4, GX_TF_IA8, -1 },              /* G_IM_FMT_IA */
+-    { GX_TF_I4, GX_TF_I8, GX_TF_RGB565, -1 },      /* G_IM_FMT_I */
+-    { GX_TF_CMPR, GX_CTF_A8, GX_TF_RGB5A3, -1 },   /* ?? */
+-    { -1, GX_TF_Z8, GX_TF_Z16, GX_TF_Z24X8 },      /* ?? */
+-    { -1, -1, -1, -1 }                             /* ?? */
++    { GX_TF_CMPR, 0xFFFF, GX_TF_RGB5A3, GX_TF_RGBA8 }, /* G_IM_FMT_RGBA */
++    { 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF },                /* G_IM_FMT_YUV */
++    { GX_TF_C4, GX_TF_C8, 0xA, 0xFFFF },               /* G_IM_FMT_CI */
++    { 0xFFFF, GX_TF_IA4, GX_TF_IA8, 0xFFFF },          /* G_IM_FMT_IA */
++    { GX_TF_I4, GX_TF_I8, GX_TF_RGB565, 0xFFFF },      /* G_IM_FMT_I */
++    { GX_TF_CMPR, GX_CTF_A8, GX_TF_RGB5A3, 0xFFFF },   /* ?? */
++    { 0xFFFF, GX_TF_Z8, GX_TF_Z16, GX_TF_Z24X8 },      /* ?? */
++    { 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF }                 /* ?? */
+@@ -3133 +3133 @@ void emu64::draw_rectangle(Gtexrect2* texrect) {
+-    int saved_proj_type = this->projection_type;
++    GXProjectionType saved_proj_type = this->projection_type;
+@@ -3385 +3385 @@ void emu64::dirty_check(int tile, int n_tiles, int do_texture_matrix) {
+-            int mat_src = (this->geometry_mode & G_SHADE) ? GX_SRC_VTX : GX_SRC_REG;
++            GXColorSrc mat_src = (this->geometry_mode & G_SHADE) ? GX_SRC_VTX : GX_SRC_REG;
+@@ -3430 +3430 @@ void emu64::dirty_check(int tile, int n_tiles, int do_texture_matrix) {
+-                    if (((u32)img_addr & 0x1F) != 0) {
++                    if (((uintptr_t)img_addr & 0x1F) != 0) {
+@@ -3949 +3949 @@ void emu64::dl_G_LOADTLUT() {
+-                    if (((u32)tlut_addr & (0x1F)) != 0) {
++                    if (((uintptr_t)tlut_addr & (0x1F)) != 0) {
+diff --git a/src/static/libjsys/jsyswrapper_main.cpp b/src/static/libjsys/jsyswrapper_main.cpp
+index e7a82d3..c1c2bd1 100644
+--- a/src/static/libjsys/jsyswrapper_main.cpp
++++ b/src/static/libjsys/jsyswrapper_main.cpp
+@@ -373 +373,2 @@ extern CSDIFileEntry* JC__JKRGetResourceEntry_byName(u32 root_name, const char*
+-    return JKRGetResourceEntry_byName(root_name, res_name, reinterpret_cast<JKRArchive*>(archive));
++    return reinterpret_cast<CSDIFileEntry*>(
++        JKRGetResourceEntry_byName(root_name, res_name, reinterpret_cast<JKRArchive*>(archive)));
+diff --git a/src/system/sys_matrix.c b/src/system/sys_matrix.c
+index 3715ac7..f07240d 100644
+--- a/src/system/sys_matrix.c
++++ b/src/system/sys_matrix.c
+@@ -7,0 +8 @@
++#include "libultra/gu.h"

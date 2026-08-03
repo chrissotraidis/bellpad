@@ -28,3 +28,8 @@
 - Promoted the DVD-tail correction and minimal keyboard-edge latch into tracked, game-data-free patches.
 - Added idempotent pinned fetch and ARM64 build scripts. Tested them from a fresh ignored checkout; the resulting clean executable mounted the supported image directly, loaded 14,495 assets, initialized audio, and reached the title loop.
 - Confirmed a targeted `SIGTERM` terminates the fresh scripted executable. Window-close/app-wrapper teardown remains to be reconciled with the earlier SIGKILL-only observation.
+- Audited Apple Clang diagnostics across the full source tree and promoted the resulting legal, game-data-free portability work into a third tracked patch.
+- Repaired native-width DVD/audio callbacks and addresses, structure-sized task copies, JKR heap/archive arithmetic, PC ARAM, retrace messages, C++ allocation signatures, Famicom buffers, and legacy declaration issues without widening guest or serialized data.
+- Removed the 64-bit Clang configuration ban. Apple Clang 21.0.0 compiled all 4,000 units and linked a native ARM64 executable; a runtime smoke test visibly reached the correctly rendered title at 60 FPS.
+- Rebuilt the same patched checkout in an independent directory with GCC 16.1.0. All 4,000 units compiled and the ARM64 executable linked, showing the portability changes did not regress the previous compiler path.
+- Made Apple Clang the default reproducible desktop compiler and retained explicit compiler/build-directory overrides for compatibility testing.
