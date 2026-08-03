@@ -86,6 +86,23 @@ generated probe bundle. Its portrait phone presentation and resizable iPad
 window are not accepted product layouts; they are evidence that Bellpad must own
 scene/orientation/safe-area policy and adaptive touch controls.
 
+### Bellpad-owned shell evidence — 2026-08-03
+
+| Test | Result |
+|---|---|
+| macOS ARM64 configure/build | Pass — native `Bellpad.app`, ARM64 Mach-O, valid Info.plist |
+| macOS launch/Metal/quit | Pass — visible MetalKit surface at requested 60 FPS; normal app quit terminates |
+| Normalized input merge | Pass — native unit test covers ORed buttons, strongest axes, maximum triggers, and clearing both sources |
+| iPhone 17 Pro Simulator | Pass — product bundle installs/launches; full GameCube touch set is visible without overlap after safe-area layout correction |
+| Sequential stop | Pass — iPhone app terminated and simulator shut down before iPad boot |
+| iPad Pro 13-inch Simulator | Pass — universal bundle installs/launches in a 960×640 resizable iPadOS window; actual-size scaling selects a compact no-overlap layout |
+| Expanded iPad layout | Pending — code path requires a window at least 1100×700 points; current simulator launch did not expose that size |
+| Game rendering/input | Not tested — shell is not yet linked to the game core/Aurora |
+
+The iPhone simulator screenshot required rotation for human inspection because
+`simctl io screenshot` retained the physical portrait buffer while UIKit
+correctly laid out the app in landscape. No screenshot is used as game evidence.
+
 ## Safety and package tests
 
 - Scan Git index, archive, app bundle, and IPA case-insensitively for ISO/GCM/CISO/RVZ/WIA/WBFS/GCZ, extracted retail files, GCI/raw saves, credentials, certificates, and provisioning profiles.

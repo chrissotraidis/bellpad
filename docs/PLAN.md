@@ -58,7 +58,9 @@ GX reaches Metal as: game/JSystem/emu64 GX calls → Aurora GX command processor
 
 ## Milestone 3 — mobile targets and data import
 
-- Generate a native macOS application and a universal iOS/iPadOS application target sharing one ARM64 game-core target. Establish a real product bundle, lifecycle owner, Metal surface, and adaptive touch overlay before claiming an Apple application pass.
+- [x] Generate a native macOS application and a universal iOS/iPadOS application target with real product bundle metadata, MetalKit surfaces, fixed 60 Hz presentation, and a shared portable input library.
+- [x] Add the first adaptive GameCube touch overlay and GameController merge. Compact iPhone/resizable-iPad layouts are visually proven; expanded iPad layout, editing, and persistence remain.
+- Connect the portable Animal Crossing core and Aurora services to those product targets; the current shell is not a game pass.
 - Use a document picker for security-scoped ISO/GCM/CISO/RVZ selection.
 - Validate disc header, revision, size, and known supported hashes before retaining data.
 - Prefer direct indexed reads through Aurora/nod because it supports compressed formats and avoids duplicating copyrighted data. If measurements show unacceptable random-read latency, build a local, versioned index or extracted cache under Application Support; that cache remains excluded from packages and backups as appropriate.

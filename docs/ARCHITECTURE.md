@@ -79,9 +79,11 @@ GCI-folder mode is the initial canonical store because it gives one file per sav
 
 ## Platform integration
 
-- The game loop owns game state on a dedicated thread or SDL main callback compatible with iOS.
-- UIKit owns import/settings/touch overlays and forwards normalized events.
-- Touch and external-controller sources target one normalized GameCube state. Buttons are ORed, the strongest absolute value wins per stick axis, and the maximum analog trigger wins; the Apple adapter must dispatch updates on the game-input thread.
+- The game loop will own game state on a dedicated thread or SDL main callback compatible with iOS. The current shell deliberately contains no second simulation clock.
+- Bellpad now owns native AppKit and UIKit bundles. Their MetalKit views request 60 FPS, establish bundle/lifecycle ownership, and provide the surface that will be replaced or adopted by Aurora's Dawn path.
+- UIKit owns the first adaptive touch overlay. Compact sizing is computed from actual safe-area width/height for iPhone and resizable iPad windows; an expanded layout activates only when an iPad window has sufficient space.
+- Touch and external-controller sources now target one portable, mutex-protected normalized GameCube state. Buttons are ORed, the strongest absolute value wins per stick axis, and the maximum analog trigger wins. The game-core adapter will snapshot this state at `PADRead` boundaries rather than receiving UIKit callbacks directly.
+- The touch source is cleared on resign-active. Presentation pauses while inactive and resumes on become-active. A physical controller hides touch on real devices while retaining an explicit user override; simulator virtual controllers do not hide the overlay so touch QA remains possible.
 - UIKit text fields call the separated editor begin/end, UTF-8 commit, and command API; SDL desktop events delegate to the same functions.
 - Rendering uses the SDL/CAMetalLayer surface supplied to Dawn.
 - Wall-clock changes and timezone changes are observed explicitly.

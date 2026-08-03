@@ -16,6 +16,10 @@ Current phase: Apple platform foundation after proving the desktop core and Auro
 - Pinned Aurora commit `5027ed63…` now builds and runs its GX example natively on macOS ARM64 through Dawn's Metal backend. Runtime logs identify the Apple M2 Metal adapter and the visible example framebuffer renders correctly.
 - The same pinned Aurora GX example now compiles as an ARM64 `IOSSIMULATOR` executable with vendored SDL3 and source-built Dawn. It installs and visibly renders through the Apple iOS simulator Metal GPU on an iPhone 17 Pro simulator and, only after stopping that session, an iPad Pro 13-inch simulator.
 - The iOS probe establishes compatibility-layer feasibility, not a Bellpad product target. Upstream's packaged Dawn iOS archive is device-only; simulator builds require source Dawn plus Ninja at this revision. The upstream generic example also needs product-owned bundle metadata and adaptive window/layout policy.
+- Bellpad now owns native ARM64 macOS and universal iOS/iPadOS application targets with explicit bundle metadata. Both use MetalKit at a requested 60 FPS, keeping high-refresh displays from accelerating the future VI-coupled simulation.
+- The mobile target installs and launches sequentially on iPhone 17 Pro and iPad Pro 13-inch simulators. Its first-pass GameCube touch UI includes left/C sticks, A/B/X/Y, Z/L/R/Start, and D-pad; it scales from compact resizable iPad windows to a distinct expanded iPad layout and respects safe-area insets.
+- A thread-safe portable input mixer now merges touch and GameController sources with ORed buttons, strongest-magnitude axes, and maximum analog triggers. A native unit test proves those merge and clear rules. Device builds auto-hide touch for physical controllers; simulator-generated controllers remain visible for touch-layout QA.
+- The macOS shell launches as a normal resizable app, visibly renders its Metal view, accepts GameController state through the same mixer, and quits through the normal application path.
 - ACreTeam's current `forest` port already integrates Aurora services, but disables Aurora GX and uses rendering stubs; it is not a playable baseline.
 - The pinned 64-bit fork plus tracked patches compiles all 4,000 units and links ARM64 Mach-O executables with both Apple Clang 21.0.0 and GCC 16.1.0 in independent build directories.
 - The Apple Clang executable has been launched against the ignored supported image and visibly reaches the correctly rendered title screen at 60 FPS.
@@ -54,8 +58,9 @@ Current phase: Apple platform foundation after proving the desktop core and Auro
 - A later occupied-house route was derived from the runtime town combination table and collision grids. The targeted villager left home before Bell arrived, and a second occupied target likewise changed to outdoors during the route. Runtime `is_home` flags and the visible villagers agreed, so patch-7/8 runtime status remains pending without manufacturing a false pass.
 - SDL window close/Command-Q and full cleanup still require a clean retest. The earlier instrumented app-wrapper run needed `SIGKILL`, while the fresh scripted executable terminates on `SIGTERM`; the conflicting evidence is kept explicit.
 - No Animal Crossing-on-Aurora-GX render has been demonstrated locally; only Aurora's clean GX clear/example path is proven.
-- No native Bellpad macOS/iOS/iPadOS application target exists yet. The next implementation slice is the shared Apple shell and normalized touch/controller adapter, followed by game-core/Aurora integration.
-- iPhone/iPad dependency-probe evidence exists, but simulator and physical-device Animal Crossing gameplay evidence do not.
+- The native shells exist, but neither the desktop game core nor Aurora services are linked into them yet. Their current Metal content and controls are an integration harness, not playable-game evidence.
+- The iPad expanded full-window layout is code-complete but the simulator launched this unsigned build in a 960×640 resizable window; the responsive compact fallback is visually proven there. Full-screen/expanded layout still needs a separate simulator or device run.
+- Simulator shell evidence exists, but simulator and physical-device Animal Crossing gameplay evidence do not.
 
 ## Requested completion criteria
 
@@ -66,10 +71,10 @@ Current phase: Apple platform foundation after proving the desktop core and Auro
 | 3 | No leaked source | Policy established; audit pending |
 | 4 | User image selection/validation | Local desktop header/hash validation only; native picker pending |
 | 5 | Runtime resources produced/loaded | Desktop direct-image load proven; product flow pending |
-| 6 | iPhone Simulator installs/launches | Partial — pinned Aurora Metal/GX dependency probe installs, launches, and renders; Bellpad product pending |
-| 7 | iPad Simulator installs/launches | Partial — same probe launches after the iPhone session is stopped; Bellpad product pending |
+| 6 | iPhone Simulator installs/launches | Partial — Bellpad-owned native shell installs, launches, renders Metal, and shows adaptive touch controls; game pending |
+| 7 | iPad Simulator installs/launches | Partial — same universal shell launches after iPhone shutdown and adapts controls to its resizable window; game pending |
 | 8–10 | Title/setup/town entry | Desktop pass — names, train, generated town, and outdoor movement observed |
-| 11–21 | Rendering/platform behavior | Desktop rendering/audio/input/text partial pass; saves, RTC, lifecycle, memory, and mobile pending |
+| 11–21 | Rendering/platform behavior | Desktop game rendering/audio/input/text partial; mobile Metal shell, safe-area touch, controller merge, and resign-active clearing pass; game rendering/audio/saves/RTC/memory pending |
 | 22 | Reproducible unsigned IPA | Not started |
 | 23 | IPA contains no game data | Not started |
 | 24 | Original icon/branding | Not started |

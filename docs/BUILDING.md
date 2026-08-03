@@ -2,7 +2,7 @@
 
 Last updated: 2026-08-03
 
-The repository is not yet buildable as the Bellpad iOS application. It can now reproduce both the desktop game baseline and pinned Aurora Metal/GX platform probes.
+The repository now builds Bellpad-owned native Apple application shells as well as the desktop game baseline and pinned Aurora Metal/GX probes. The shells do not yet link the game core.
 
 ## Host
 
@@ -46,7 +46,16 @@ The scripts were tested from a fresh ignored checkout on 2026-08-03. The resulti
 
 ## Planned product build
 
-The intended clean-checkout build will fetch only pinned source dependencies and create a ROM-free macOS/iOS/iPadOS project. Retail data is introduced only after the app launches and the user selects it through Files.
+The current clean shell build contains only Bellpad-authored platform code and Apple frameworks. It creates ROM-free macOS and universal iOS/iPadOS bundles:
+
+```sh
+./scripts/build-apple-shell.sh macos
+./scripts/build-apple-shell.sh ios-simulator
+```
+
+The macOS command also runs the normalized-input unit test. The simulator command verifies an ARM64 `IOSSIMULATOR` Mach-O and validates the product Info.plist. Build products remain under ignored `build/` unless `BELLPAD_APP_BUILD_DIR` selects another ignored directory.
+
+To install the simulator bundle, use `xcrun simctl install <device-uuid> build/ios-simulator-arm64/Bellpad.app` and launch bundle ID `dev.bellpad.app`. Run iPhone first, terminate it, shut that simulator down, and only then boot/run iPad. The intended final build will additionally fetch only pinned source dependencies and introduce retail data only after the app launches and the user selects it through Files.
 
 Run the tracked-content safety check before every commit and package build:
 

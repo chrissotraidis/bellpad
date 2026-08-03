@@ -2,7 +2,7 @@
 
 Bellpad is an experimental, native Apple ARM64 source port project for the original US revision of Animal Crossing for Nintendo GameCube. The intended application compiles legally clean reverse-engineered game code for macOS, iOS, and iPadOS. It is not a GameCube emulator and will not embed a WebAssembly/browser port.
 
-The repository is in active research and desktop-baseline development. It does not yet contain a playable iPhone or iPad application.
+The repository is in active platform integration. It now contains native macOS and universal iOS/iPadOS application shells, but it does not yet contain a playable mobile game build.
 
 ## Current status
 
@@ -18,7 +18,9 @@ As of 2026-08-03:
 - Save creation/relaunch and app-window lifecycle remain under investigation. The title cleanup invalid-free was traced to an undersized static structure-actor pool and repaired with an upstream-derived host slot layout.
 - Aurora is the selected production compatibility-layer candidate, subject to an Animal Crossing GX coverage proof.
 - Aurora's pinned GX example now builds and visibly renders through Metal on macOS ARM64 and sequential iPhone/iPad simulators. This proves the compatibility-layer platform path, not Animal Crossing rendering.
-- Native Bellpad macOS/iOS/iPadOS product targets, touch controls, Files import, and IPA packaging have not been implemented yet.
+- Bellpad-owned macOS and universal iOS/iPadOS bundles now build as native ARM64 applications. They render with MetalKit at a fixed 60 Hz and expose a shared normalized GameCube input boundary.
+- The mobile shell includes left/C sticks, A/B/X/Y, Z/L/R/Start, D-pad, adaptive compact/expanded layouts, safe-area handling, a touch visibility override, GameController merging, and physical-controller auto-hide on devices.
+- The game core, Aurora renderer, Files import, saves, native game text entry, audio, and IPA packaging are not connected to the shell yet.
 
 See [STATUS.md](docs/STATUS.md), [PLAN.md](docs/PLAN.md), and [WORKLOG.md](docs/WORKLOG.md) for evidence and current blockers.
 
@@ -26,9 +28,9 @@ See [STATUS.md](docs/STATUS.md), [PLAN.md](docs/PLAN.md), and [WORKLOG.md](docs/
 
 | Platform | Status |
 |---|---|
-| Apple Silicon macOS | Research baseline builds and reaches a generated town |
-| iPhone Simulator/device | Aurora dependency probe passes; Bellpad target planned |
-| iPad Simulator/device | Aurora dependency probe passes sequentially; Bellpad target planned |
+| Apple Silicon macOS | Desktop game baseline reaches a generated town; native Bellpad Metal shell builds and launches |
+| iPhone Simulator/device | Bellpad ARM64 simulator shell installs, launches, renders, and shows touch controls; game core pending |
+| iPad Simulator/device | Same universal shell passes sequentially with adaptive resizable-window controls; game core pending |
 | Intel macOS, Windows, Linux | Upstream-reference platforms, not Bellpad release targets |
 
 ## Game-data requirements
@@ -59,7 +61,7 @@ The current desktop-only development procedure is documented in [BUILDING.md](do
 
 ## Build instructions
 
-There is no Bellpad product build yet. To reproduce the pinned desktop investigation or the macOS/iOS-Simulator Aurora Metal probes on Apple Silicon, install Xcode, CMake, Ninja, and SDL2 compatibility, then run the tracked scripts described in [BUILDING.md](docs/BUILDING.md). Apple Clang is the default; GCC 16 is an optional desktop compatibility cross-check.
+To build the Bellpad-owned native shell, run `./scripts/build-apple-shell.sh macos` or `./scripts/build-apple-shell.sh ios-simulator`. The pinned desktop investigation and Aurora Metal probes remain separately reproducible through the scripts in [BUILDING.md](docs/BUILDING.md). Apple Clang is the product compiler; GCC 16 remains an optional desktop-core compatibility cross-check.
 
 Before committing or packaging anything, run:
 
@@ -83,7 +85,7 @@ The desktop reference uses:
 | C-stick | Arrow keys |
 | D-pad | I / J / K / L |
 
-The planned mobile layout has a left analog stick, large contextual A/B buttons, smaller X/Y buttons, Z/L/R/Start, optional D-pad, and an optional C-stick or camera-drag region. iPhone and iPad layouts will be tuned and persisted separately. A normalized GameCube state for buttons, both sticks, and analog triggers now exists in the baseline; physical controllers and touch will feed it, and gameplay controls may auto-hide when a controller connects.
+The first native mobile layout now has a left analog stick, large A/B buttons, smaller X/Y buttons, Z/L/R/Start, D-pad, and C-stick/camera region. It scales from compact iPhone and resizable-iPad windows to an expanded iPad layout, respects safe areas, supports manual hiding, and auto-hides for physical controllers on device. Touch and GameController states merge through a thread-safe normalized GameCube state using ORed buttons, strongest axes, and maximum analog triggers. Layout editing and persistence remain pending.
 
 ## Native keyboard
 
@@ -128,7 +130,7 @@ See [TESTING.md](docs/TESTING.md).
 - Save creation and relaunch persistence have not yet been completed in the local baseline.
 - App-window close and lifecycle teardown still need a clean retest; `SIGTERM` exits the clean scripted build.
 - Aurora's Apple Metal/GX example path is proven, but Aurora GX coverage for this game has not yet been demonstrated.
-- No iOS/iPadOS app, touch UI, native keyboard, Files import, or unsigned IPA exists yet.
+- The iOS/iPadOS shell and first touch UI exist; the game core, native game keyboard, Files import, and unsigned IPA remain pending.
 
 ## Research and credits
 
