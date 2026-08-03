@@ -23,7 +23,7 @@ Current phase: desktop-baseline save/address-model work after passing the Apple 
 - A bug in the desktop DVD shim was reproduced and fixed locally: a 32-byte-aligned read of the final 56-byte file at a trimmed image's physical EOF retried forever. Clamping to the declared file length and zero-filling only the alignment tail unlocks boot.
 - After that fix, trademark/title rendering is visually correct at 60 FPS, the renderer submits hundreds of draw calls per frame without GL errors, 32 kHz stereo audio starts, and the game reaches K.K.'s new-game dialogue.
 - Message-state tracing showed that K.K. advancement is correct. The apparent stall was a short synthetic key edge falling between pad polls, not a 64-bit message/parser defect.
-- A minimal keyboard-edge latch carries non-repeating GameCube button events to the next `PADRead`; with it, all K.K. pages, Rover dialogue, choices, and both name-entry screens advance correctly.
+- A minimal keyboard-edge latch now executes inside the actual `SDL_KEYDOWN` case and carries each non-repeating GameCube button event through both controller reads in one game input update. A debugger-fed normalized A edge advanced exactly one K.K. prompt in the Apple Clang build.
 - The desktop SDL text adapter accepted the test player name `Bell` and town name `Cedar` through the in-game editors.
 - The full train sequence completed, a new town was generated, the player arrived at the station, exited into town, moved outdoors, met Tom Nook, and reached the house-selection area.
 - Tracked scripts now reproduce the pinned checkout, apply all four clean compatibility patches idempotently, build an Apple Clang ARM64 Mach-O by default, allow an isolated GCC cross-check, and optionally link (never copy) a local image.
@@ -33,7 +33,7 @@ Current phase: desktop-baseline save/address-model work after passing the Apple 
 
 - Apple Clang compilation no longer blocks iOS work, but the address model still needs sanitizer coverage and a complete audit of guest offsets versus native pointers.
 - The new town has not yet reached its first successful GCI write, controlled in-game exit, and reload, so persistence remains unproven.
-- Computer Use key synthesis is not consistently delivered to SDL in the current app-wrapper harness. It does not invalidate the earlier gameplay/input proof, but repeatable UI automation needs a dedicated test-input path before save/relaunch testing can be fully automated.
+- Computer Use key synthesis is not consistently delivered to SDL in the current app-wrapper harness. The Homebrew dependency is `sdl2-compat` over SDL3, so raw SDL2 event-memory injection is not a valid substitute. `scripts/tap-desktop-button.sh` instead feeds the port's normalized pad queue under LLDB for deterministic desktop QA; save/relaunch automation still needs text and analog injection.
 - SDL window close/Command-Q and full cleanup still require a clean retest. The earlier instrumented app-wrapper run needed `SIGKILL`, while the fresh scripted executable terminates on `SIGTERM`; the conflicting evidence is kept explicit.
 - No Animal Crossing-on-Aurora-GX render has been demonstrated locally.
 - No native iOS/iPadOS target exists yet.

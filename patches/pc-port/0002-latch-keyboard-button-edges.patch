@@ -8,7 +8,7 @@ diff --git a/pc/src/pc_main.c b/pc/src/pc_main.c
 index b0ea648..ee43848 100644
 --- a/pc/src/pc_main.c
 +++ b/pc/src/pc_main.c
-@@ -303,0 +304,3 @@ int pc_platform_poll_events(void) {
+@@ -304,0 +305,3 @@ int pc_platform_poll_events(void) {
 +                if (!event.key.repeat) {
 +                    pc_pad_queue_scancode(event.key.keysym.scancode);
 +                }
@@ -16,11 +16,14 @@ diff --git a/pc/src/pc_pad.c b/pc/src/pc_pad.c
 index 7f50af3..f79845d 100644
 --- a/pc/src/pc_pad.c
 +++ b/pc/src/pc_pad.c
-@@ -13,0 +14,18 @@ static SDL_GameController* g_controller = NULL;
+@@ -13,0 +14,24 @@ static SDL_GameController* g_controller = NULL;
 +static u16 g_queued_keyboard_buttons = 0;
++static u8 g_queued_keyboard_reads = 0;
 +
 +void pc_pad_queue_scancode(SDL_Scancode scancode) {
 +    PCKeybindings* kb = &g_pc_keybindings;
++
++    if (g_pc_typing_mode && g_pc_editor_active) return;
 +
 +    if (scancode == kb->a)     g_queued_keyboard_buttons |= PAD_BUTTON_A;
 +    if (scancode == kb->b)     g_queued_keyboard_buttons |= PAD_BUTTON_B;
@@ -34,9 +37,13 @@ index 7f50af3..f79845d 100644
 +    if (scancode == kb->dpad_down)  g_queued_keyboard_buttons |= PAD_BUTTON_DOWN;
 +    if (scancode == kb->dpad_left)  g_queued_keyboard_buttons |= PAD_BUTTON_LEFT;
 +    if (scancode == kb->dpad_right) g_queued_keyboard_buttons |= PAD_BUTTON_RIGHT;
++
++    /* JUTGamePad and padmgr each call PADRead during one game input update. */
++    if (g_queued_keyboard_buttons != 0) g_queued_keyboard_reads = 2;
 +}
-@@ -73,0 +92,2 @@ u32 PADRead(PADStatus* status) {
+@@ -73,0 +98,5 @@ u32 PADRead(PADStatus* status) {
 +
 +        buttons |= g_queued_keyboard_buttons;
-@@ -74,0 +95 @@ u32 PADRead(PADStatus* status) {
-+    g_queued_keyboard_buttons = 0;
++        if (g_queued_keyboard_reads > 0 && --g_queued_keyboard_reads == 0) {
++            g_queued_keyboard_buttons = 0;
++        }

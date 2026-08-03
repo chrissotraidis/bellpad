@@ -123,7 +123,7 @@ See [TESTING.md](docs/TESTING.md).
 ## Known issues
 
 - Apple Clang compilation is proven, but the full guest-address/pointer-width audit and sanitizer run are not complete.
-- Automated keyboard delivery into the SDL window is harness-dependent; game input itself remains validated through the earlier native run.
+- Automated window-key delivery is harness-dependent. A guarded LLDB QA helper can feed button taps through the same normalized desktop pad queue; text and analog automation remain pending.
 - Save creation and relaunch persistence have not yet been completed in the local baseline.
 - App-window close and lifecycle teardown still need a clean retest; `SIGTERM` exits the clean scripted build.
 - Aurora GX coverage for this game has not yet been demonstrated.

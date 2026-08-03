@@ -22,7 +22,7 @@ No gameplay test is marked passed without a dated result, device/OS, build revis
 
 - Trimmed-image EOF: the 56-byte final file is requested as 64 aligned bytes; the original host shim retries forever. A local file-length clamp plus zero-filled alignment tail fixes boot.
 - Title cleanup overflow: debugger sampling showed `play_cleanup → Actor_info_dt → Actor_info_delete → zelda_free`, with the invalid pointer inside `aSTR_actor_cl`. Clang record layouts measured `STRUCTURE_ACTOR=832` and `SHRINE_ACTOR=840`; the Shrine tail overwrote the next 832-byte slot. A 0x400-byte host slot, based on current upstream's equivalent 32-bit repair, survives repeated teardown/reload cycles under Apple Clang; GCC also rebuilds.
-- Short keyboard edges: synthesized native key taps could end between `PADRead` calls. An event-edge latch fixes dialogue advancement and is now a tracked patch.
+- Short keyboard edges: synthesized native key taps could end between controller reads. The tracked latch runs in the real key-down case and remains visible to both JUT and pad-manager `PADRead` calls; one injected normalized A edge advanced exactly one K.K. prompt.
 - Shutdown evidence differs by harness: app-wrapper sessions have needed SIGKILL, while one targeted raw-process `SIGTERM` test exited. A later Clang wrapper again needed SIGKILL, so window/app teardown remains open.
 
 ### Gameplay evidence on 2026-08-03
@@ -33,7 +33,7 @@ No gameplay test is marked passed without a dated result, device/OS, build revis
 - Exited the station, moved outdoors, met Tom Nook, and reached house selection.
 - Rendering and audio remained active throughout; no panic occurred on the normal title path.
 - No GCI file was created before the session ended, so save/reload is not marked passed.
-- The current Computer Use wrapper does not consistently deliver synthesized keys to SDL. Manual/native input evidence is retained, while future automated runs require an explicit test-input adapter rather than relying on window automation timing.
+- The current Computer Use wrapper does not consistently deliver synthesized keys to SDL. The linked Homebrew library is `sdl2-compat`, backed by SDL3, so raw SDL2 event-layout injection is also invalid. For desktop QA, `scripts/tap-desktop-button.sh <pid> A` calls the same normalized queue under LLDB; it deliberately supports buttons only and does not bypass game logic.
 
 ## Functional gameplay matrix
 
