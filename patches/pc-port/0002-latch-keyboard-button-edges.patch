@@ -1,0 +1,42 @@
+diff --git a/pc/include/pc_platform.h b/pc/include/pc_platform.h
+index 09b4a4d..8c58f63 100644
+--- a/pc/include/pc_platform.h
++++ b/pc/include/pc_platform.h
+@@ -106,0 +107 @@ int  pc_platform_poll_events(void);
++void pc_pad_queue_scancode(SDL_Scancode scancode);
+diff --git a/pc/src/pc_main.c b/pc/src/pc_main.c
+index b0ea648..ee43848 100644
+--- a/pc/src/pc_main.c
++++ b/pc/src/pc_main.c
+@@ -303,0 +304,3 @@ int pc_platform_poll_events(void) {
++                if (!event.key.repeat) {
++                    pc_pad_queue_scancode(event.key.keysym.scancode);
++                }
+diff --git a/pc/src/pc_pad.c b/pc/src/pc_pad.c
+index 7f50af3..f79845d 100644
+--- a/pc/src/pc_pad.c
++++ b/pc/src/pc_pad.c
+@@ -13,0 +14,18 @@ static SDL_GameController* g_controller = NULL;
++static u16 g_queued_keyboard_buttons = 0;
++
++void pc_pad_queue_scancode(SDL_Scancode scancode) {
++    PCKeybindings* kb = &g_pc_keybindings;
++
++    if (scancode == kb->a)     g_queued_keyboard_buttons |= PAD_BUTTON_A;
++    if (scancode == kb->b)     g_queued_keyboard_buttons |= PAD_BUTTON_B;
++    if (scancode == kb->x)     g_queued_keyboard_buttons |= PAD_BUTTON_X;
++    if (scancode == kb->y)     g_queued_keyboard_buttons |= PAD_BUTTON_Y;
++    if (scancode == kb->start) g_queued_keyboard_buttons |= PAD_BUTTON_START;
++    if (scancode == kb->z)     g_queued_keyboard_buttons |= PAD_TRIGGER_Z;
++    if (scancode == kb->l)     g_queued_keyboard_buttons |= PAD_TRIGGER_L;
++    if (scancode == kb->r)     g_queued_keyboard_buttons |= PAD_TRIGGER_R;
++    if (scancode == kb->dpad_up)    g_queued_keyboard_buttons |= PAD_BUTTON_UP;
++    if (scancode == kb->dpad_down)  g_queued_keyboard_buttons |= PAD_BUTTON_DOWN;
++    if (scancode == kb->dpad_left)  g_queued_keyboard_buttons |= PAD_BUTTON_LEFT;
++    if (scancode == kb->dpad_right) g_queued_keyboard_buttons |= PAD_BUTTON_RIGHT;
++}
+@@ -73,0 +92,2 @@ u32 PADRead(PADStatus* status) {
++
++        buttons |= g_queued_keyboard_buttons;
+@@ -74,0 +95 @@ u32 PADRead(PADStatus* status) {
++    g_queued_keyboard_buttons = 0;

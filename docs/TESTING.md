@@ -11,8 +11,8 @@ No gameplay test is marked passed without a dated result, device/OS, build revis
 | Configure/build native ARM64 | Mach-O arm64 executable | Pass — 2026-08-03, M2/macOS 26.5, GCC 16.1.0 |
 | Validate supported disc | Accept `GAFE01` USA Rev 0 only | Partial pass — local header/revision/magic/hash validated; product hash allowlist pending |
 | Trademark/title | Correct render/audio/input | Partial pass — correct 60 FPS rendering and 32 kHz stereo; A/Start works through a latched test path; transition race remains |
-| Character/town creation | Completes with text entry | Blocked — first K.K. page redraws but does not advance |
-| Enter town | Stable outdoor rendering and movement | Pending |
+| Character/town creation | Completes with text entry | Partial pass — player/town names, train, and town generation completed; first house/save not yet finalized |
+| Enter town | Stable outdoor rendering and movement | Pass — station exit, outdoor movement, Nook greeting, and housing area observed |
 | Save/exit/relaunch | Same town loads from GCI | Pending |
 | RTC | Time and date match host | Pending |
 | Memory | No unbounded growth during sustained play | Pending |
@@ -21,8 +21,17 @@ No gameplay test is marked passed without a dated result, device/OS, build revis
 
 - Trimmed-image EOF: the 56-byte final file is requested as 64 aligned bytes; the original host shim retries forever. A local file-length clamp plus zero-filled alignment tail fixes boot.
 - Title transition: one input/timing sequence skipped from title action 3 to 6 and repeatedly panicked on an invalid arena free; the normal 3→4→5 sequence reaches K.K. and does not reproduce it.
-- Dialogue: at K.K.'s opening page, A restarts the text reveal instead of progressing the script.
-- Shutdown: window close, Command-Q, SIGINT, and SIGTERM do not exit; SIGKILL was required.
+- Short keyboard edges: synthesized native key taps could end between `PADRead` calls. An event-edge latch fixes dialogue advancement and is now a tracked patch.
+- Shutdown evidence differs by harness: the earlier temporary app wrapper needed SIGKILL, while targeted `SIGTERM` cleanly ends the fresh scripted executable. Window/app teardown remains open.
+
+### Gameplay evidence on 2026-08-03
+
+- Completed K.K. introduction and all Rover setup dialogue.
+- Entered `Bell` and `Cedar` through the desktop text-input adapter.
+- Completed the train sequence and arrived in the generated town.
+- Exited the station, moved outdoors, met Tom Nook, and reached house selection.
+- Rendering and audio remained active throughout; no panic occurred on the normal title path.
+- No GCI file was created before the session ended, so save/reload is not marked passed.
 
 ## Functional gameplay matrix
 

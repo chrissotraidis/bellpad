@@ -9,11 +9,12 @@ The repository is in active research and desktop-baseline development. It does n
 As of 2026-08-03:
 
 - A pinned 64-bit source-port fork builds locally as a native macOS ARM64 executable.
+- The pinned checkout, local patches, and build are now reproducible with tracked scripts.
 - A user-supplied `GAFE01` revision 0 image is validated and read directly without extracting or bundling its assets.
-- The desktop baseline renders the title and K.K. new-game scene at 60 FPS and starts 32 kHz stereo audio.
+- The desktop baseline renders the title, setup, train, and generated town at 60 FPS and starts 32 kHz stereo audio.
 - A trimmed-image aligned-read bug was identified and corrected locally.
-- Character/town creation is blocked: the opening K.K. dialogue redraws instead of advancing.
-- A title cleanup race and broken controlled-shutdown path remain under investigation.
+- Player and town naming work through the port's native SDL text-input path; a test player entered and moved around a newly generated town.
+- Save creation/relaunch, a title cleanup race, and app-window lifecycle remain under investigation. A clean baseline process does terminate on `SIGTERM`.
 - Aurora is the selected production compatibility-layer candidate, subject to an Animal Crossing GX coverage proof.
 - Native iOS and iPadOS targets, Metal integration, touch controls, Files import, and IPA packaging have not been implemented yet.
 
@@ -23,7 +24,7 @@ See [STATUS.md](docs/STATUS.md), [PLAN.md](docs/PLAN.md), and [WORKLOG.md](docs/
 
 | Platform | Status |
 |---|---|
-| Apple Silicon macOS | Research baseline builds and reaches new-game dialogue |
+| Apple Silicon macOS | Research baseline builds and reaches a generated town |
 | iPhone Simulator/device | Planned; no target yet |
 | iPad Simulator/device | Planned; no target yet |
 | Intel macOS, Windows, Linux | Upstream-reference platforms, not Bellpad release targets |
@@ -56,7 +57,7 @@ The current desktop-only development procedure is documented in [BUILDING.md](do
 
 ## Build instructions
 
-There is no product build yet. To reproduce the pinned desktop investigation on Apple Silicon, install CMake, Ninja, SDL2 compatibility, and Homebrew GCC 16, then follow [BUILDING.md](docs/BUILDING.md).
+There is no product build yet. To reproduce the pinned desktop investigation on Apple Silicon, install CMake, Ninja, SDL2 compatibility, and Homebrew GCC 16, then run the tracked fetch/build scripts described in [BUILDING.md](docs/BUILDING.md).
 
 Before committing or packaging anything, run:
 
@@ -84,7 +85,7 @@ The planned mobile layout has a left analog stick, large contextual A/B buttons,
 
 ## Native keyboard
 
-Native UIKit text entry is planned for player names, town names, letters, passwords, and other supported editors. Committed text will be length-checked and translated to the game's character encoding. This path is not implemented yet.
+The desktop baseline's SDL text-input adapter has been validated for player and town names. Native UIKit text entry is still planned for names, letters, passwords, and other supported editors. Committed text will be length-checked and translated to the game's character encoding.
 
 ## Saves
 
@@ -121,9 +122,9 @@ See [TESTING.md](docs/TESTING.md).
 ## Known issues
 
 - The current 64-bit reference needs GCC; Apple Clang rejects remaining pointer-to-`u32` static initialization.
-- Opening K.K. dialogue does not advance correctly on the tested macOS baseline.
 - One title timing path skips cleanup and reaches an invalid arena free.
-- Graceful window/app/process shutdown is currently broken.
+- Save creation and relaunch persistence have not yet been completed in the local baseline.
+- App-window close and lifecycle teardown still need a clean retest; `SIGTERM` exits the clean scripted build.
 - Aurora GX coverage for this game has not yet been demonstrated.
 - No iOS/iPadOS app, touch UI, native keyboard, Files import, or unsigned IPA exists yet.
 

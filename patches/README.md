@@ -10,3 +10,14 @@ git -C ref/upstream/acgc-64bit apply --unidiff-zero \
 ```
 
 The affected `pc/` compatibility-layer code is MIT-licensed by that upstream. The patch contains no game data.
+
+`pc-port/0002-latch-keyboard-button-edges.patch` preserves non-repeating
+keyboard button-down events until the next `PADRead`. This prevents a short
+native event from falling entirely between GameCube pad polls and proves the
+edge/state split required by the future shared touch/controller input layer.
+
+Both patches are applied idempotently by:
+
+```sh
+./scripts/fetch-desktop-baseline.sh
+```

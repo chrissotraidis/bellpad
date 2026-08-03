@@ -22,3 +22,9 @@
 - Reproduced a timing-dependent title transition that skipped cleanup and repeatedly panicked on an invalid arena free. Changed local panic behavior to abort with a bounded stack trace for future diagnosis.
 - Confirmed the current shutdown path ignores window close, Command-Q, SIGINT, and SIGTERM, requiring SIGKILL during tests.
 - Added an event-latched keyboard-button experiment in the ignored reference clone so synthesized short key events cannot fall entirely between PAD polls; this informs the future normalized mobile input layer but is not yet product code.
+- Instrumented message advancement and proved the K.K. message state is coherent on ARM64 (`main=normal`, bounded cursor indices, correct cursor/continue/end branches). The earlier apparent dialogue blocker was input timing, not pointer corruption.
+- Advanced through the complete K.K. introduction, Rover setup, player/town naming, train sequence, generated-town arrival, station exit, outdoor movement, Tom Nook greeting, and house-selection area.
+- Validated desktop text input with the local test names `Bell` and `Cedar`; no save artifact was committed or copied.
+- Promoted the DVD-tail correction and minimal keyboard-edge latch into tracked, game-data-free patches.
+- Added idempotent pinned fetch and ARM64 build scripts. Tested them from a fresh ignored checkout; the resulting clean executable mounted the supported image directly, loaded 14,495 assets, initialized audio, and reached the title loop.
+- Confirmed a targeted `SIGTERM` terminates the fresh scripted executable. Window-close/app-wrapper teardown remains to be reconciled with the earlier SIGKILL-only observation.

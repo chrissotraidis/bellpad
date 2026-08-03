@@ -2,7 +2,7 @@
 
 Last updated: 2026-08-03
 
-Current phase: desktop-baseline fault isolation.
+Current phase: desktop-baseline save/pointer-model work.
 
 ## Confirmed
 
@@ -19,13 +19,19 @@ Current phase: desktop-baseline fault isolation.
 - The baseline reads the image directly, indexes 10 disc files, decompresses the REL, and loads 14,495 assets without extracting them.
 - A bug in the desktop DVD shim was reproduced and fixed locally: a 32-byte-aligned read of the final 56-byte file at a trimmed image's physical EOF retried forever. Clamping to the declared file length and zero-filling only the alignment tail unlocks boot.
 - After that fix, trademark/title rendering is visually correct at 60 FPS, the renderer submits hundreds of draw calls per frame without GL errors, 32 kHz stereo audio starts, and the game reaches K.K.'s new-game dialogue.
+- Message-state tracing showed that K.K. advancement is correct. The apparent stall was a short synthetic key edge falling between pad polls, not a 64-bit message/parser defect.
+- A minimal keyboard-edge latch carries non-repeating GameCube button events to the next `PADRead`; with it, all K.K. pages, Rover dialogue, choices, and both name-entry screens advance correctly.
+- The desktop SDL text adapter accepted the test player name `Bell` and town name `Cedar` through the in-game editors.
+- The full train sequence completed, a new town was generated, the player arrived at the station, exited into town, moved outdoors, met Tom Nook, and reached the house-selection area.
+- Tracked scripts now reproduce the pinned checkout, apply both clean compatibility patches idempotently, build an ARM64 Mach-O, and optionally link (never copy) a local image.
+- A fresh scripted build was run from an empty ignored checkout and reached the title loop with disc/archive/audio initialization complete. A targeted `SIGTERM` test terminated that clean process.
 
 ## Active blockers
 
 - The 64-bit fork relies on GCC accepting pointer-to-`u32` static initializers. Apple Clang rejects them, so further pointer-model work is mandatory for iOS.
-- K.K.'s first new-game dialogue page redraws when A is pressed but does not advance, blocking town creation and save validation.
 - A timing-dependent title transition jumped from action 3 directly to action 6 and triggered an invalid-free panic in the game arena. The normal timed fade path did not reproduce it, so the state-machine/cleanup race remains open.
-- Closing the SDL window, Command-Q, SIGINT, and SIGTERM did not terminate the game loop; tests required SIGKILL. Lifecycle and controlled shutdown are therefore unproven.
+- The new town has not yet reached its first successful GCI write, controlled in-game exit, and reload, so persistence remains unproven.
+- SDL window close/Command-Q and full cleanup still require a clean retest. The earlier instrumented app-wrapper run needed `SIGKILL`, while the fresh scripted executable terminates on `SIGTERM`; the conflicting evidence is kept explicit.
 - No Animal Crossing-on-Aurora-GX render has been demonstrated locally.
 - No native iOS/iPadOS target exists yet.
 - Simulator and physical-device gameplay evidence do not yet exist.
@@ -34,16 +40,17 @@ Current phase: desktop-baseline fault isolation.
 
 | # | Criterion | State |
 |---|---|---|
-| 1 | Clean-checkout build | Not started |
-| 2 | Dependencies pinned/documented | Research set pinned; product dependency mechanism pending |
+| 1 | Clean-checkout build | Partial — pinned desktop reference fetch/build passes; product targets pending |
+| 2 | Dependencies pinned/documented | Desktop mechanism passes; product dependency mechanism pending |
 | 3 | No leaked source | Policy established; audit pending |
 | 4 | User image selection/validation | Local desktop header/hash validation only; native picker pending |
 | 5 | Runtime resources produced/loaded | Desktop direct-image load proven; product flow pending |
 | 6 | iPhone Simulator installs/launches | Not started |
 | 7 | iPad Simulator installs/launches | Not started |
-| 8–21 | Gameplay/platform behavior | Title and K.K. scene render/audio proven; setup is blocked |
+| 8–10 | Title/setup/town entry | Desktop pass — names, train, generated town, and outdoor movement observed |
+| 11–21 | Rendering/platform behavior | Desktop rendering/audio/input/text partial pass; saves, RTC, lifecycle, memory, and mobile pending |
 | 22 | Reproducible unsigned IPA | Not started |
 | 23 | IPA contains no game data | Not started |
 | 24 | Original icon/branding | Not started |
 | 25 | Accurate README/docs | In progress |
-| 26 | Coherent work committed/pushed | Not started |
+| 26 | Coherent work committed/pushed | Initial safety/research checkpoint pushed; current baseline checkpoint pending |
