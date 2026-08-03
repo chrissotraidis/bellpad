@@ -26,3 +26,9 @@ Both patches are applied idempotently by:
 desktop 2×/uncapped paths and constrains the current coupled game/presentation
 loop to its native 60 Hz cadence. High-refresh presentation remains future
 work and must not add simulation ticks.
+
+`pc-port/0011-package-playable-macos-app.patch` packages the actual ARM64 game
+core as an opt-in `Bellpad.app`, adds a native macOS disc picker, validates an
+explicit image as GAFE01 disc 0 revision 0, and resolves its two clean shader
+files from bundle resources. It does not add or copy retail data. Build it with
+`./scripts/build-playable-macos-app.sh`.

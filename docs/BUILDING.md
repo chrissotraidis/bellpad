@@ -2,7 +2,7 @@
 
 Last updated: 2026-08-03
 
-The repository now builds Bellpad-owned native Apple application shells as well as the desktop game baseline and pinned Aurora Metal/GX probes. The shells do not yet link the game core.
+The repository now builds a playable macOS game-core bundle, Bellpad-owned Metal/touch integration shells, and pinned Aurora Metal/GX probes. The mobile shell does not yet link the game core.
 
 ## Host
 
@@ -44,7 +44,18 @@ The tracked DVD patch handles trimmed images correctly: JSystem requests aligned
 
 The scripts were tested from a fresh ignored checkout on 2026-08-03. The resulting executable indexed the supported local image, loaded 14,495 assets, mounted all three archives, opened 32 kHz stereo audio, and entered the title loop. Shutdown behavior is still harness-dependent and remains an explicit lifecycle test item.
 
-## Planned product build
+## Playable macOS app baseline
+
+```sh
+./scripts/build-playable-macos-app.sh
+open ref/upstream/acgc-64bit/pc/build-bellpad-app/bin/Bellpad.app
+```
+
+This opt-in build packages the actual compiled game core as an ARM64 app bundle. If no image was selected with `--disc PATH` and none is found by the legacy search, it presents a native `NSOpenPanel`. The core accepts only GAFE01 disc 0 revision 0 and reads the selected image in place. The bundle contains its clean GLSL shaders, executable, and plist only; it never copies the selected image.
+
+The current bundle is an honest Milestone 1 product baseline, not the final architecture: rendering remains SDL2/OpenGL, and settings/saves currently resolve relative to the process working directory instead of Application Support. The latter must be fixed before save/relaunch evidence is considered product evidence.
+
+## Metal/touch integration shells
 
 The current clean shell build contains only Bellpad-authored platform code and Apple frameworks. It creates ROM-free macOS and universal iOS/iPadOS bundles:
 

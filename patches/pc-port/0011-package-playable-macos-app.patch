@@ -1,0 +1,374 @@
+diff --git a/pc/CMakeLists.txt b/pc/CMakeLists.txt
+index 346afde..0843de2 100644
+--- a/pc/CMakeLists.txt
++++ b/pc/CMakeLists.txt
+@@ -1,6 +1,11 @@
+ cmake_minimum_required(VERSION 3.16)
+ project(ac_pc C CXX)
+ 
++option(BELLPAD_MACOS_BUNDLE "Build the playable Apple Silicon baseline as Bellpad.app" OFF)
++if(APPLE)
++    enable_language(OBJC)
++endif()
++
+ set(CMAKE_C_STANDARD 11)
+ set(CMAKE_CXX_STANDARD 17)
+ 
+@@ -308,6 +313,9 @@ set(PC_SOURCES
+     ${CMAKE_CURRENT_SOURCE_DIR}/src/pc_bc7.cpp
+     ${CMAKE_CURRENT_SOURCE_DIR}/lib/bc7decomp.cpp
+ )
++if(APPLE)
++    list(APPEND PC_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/pc_apple.m)
++endif()
+ 
+ # =============================================================================
+ # fixNES — vendored NES emulator (MIT License, by FIX94)
+@@ -422,12 +430,25 @@ endif()
+ # =============================================================================
+ # Build executable
+ # =============================================================================
+-add_executable(ac_pc
++set(AC_PC_EXECUTABLE_TYPE)
++if(APPLE AND BELLPAD_MACOS_BUNDLE)
++    set(AC_PC_EXECUTABLE_TYPE MACOSX_BUNDLE)
++    set(BELLPAD_SHADER_RESOURCES
++        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/default.vert
++        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/default.frag
++    )
++    set_source_files_properties(${BELLPAD_SHADER_RESOURCES} PROPERTIES
++        MACOSX_PACKAGE_LOCATION "Resources/shaders"
++    )
++endif()
++
++add_executable(ac_pc ${AC_PC_EXECUTABLE_TYPE}
+     ${PC_SOURCES}
+     ${FIXNES_SOURCES}
+     ${GAME_C_SOURCES}
+     ${GAME_CXX_SOURCES}
+     ${RC_FILE}
++    ${BELLPAD_SHADER_RESOURCES}
+ )
+ 
+ # Link SDL2 without SDL2main (we define SDL_MAIN_HANDLED)
+@@ -449,10 +470,20 @@ else()
+ endif()
+ 
+ set_target_properties(ac_pc PROPERTIES
+-    OUTPUT_NAME "AnimalCrossing"
++    OUTPUT_NAME "$<IF:$<BOOL:${BELLPAD_MACOS_BUNDLE}>,Bellpad,AnimalCrossing>"
+     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+ )
+ 
++if(APPLE AND BELLPAD_MACOS_BUNDLE)
++    set_target_properties(ac_pc PROPERTIES
++        MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/Info.plist.in"
++        MACOSX_BUNDLE_BUNDLE_NAME "Bellpad"
++        MACOSX_BUNDLE_GUI_IDENTIFIER "dev.bellpad.app"
++        MACOSX_BUNDLE_SHORT_VERSION_STRING "0.1.0"
++        MACOSX_BUNDLE_BUNDLE_VERSION "1"
++    )
++endif()
++
+ # Copy shader files to output directory (loaded at runtime, with embedded fallback)
+ add_custom_command(TARGET ac_pc POST_BUILD
+     COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/bin/shaders"
+@@ -505,7 +536,11 @@ endif()
+ # =============================================================================
+ # Install rules (cmake --install . --prefix <dest>)
+ # =============================================================================
+-install(TARGETS ac_pc RUNTIME DESTINATION bin)
++if(APPLE AND BELLPAD_MACOS_BUNDLE)
++    install(TARGETS ac_pc BUNDLE DESTINATION .)
++else()
++    install(TARGETS ac_pc RUNTIME DESTINATION bin)
++endif()
+ install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/shaders/"
+     DESTINATION bin/shaders
+     FILES_MATCHING PATTERN "*.vert" PATTERN "*.frag"
+diff --git a/pc/Info.plist.in b/pc/Info.plist.in
+new file mode 100644
+index 0000000..50ac7f6
+--- /dev/null
++++ b/pc/Info.plist.in
+@@ -0,0 +1,28 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
++<plist version="1.0">
++<dict>
++    <key>CFBundleDevelopmentRegion</key>
++    <string>en</string>
++    <key>CFBundleExecutable</key>
++    <string>${MACOSX_BUNDLE_EXECUTABLE_NAME}</string>
++    <key>CFBundleIdentifier</key>
++    <string>${MACOSX_BUNDLE_GUI_IDENTIFIER}</string>
++    <key>CFBundleInfoDictionaryVersion</key>
++    <string>6.0</string>
++    <key>CFBundleName</key>
++    <string>${MACOSX_BUNDLE_BUNDLE_NAME}</string>
++    <key>CFBundlePackageType</key>
++    <string>APPL</string>
++    <key>CFBundleShortVersionString</key>
++    <string>${MACOSX_BUNDLE_SHORT_VERSION_STRING}</string>
++    <key>CFBundleVersion</key>
++    <string>${MACOSX_BUNDLE_BUNDLE_VERSION}</string>
++    <key>LSApplicationCategoryType</key>
++    <string>public.app-category.games</string>
++    <key>NSHighResolutionCapable</key>
++    <true/>
++    <key>NSHumanReadableCopyright</key>
++    <string>Unofficial clean-room source port; no Nintendo assets included.</string>
++</dict>
++</plist>
+diff --git a/pc/include/pc_apple.h b/pc/include/pc_apple.h
+new file mode 100644
+index 0000000..3106c82
+--- /dev/null
++++ b/pc/include/pc_apple.h
+@@ -0,0 +1,21 @@
++#ifndef PC_APPLE_H
++#define PC_APPLE_H
++
++#include <stddef.h>
++
++#ifdef __cplusplus
++extern "C" {
++#endif
++
++/* Presents a native macOS picker for a user-owned disc image. */
++int pc_apple_choose_disc(char* out_path, size_t capacity);
++
++/* Resolves a file packaged in Bellpad.app without changing the process cwd. */
++int pc_apple_resource_path(const char* relative_path, char* out_path,
++                           size_t capacity);
++
++#ifdef __cplusplus
++}
++#endif
++
++#endif
+diff --git a/pc/include/pc_disc.h b/pc/include/pc_disc.h
+index 366f402..ef28485 100644
+--- a/pc/include/pc_disc.h
++++ b/pc/include/pc_disc.h
+@@ -4,6 +4,11 @@
+ 
+ #include "types.h"
+ 
++/* Select an explicit image instead of searching the current directory. The
++ * path is copied and remains active until cleared with NULL or an empty path.
++ * Returns 1 when the path fits, 0 when it is too long. */
++int pc_disc_set_path(const char* path);
++
+ /* Initialize disc image reader. Searches for .ciso/.iso/.gcm in
+  * current dir, orig/, rom/. Parses GCM filesystem into lookup table.
+  * Returns 1 on success, 0 if no disc image found. */
+diff --git a/pc/src/pc_apple.m b/pc/src/pc_apple.m
+new file mode 100644
+index 0000000..e639083
+--- /dev/null
++++ b/pc/src/pc_apple.m
+@@ -0,0 +1,47 @@
++#import <AppKit/AppKit.h>
++
++#include "pc_apple.h"
++
++#include <string.h>
++
++int pc_apple_choose_disc(char* out_path, size_t capacity) {
++    if (out_path == NULL || capacity == 0) return 0;
++    out_path[0] = '\0';
++
++    @autoreleasepool {
++        NSOpenPanel* panel = [NSOpenPanel openPanel];
++        panel.title = @"Choose your Animal Crossing disc image";
++        panel.message = @"Bellpad supports a legally obtained GAFE01 revision 0 ISO, GCM, or CISO image.";
++        panel.prompt = @"Use Disc Image";
++        panel.canChooseFiles = YES;
++        panel.canChooseDirectories = NO;
++        panel.allowsMultipleSelection = NO;
++        panel.allowedFileTypes = @[@"iso", @"gcm", @"ciso"];
++
++        if ([panel runModal] != NSModalResponseOK) return 0;
++
++        const char* path = panel.URL.fileSystemRepresentation;
++        if (path == NULL || strlen(path) >= capacity) return 0;
++        strcpy(out_path, path);
++        return 1;
++    }
++}
++
++int pc_apple_resource_path(const char* relative_path, char* out_path,
++                           size_t capacity) {
++    if (relative_path == NULL || out_path == NULL || capacity == 0) return 0;
++    out_path[0] = '\0';
++
++    @autoreleasepool {
++        NSString* resource_root = NSBundle.mainBundle.resourcePath;
++        if (resource_root == nil) return 0;
++
++        NSString* relative = [NSString stringWithUTF8String:relative_path];
++        if (relative == nil) return 0;
++        NSString* full_path = [resource_root stringByAppendingPathComponent:relative];
++        const char* file_path = full_path.fileSystemRepresentation;
++        if (file_path == NULL || strlen(file_path) >= capacity) return 0;
++        strcpy(out_path, file_path);
++        return 1;
++    }
++}
+diff --git a/pc/src/pc_disc.c b/pc/src/pc_disc.c
+index abce98e..6159cf0 100644
+--- a/pc/src/pc_disc.c
++++ b/pc/src/pc_disc.c
+@@ -35,6 +35,7 @@ typedef struct {
+ /* ---- global state ---- */
+ static DiscFile g_disc;
+ static int g_disc_open = 0;
++static char g_explicit_disc_path[1024];
+ 
+ /* DOL info */
+ static u32 g_dol_offset = 0;
+@@ -163,9 +164,15 @@ static u8* yaz0_decode(const u8* src, u32 src_size, u32* out_size) {
+ #define GC_MAGIC 0xC2339F3D
+ 
+ static int gcm_verify(DiscFile* df) {
+-    u8 buf[4];
+-    disc_read(df, 0x1C, buf, 4);
+-    return be32(buf) == GC_MAGIC;
++    u8 header[0x20];
++
++    if (!disc_read(df, 0, header, sizeof(header))) return 0;
++    if (be32(header + 0x1C) != GC_MAGIC) return 0;
++
++    /* Bellpad currently supports the clean USA Rev 0 source baseline only:
++     * GAFE01, disc 0, revision 0. Never silently run another game's data. */
++    return memcmp(header, "GAFE01", 6) == 0 &&
++           header[6] == 0 && header[7] == 0;
+ }
+ 
+ static u32 gcm_dol_offset_read(DiscFile* df) {
+@@ -312,11 +319,30 @@ static int find_disc_image(char* out_path, int out_sz) {
+ 
+ /* ---- public API ---- */
+ 
++int pc_disc_set_path(const char* path) {
++    size_t length;
++
++    if (path == NULL || path[0] == '\0') {
++        g_explicit_disc_path[0] = '\0';
++        return 1;
++    }
++
++    length = strlen(path);
++    if (length >= sizeof(g_explicit_disc_path)) return 0;
++    memcpy(g_explicit_disc_path, path, length + 1);
++    return 1;
++}
++
+ int pc_disc_init(void) {
+     char path[512];
+ 
+     if (g_disc_open) return 1;
+-    if (!find_disc_image(path, sizeof(path))) return 0;
++    if (g_explicit_disc_path[0] != '\0') {
++        if (strlen(g_explicit_disc_path) >= sizeof(path)) return 0;
++        strcpy(path, g_explicit_disc_path);
++    } else if (!find_disc_image(path, sizeof(path))) {
++        return 0;
++    }
+     if (!disc_open(&g_disc, path)) return 0;
+ 
+     if (!gcm_verify(&g_disc)) {
+diff --git a/pc/src/pc_gx_tev.c b/pc/src/pc_gx_tev.c
+index 2df498f..1aa3048 100644
+--- a/pc/src/pc_gx_tev.c
++++ b/pc/src/pc_gx_tev.c
+@@ -1,5 +1,8 @@
+ /* pc_gx_tev.c - TEV shader: GLSL program loading and uniform upload */
+ #include "pc_gx_internal.h"
++#ifdef __APPLE__
++#include "pc_apple.h"
++#endif
+ 
+ /* --- file I/O --- */
+ 
+@@ -30,6 +33,14 @@ static char* load_shader(const char* filename) {
+     char path[512];
+     snprintf(path, sizeof(path), "shaders/%s", filename);
+     char* src = load_text_file(path);
++#ifdef __APPLE__
++    if (!src) {
++        char resource_path[1024];
++        if (pc_apple_resource_path(path, resource_path, sizeof(resource_path))) {
++            src = load_text_file(resource_path);
++        }
++    }
++#endif
+     if (src) {
+         printf("[PC/TEV] Loaded shader: %s\n", path);
+     } else {
+diff --git a/pc/src/pc_main.c b/pc/src/pc_main.c
+index 98f61b2..30c867d 100644
+--- a/pc/src/pc_main.c
++++ b/pc/src/pc_main.c
+@@ -12,6 +12,10 @@
+ #include "pc_typing.h"
+ #include "pc_pause_menu.h"
+ #include "m_kankyo.h"
++#ifdef __APPLE__
++#include "pc_apple.h"
++#include <limits.h>
++#endif
+ 
+ /* prefer discrete GPU on laptops */
+ #ifdef _WIN32
+@@ -370,14 +374,24 @@ int main(int argc, char* argv[]) {
+ 
+     for (int i = 1; i < argc; i++) {
+         if (strcmp(argv[i], "--help") == 0 || strcmp(argv[i], "-h") == 0) {
+-            printf("Usage: AnimalCrossing [options]\n");
++            printf("Usage: Bellpad [options]\n");
+             printf("  --verbose, -v       Enable diagnostic output\n");
++            printf("  --disc PATH         Use a supported GAFE01 Rev 0 disc image\n");
+             printf("  --framelimit 60     Use the native 60 Hz simulation rate (default)\n");
+             printf("  --model-viewer [N]  Launch model viewer (optional start index)\n");
+             printf("  --time H[:M[:S]]    Override in-game time (e.g. 5, 17:30, 5:55:00)\n");
+             printf("  --rain [intensity]  Force rainy weather; intensity is light, normal, or heavy\n");
+             printf("  --help, -h          Show this help message\n");
+             return 0;
++        } else if (strcmp(argv[i], "--disc") == 0) {
++            if (i + 1 >= argc || argv[i + 1][0] == '\0') {
++                fprintf(stderr, "--disc requires an image path.\n");
++                return 2;
++            }
++            if (!pc_disc_set_path(argv[++i])) {
++                fprintf(stderr, "Disc image path is too long.\n");
++                return 2;
++            }
+         } else if (strcmp(argv[i], "--framelimit") == 0) {
+             if (i + 1 < argc && argv[i + 1][0] != '-') {
+                 int v = atoi(argv[i + 1]);
+@@ -521,12 +535,20 @@ int main(int argc, char* argv[]) {
+     pc_settings_load();
+     pc_keybindings_load();
+     pc_platform_init();
+-    pc_disc_init();
++    if (!pc_disc_init()) {
++#ifdef __APPLE__
++        char selected_path[PATH_MAX];
++        if (pc_apple_choose_disc(selected_path, sizeof(selected_path)) &&
++            pc_disc_set_path(selected_path)) {
++            pc_disc_init();
++        }
++#endif
++    }
+     if (!pc_assets_init()) {
+         const char* msg =
+             "No game data found.\n\n"
+-            "Animal Crossing needs the original GameCube ROM to run.\n"
+-            "Place a disc image (.iso, .gcm, or .ciso) to the \"rom\" subfolder.";
++            "Bellpad needs a legally obtained GAFE01 revision 0 disc image.\n"
++            "Choose a supported .iso, .gcm, or .ciso file.";
+         fprintf(stderr, "[PC] %s\n", msg);
+         SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR,
+                                  "Animal Crossing - Missing ROM", msg, g_pc_window);

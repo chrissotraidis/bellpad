@@ -2,7 +2,7 @@
 
 Last updated: 2026-08-03
 
-Current phase: Apple platform foundation after proving the desktop core and Aurora Metal path on macOS and the iOS Simulator.
+Current phase: converging the playable macOS ARM64 core bundle with the proven Aurora Metal and native mobile touch/platform paths.
 
 ## Confirmed
 
@@ -24,6 +24,8 @@ Current phase: Apple platform foundation after proving the desktop core and Auro
 - Computer Use QA opened both native choosers. The iPhone Files picker appeared over the running Metal/touch shell and dismissed back to it; the macOS open sheet presented with ISO/GCM type filtering. No retail file was selected during UI QA.
 - ACreTeam's current `forest` port already integrates Aurora services, but disables Aurora GX and uses rendering stubs; it is not a playable baseline.
 - The pinned 64-bit fork plus tracked patches compiles all 4,000 units and links ARM64 Mach-O executables with both Apple Clang 21.0.0 and GCC 16.1.0 in independent build directories.
+- The complete Apple Clang core now also packages as `Bellpad.app`. Its native picker and `--disc` API select a user-owned image in place; the core rejects non-GAFE01, nonzero-disc, and nonzero-revision headers. Bundle resources contain only the executable, plist, and clean shaders.
+- A runtime smoke launched that app binary from an unrelated temporary directory, selected the ignored image explicitly, indexed all 10 disc files, loaded 14,495 assets, opened 32 kHz audio, entered `graph_proc`, and reached the completed trademark/title loop at the fixed 60 Hz VI cadence.
 - The Apple Clang executable has been launched against the ignored supported image and visibly reaches the correctly rendered title screen at 60 FPS.
 - A debugger sample identified the title cleanup invalid-free as static-pool corruption: an 840-byte ARM64 `SHRINE_ACTOR` occupied an 832-byte `STRUCTURE_ACTOR` slot and overwrote the following actor's identity fields.
 - Current PC-port commit `7fa20d75…` independently fixes this class of structure-pool overflow. Bellpad ports the design with 0x400-byte host slots; Apple Clang and GCC rebuild, and repeated automatic title teardown/reload cycles no longer panic.
@@ -35,7 +37,7 @@ Current phase: Apple platform foundation after proving the desktop core and Auro
 - A minimal keyboard-edge latch now executes inside the actual `SDL_KEYDOWN` case and carries each non-repeating GameCube button event through both controller reads in one game input update. A debugger-fed normalized A edge advanced exactly one K.K. prompt in the Apple Clang build.
 - The desktop SDL text adapter accepted the test player name `Bell` and town name `Cedar` through the in-game editors.
 - The full train sequence completed, a new town was generated, the player arrived at the station, exited into town, moved outdoors, met Tom Nook, and reached the house-selection area.
-- Tracked scripts now reproduce the pinned checkout, apply all nine clean compatibility patches idempotently, build an Apple Clang ARM64 Mach-O by default, allow an isolated GCC cross-check, and optionally link (never copy) a local image.
+- Tracked scripts now reproduce the pinned checkout, apply all eleven clean compatibility patches idempotently, build an Apple Clang ARM64 Mach-O or playable `Bellpad.app`, allow an isolated GCC cross-check, and optionally link or select (never copy) a local image.
 - A fresh scripted build was run from an empty ignored checkout and reached the title loop with disc/archive/audio initialization complete. A targeted `SIGTERM` test terminated that clean process.
 - The Bell/Cedar run selected a house, accepted the mortgage, entered Nook's work tutorial, equipped the work uniform through inventory, planted all seven flowers and three saplings, and completed first introductions with Peaches and Chuck. Runtime quest data reported 2 friends out of Cedar's 6 starting villagers.
 - Frame-counted analog QA now sets the normalized stick, stops after an exact number of `PADRead` calls, clears it before detaching, and can queue a button edge on release. It moved Bell through town and reliably initiated both resident conversations.
@@ -60,7 +62,7 @@ Current phase: Apple platform foundation after proving the desktop core and Auro
 - A later occupied-house route was derived from the runtime town combination table and collision grids. The targeted villager left home before Bell arrived, and a second occupied target likewise changed to outdoors during the route. Runtime `is_home` flags and the visible villagers agreed, so patch-7/8 runtime status remains pending without manufacturing a false pass.
 - SDL window close/Command-Q and full cleanup still require a clean retest. The earlier instrumented app-wrapper run needed `SIGKILL`, while the fresh scripted executable terminates on `SIGTERM`; the conflicting evidence is kept explicit.
 - No Animal Crossing-on-Aurora-GX render has been demonstrated locally; only Aurora's clean GX clear/example path is proven.
-- The native shells exist, but neither the desktop game core nor Aurora services are linked into them yet. Their current Metal content and controls are an integration harness, not playable-game evidence.
+- The native Metal/touch shells still do not link the game core or Aurora services. The separate playable macOS `Bellpad.app` is real-game evidence, but still uses SDL2/OpenGL and is not yet the converged Apple product architecture.
 - The iPad expanded full-window layout is code-complete but the simulator launched this unsigned build in a 960×640 resizable window; the responsive compact fallback is visually proven there. Full-screen/expanded layout still needs a separate simulator or device run.
 - Disc retention, hash allowlisting, nod indexing, compressed CISO/RVZ support, Application Support storage, and actual game launch remain after the header-validation boundary.
 - Simulator shell evidence exists, but simulator and physical-device Animal Crossing gameplay evidence do not.
@@ -69,11 +71,11 @@ Current phase: Apple platform foundation after proving the desktop core and Auro
 
 | # | Criterion | State |
 |---|---|---|
-| 1 | Clean-checkout build | Partial — pinned desktop reference fetch/build passes with Apple Clang and GCC; product targets pending |
+| 1 | Clean-checkout build | Partial — pinned core fetch/build and playable macOS app bundle pass; converged Metal/mobile products pending |
 | 2 | Dependencies pinned/documented | Desktop mechanism passes; product dependency mechanism pending |
 | 3 | No leaked source | Policy established; audit pending |
-| 4 | User image selection/validation | Partial — native macOS/iOS pickers and shared ISO/GCM `GAFE01` Rev 0 header validation pass; hash, retention, compressed formats, and launch pending |
-| 5 | Runtime resources produced/loaded | Desktop direct-image load proven; product flow pending |
+| 4 | User image selection/validation | Partial — macOS playable app selects and launches raw ISO/GCM/CISO with strict GAFE01 disc/revision checks; mobile picker validates raw headers only; hash, durable retention, and RVZ pending |
+| 5 | Runtime resources produced/loaded | Playable macOS app direct-image load proven with ROM-free bundle; Metal/mobile product flow pending |
 | 6 | iPhone Simulator installs/launches | Partial — Bellpad-owned native shell installs, launches, renders Metal, and shows adaptive touch controls; game pending |
 | 7 | iPad Simulator installs/launches | Partial — same universal shell launches after iPhone shutdown and adapts controls to its resizable window; game pending |
 | 8–10 | Title/setup/town entry | Desktop pass — names, train, generated town, and outdoor movement observed |

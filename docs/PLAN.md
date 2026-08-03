@@ -33,6 +33,7 @@ This is a provisional selection. Milestone 1 build and runtime evidence can chan
    NPC-house entry and scene reinitialization are now explicit regression gates after reproducing an unreachable host door sample and a null e-Reader payload allocation in `play_init`.
 6. Rebase or forward-port the 64-bit work onto the current bug-fixed native port.
 7. [x] Remove compiler-blocking GCC-only pointer truncation behavior so Apple Clang can compile and run the core. Continue the broader address audit and sanitizer work; compiler acceptance alone is not proof that every guest/native boundary is correct.
+8. [x] Package the complete Apple Clang ARM64 core as an opt-in `Bellpad.app` with a native picker, explicit supported-image path, strict GAFE01 disc/revision validation, and ROM-free resources. Move its cwd-based saves/settings into Application Support before treating it as the final macOS product target.
 
 ### 64-bit and address model
 
@@ -61,7 +62,7 @@ GX reaches Metal as: game/JSystem/emu64 GX calls → Aurora GX command processor
 - [x] Generate a native macOS application and a universal iOS/iPadOS application target with real product bundle metadata, MetalKit surfaces, fixed 60 Hz presentation, and a shared portable input library.
 - [x] Add the first adaptive GameCube touch overlay and GameController merge. Compact iPhone/resizable-iPad layouts are visually proven; expanded iPad layout, editing, and persistence remain.
 - [x] Add native macOS/iOS document choosers and one shared raw ISO/GCM header validator for GameCube magic, `GAFE01`, and revision 0. The UI presentation and synthetic-header tests pass without selecting retail data.
-- Connect the portable Animal Crossing core and Aurora services to those product targets; the current shell is not a game pass.
+- Connect the portable Animal Crossing core and Aurora services to the Metal/touch product targets. The separate playable macOS bundle proves the core can live in an app bundle, but does not by itself connect the Aurora renderer or mobile shell.
 - Add hash allowlisting, security-scoped bookmark or Application Support retention, nod indexing, and measured CISO/RVZ support before enabling launch.
 - Use a document picker for security-scoped ISO/GCM/CISO/RVZ selection.
 - Validate disc header, revision, size, and known supported hashes before retaining data.

@@ -31,6 +31,8 @@ simulation ticks.
 
 The app executes compiled C/C++ game code directly on Apple ARM64. Aurora is a source-level SDK compatibility layer, not a CPU/GPU emulator. The existing WebAssembly port is research material only and will not be embedded.
 
+The current implementation has two deliberately visible tracks. `Bellpad.app` packages the complete, playable ARM64 core with its temporary SDL2/OpenGL compatibility layer; the Bellpad-owned AppKit/UIKit shells prove native Metal surfaces, Files UI, lifecycle hooks, and normalized touch/controller input. Convergence means replacing the former's platform layer with Aurora and feeding the latter's normalized services into the real core—not launching one app from the other or preserving two products.
+
 ## Address and data model
 
 Host pointers are native-width. Game addresses, segmented N64 display-list addresses, file offsets, save fields, and on-disc structures remain explicitly fixed-width. Conversion crosses named, bounds-checked APIs; integer-to-pointer casts are not used as a generic address model.
@@ -90,6 +92,7 @@ GCI-folder mode is the initial canonical store because it gives one file per sav
 
 - The game loop will own game state on a dedicated thread or SDL main callback compatible with iOS. The current shell deliberately contains no second simulation clock.
 - Bellpad now owns native AppKit and UIKit bundles. Their MetalKit views request 60 FPS, establish bundle/lifecycle ownership, and provide the surface that will be replaced or adopted by Aurora's Dawn path.
+- The full desktop core also has an opt-in native macOS app-bundle target. Its `NSOpenPanel` and explicit disc-path API launch real game code and its shaders resolve from bundle resources without changing cwd. This is the playable migration baseline; it still uses SDL2/OpenGL and cwd-based settings/saves.
 - UIKit owns the first adaptive touch overlay. Compact sizing is computed from actual safe-area width/height for iPhone and resizable iPad windows; an expanded layout activates only when an iPad window has sufficient space.
 - Touch and external-controller sources now target one portable, mutex-protected normalized GameCube state. Buttons are ORed, the strongest absolute value wins per stick axis, and the maximum analog trigger wins. The game-core adapter will snapshot this state at `PADRead` boundaries rather than receiving UIKit callbacks directly.
 - The touch source is cleared on resign-active. Presentation pauses while inactive and resumes on become-active. A physical controller hides touch on real devices while retaining an explicit user override; simulator virtual controllers do not hide the overlay so touch QA remains possible.

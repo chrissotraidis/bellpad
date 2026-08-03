@@ -2,13 +2,14 @@
 
 Bellpad is an experimental, native Apple ARM64 source port project for the original US revision of Animal Crossing for Nintendo GameCube. The intended application compiles legally clean reverse-engineered game code for macOS, iOS, and iPadOS. It is not a GameCube emulator and will not embed a WebAssembly/browser port.
 
-The repository is in active platform integration. It now contains native macOS and universal iOS/iPadOS application shells, but it does not yet contain a playable mobile game build.
+The repository is in active platform integration. The proven ARM64 game core now packages as a playable macOS `Bellpad.app`, and separate native macOS and universal iOS/iPadOS Metal shells establish the future shared platform boundary. It does not yet contain a playable mobile game build.
 
 ## Current status
 
 As of 2026-08-03:
 
 - A pinned 64-bit source-port fork builds locally as a native macOS ARM64 executable.
+- The same complete game core now builds as an opt-in ARM64 `Bellpad.app`. It accepts `--disc`, presents a native picker when needed, validates GAFE01 disc 0 revision 0, packages only clean shader resources, and reaches the title loop from an arbitrary working directory.
 - The same patched source now builds with both Apple Clang 21 and GCC 16; the Apple Clang binary reaches the correctly rendered 60 FPS title screen.
 - The pinned checkout, local patches, and build are now reproducible with tracked scripts.
 - A user-supplied `GAFE01` revision 0 image is validated and read directly without extracting or bundling its assets.
@@ -21,7 +22,7 @@ As of 2026-08-03:
 - Bellpad-owned macOS and universal iOS/iPadOS bundles now build as native ARM64 applications. They render with MetalKit at a fixed 60 Hz and expose a shared normalized GameCube input boundary.
 - The mobile shell includes left/C sticks, A/B/X/Y, Z/L/R/Start, D-pad, adaptive compact/expanded layouts, safe-area handling, a touch visibility override, GameController merging, and physical-controller auto-hide on devices.
 - Native macOS and iOS/iPadOS choosers now accept a user-selected file and pass it to a shared header validator. The current slice recognizes raw ISO/GCM, requires GameCube magic plus `GAFE01` revision 0, reads only the first 32 bytes, and neither retains nor copies the image.
-- The game core, Aurora renderer, durable disc retention/indexing, compressed image formats, saves, native game text entry, audio, and IPA packaging are not connected to the shell yet.
+- The playable macOS bundle still uses the proven SDL2/OpenGL renderer and cwd-based save path. The Metal shells remain separate integration harnesses; Aurora rendering, durable disc retention/indexing, Application Support saves, mobile game text entry/audio, and IPA packaging are not connected yet.
 
 See [STATUS.md](docs/STATUS.md), [PLAN.md](docs/PLAN.md), and [WORKLOG.md](docs/WORKLOG.md) for evidence and current blockers.
 
@@ -29,7 +30,7 @@ See [STATUS.md](docs/STATUS.md), [PLAN.md](docs/PLAN.md), and [WORKLOG.md](docs/
 
 | Platform | Status |
 |---|---|
-| Apple Silicon macOS | Desktop game baseline reaches a generated town; native Bellpad Metal shell builds and launches |
+| Apple Silicon macOS | Playable ARM64 `Bellpad.app` reaches the title and the underlying baseline reaches a generated town; separate Metal-shell migration remains |
 | iPhone Simulator/device | Bellpad ARM64 simulator shell installs, launches, renders, and shows touch controls; game core pending |
 | iPad Simulator/device | Same universal shell passes sequentially with adaptive resizable-window controls; game core pending |
 | Intel macOS, Windows, Linux | Upstream-reference platforms, not Bellpad release targets |
@@ -62,7 +63,7 @@ The native shells now present Apple file choosers and validate a selected raw im
 
 ## Build instructions
 
-To build the Bellpad-owned native shell, run `./scripts/build-apple-shell.sh macos` or `./scripts/build-apple-shell.sh ios-simulator`. The pinned desktop investigation and Aurora Metal probes remain separately reproducible through the scripts in [BUILDING.md](docs/BUILDING.md). Apple Clang is the product compiler; GCC 16 remains an optional desktop-core compatibility cross-check.
+Run `./scripts/build-playable-macos-app.sh` for the real-game ARM64 macOS bundle. Run `./scripts/build-apple-shell.sh macos` or `./scripts/build-apple-shell.sh ios-simulator` for the clean Metal/touch integration harnesses. The Aurora Metal probes are separately reproducible through [BUILDING.md](docs/BUILDING.md). Apple Clang is the product compiler; GCC 16 remains an optional desktop-core compatibility cross-check.
 
 Before committing or packaging anything, run:
 
@@ -129,9 +130,10 @@ See [TESTING.md](docs/TESTING.md).
 - Apple Clang compilation is proven, but the full guest-address/pointer-width audit and sanitizer run are not complete.
 - Automated window-key delivery is harness-dependent. Guarded LLDB QA helpers can feed button taps, persistent left-stick values, and alphanumeric text through the same normalized APIs planned for Apple platform adapters.
 - Save creation and relaunch persistence have not yet been completed in the local baseline.
+- The playable macOS bundle still stores settings/saves relative to its launch working directory; migration to Application Support with atomic backups is required.
 - App-window close and lifecycle teardown still need a clean retest; `SIGTERM` exits the clean scripted build.
 - Aurora's Apple Metal/GX example path is proven, but Aurora GX coverage for this game has not yet been demonstrated.
-- The iOS/iPadOS shell, first touch UI, native Files chooser, and raw-header validator exist; durable import/indexing, the game core, native game keyboard, and unsigned IPA remain pending.
+- The iOS/iPadOS shell, first touch UI, native Files chooser, and raw-header validator exist; durable import/indexing, the game core, native game keyboard, audio/lifecycle integration, and unsigned IPA remain pending.
 
 ## Research and credits
 

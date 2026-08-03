@@ -100,7 +100,20 @@ scene/orientation/safe-area policy and adaptive touch controls.
 | Shared disc validator | Pass — synthetic 32-byte `.iso` accepts `GAFE01` Rev 0; synthetic wrong revision/game and `.rvz` rejection pass; no retail fixture used |
 | iPhone Files picker | Pass — Computer Use activated “Choose Game Data…” and observed Apple's native Files/Recents UI; cancelled without selecting a file |
 | macOS open panel | Pass — native sheet presented with ISO/GCM content filtering; cancelled without selecting a file |
-| Game rendering/input | Not tested — shell is not yet linked to the game core/Aurora |
+| Shell game rendering/input | Not tested — this Metal/touch harness is not yet linked to the game core/Aurora |
+
+### Playable macOS app evidence — 2026-08-03
+
+| Test | Result |
+|---|---|
+| App configure/build | Pass — all 4,000 core units link into `Bellpad.app/Contents/MacOS/Bellpad`, a native ARM64 Mach-O with a valid plist |
+| Package contents | Pass — executable, plist, and two clean GLSL shaders only; no disc image, extracted retail data, or save |
+| Explicit image validation/load | Pass — ignored GAFE01 disc 0 revision 0 image selected through `--disc`; 10 FST files indexed and 14,495 assets loaded directly |
+| Arbitrary-cwd launch | Pass — launched from `/tmp`; shaders resolved from app resources without changing cwd |
+| Render/audio/timing smoke | Pass — Apple M2 renderer, 32 kHz stereo audio, fixed 60 Hz VI pacing, `graph_proc`, and completed title prompt observed |
+| Overclock rejection | Pass — bundled executable returns status 2 for both `--framelimit 120` and `--no-framelimit` with an acceleration warning |
+| Native picker | Build/runtime path present; the previously proven AppKit sheet covers presentation, but selecting retail data through it remains a manual product test |
+| Saves/Application Support | Pending — current baseline reports cwd-based `save/card_a`; this is not accepted product persistence |
 
 The iPhone simulator screenshot required rotation for human inspection because
 `simctl io screenshot` retained the physical portrait buffer while UIKit
