@@ -1,0 +1,25 @@
+diff --git a/src/actor/ac_house_move.c_inc b/src/actor/ac_house_move.c_inc
+--- a/src/actor/ac_house_move.c_inc
++++ b/src/actor/ac_house_move.c_inc
+@@ -263 +263,2 @@
+-    mActor_name_t name;
++    mActor_name_t name;
++    int player_at_door;
+@@ -271 +272,16 @@
+-    if ((mActor_name_t)player->item_in_front == name && chkTrigger(BUTTON_A)) {
++    player_at_door = (mActor_name_t)player->item_in_front == name;
++#ifdef TARGET_PC
++    if (player_at_door == FALSE) {
++        f32 dx = player->actor_class.world.position.x - house->actor_class.world.position.x;
++        f32 dz = player->actor_class.world.position.z - house->actor_class.world.position.z;
++
++        /* The host collision shape can stop the player before the original 20-unit forward sample reaches the
++         * house label. Keep a narrow, north-facing fallback at the center of NPC house doors only. */
++        if (dx >= -30.0f && dx <= 30.0f && dz >= 50.0f && dz <= 90.0f &&
++            player->forward_ut_pos.z < player->actor_class.world.position.z) {
++            player_at_door = TRUE;
++        }
++    }
++#endif
++
++    if (player_at_door && chkTrigger(BUTTON_A)) {

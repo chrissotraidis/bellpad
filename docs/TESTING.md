@@ -12,7 +12,7 @@ No gameplay test is marked passed without a dated result, device/OS, build revis
 | Apple toolchain runtime smoke test | Native binary reaches visible game output | Pass — Apple Clang build rendered the title correctly at 60 FPS using the ignored supported image |
 | Validate supported disc | Accept `GAFE01` USA Rev 0 only | Partial pass — local header/revision/magic/hash validated; product hash allowlist pending |
 | Trademark/title | Correct render/audio/input | Partial pass — correct 60 FPS rendering and 32 kHz stereo; A/Start works through a latched native test path; cleanup overflow fixed; repeatable UI automation pending |
-| Character/town creation | Completes with text entry | Partial pass — player/town names, train, and town generation completed; first house/save not yet finalized |
+| Character/town creation | Completes with text entry | Partial pass — Bell/Cedar, train, town generation, house selection, mortgage, and early work tutorial completed; first save remains pending |
 | Enter town | Stable outdoor rendering and movement | Pass — station exit, outdoor movement, Nook greeting, and housing area observed |
 | Save/exit/relaunch | Same town loads from GCI | Pending |
 | RTC | Time and date match host | Pending |
@@ -24,6 +24,8 @@ No gameplay test is marked passed without a dated result, device/OS, build revis
 - Title cleanup overflow: debugger sampling showed `play_cleanup → Actor_info_dt → Actor_info_delete → zelda_free`, with the invalid pointer inside `aSTR_actor_cl`. Clang record layouts measured `STRUCTURE_ACTOR=832` and `SHRINE_ACTOR=840`; the Shrine tail overwrote the next 832-byte slot. A 0x400-byte host slot, based on current upstream's equivalent 32-bit repair, survives repeated teardown/reload cycles under Apple Clang; GCC also rebuilds.
 - Short keyboard edges: synthesized native key taps could end between controller reads. The tracked latch runs in the real key-down case and remains visible to both JUT and pad-manager `PADRead` calls; one injected normalized A edge advanced exactly one K.K. prompt.
 - Shutdown evidence differs by harness: app-wrapper sessions have needed SIGKILL, while one targeted raw-process `SIGTERM` test exited. A later Clang wrapper again needed SIGKILL, so window/app teardown remains open.
+- NPC-house reach: at Bunnie's active house, the host collision stopped Bell near `z=2175` while the original 20-unit forward sample could not reach the door-label unit. A diagnostic at `z=2138` produced the expected `item_in_front=0xF0A6`. A narrow `TARGET_PC` door-approach fallback compiles under both toolchains; fresh runtime replay is pending.
+- Scene-entry allocation: the first NPC-house transition terminated after 2 h 44 min with `EXC_BAD_ACCESS` at `0x2C`. The native stack is `putLEWord → mEA_GetCardDLProgram → play_init`; the optional 9,612-byte e-Reader allocation returned null. Resource/allocation guards compile under both toolchains; fresh runtime replay is pending.
 
 ### Gameplay evidence on 2026-08-03
 
@@ -32,11 +34,15 @@ No gameplay test is marked passed without a dated result, device/OS, build revis
 - Repeated the `Bell`/`Cedar` flow through the new SDL-independent native text API: begin returned success, all characters were queued, Enter was accepted, and the second editor reopened cleanly.
 - Completed the train sequence and arrived in the generated town.
 - Exited the station, moved outdoors, met Tom Nook, and reached house selection.
+- Selected a house, accepted the mortgage, equipped Nook's work uniform through the inventory, and planted all seven flowers and three saplings. Placement validation rejected paved locations and accepted valid soil.
+- Completed first-time resident conversations with Peaches and Chuck. Live quest inspection reported 2 friend records out of 6 starting villagers; Tortimer's work-introduction flag remained unset.
 - Rendering and audio remained active throughout; no panic occurred on the normal title path.
 - No GCI file was created before the session ended, so save/reload is not marked passed.
 - The current Computer Use wrapper does not consistently deliver synthesized keys to SDL. The linked Homebrew library is `sdl2-compat`, backed by SDL3, so raw SDL2 event-layout injection is also invalid. For desktop QA, `scripts/tap-desktop-button.sh <pid> A` calls the same normalized queue under LLDB; it deliberately supports buttons only and does not bypass game logic.
 - `scripts/type-desktop-text.sh <pid> Bell` validates an explicit game PID, restricts its shell-facing value to ASCII alphanumerics, and calls the same begin/commit/Enter API planned for native keyboard adapters. The underlying API retains the port's existing UTF-8 mapping, including its supported accented characters.
 - Normalized pad merge: requested left stick `(-77,55)`, C-stick `(33,-44)`, and triggers `(120,130)`. `PADRead` returned packed bytes `0x8278d42137b30060`, exactly matching all axes/triggers plus trigger-derived L/R bits `0x0060`. `scripts/set-desktop-stick.sh` also set and cleared the persistent left-stick state.
+- `scripts/pulse-desktop-stick.sh` holds a normalized left-stick value for an exact `PADRead` count, clears it before detaching, and may queue one button on release. Direct state inspection confirmed all ten virtual-pad bytes return to zero; it then drove deterministic town movement and both resident conversations.
+- The rebuilt eight-patch Apple Clang binary again completed disc indexing, archive loading, 32 kHz audio startup, and a visible 60 FPS title loop, then returned from `graph_proc` after an exact-PID `SIGTERM`. This is a smoke pass only, not proof of the patched interior transition.
 
 ## Functional gameplay matrix
 

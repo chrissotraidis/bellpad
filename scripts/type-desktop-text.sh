@@ -36,6 +36,7 @@ attempt=1
 while :; do
     if output=$(lldb --batch -p "$pid" \
         -o "expression -- (int)pc_typing_begin()" \
+        -o "expression -- { for (int i = 0; i < 8; i++) (void)pc_typing_command(256); }" \
         -o "expression -- (int)pc_typing_commit_utf8(\"$value\")" \
         -o "expression -- (int)pc_typing_command(261)" \
         -o detach 2>&1); then
