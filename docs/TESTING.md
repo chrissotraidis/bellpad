@@ -109,11 +109,12 @@ scene/orientation/safe-area policy and adaptive touch controls.
 | App configure/build | Pass — all 4,000 core units link into `Bellpad.app/Contents/MacOS/Bellpad`, a native ARM64 Mach-O with a valid plist |
 | Package contents | Pass — executable, plist, and two clean GLSL shaders only; no disc image, extracted retail data, or save |
 | Explicit image validation/load | Pass — ignored GAFE01 disc 0 revision 0 image selected through `--disc`; 10 FST files indexed and 14,495 assets loaded directly |
-| Arbitrary-cwd launch | Pass — launched from `/tmp`; shaders resolved from app resources without changing cwd |
+| Arbitrary-cwd launch | Pass — launched from `/tmp`; shaders resolved from app resources and mutable data moved to Application Support |
 | Render/audio/timing smoke | Pass — Apple M2 renderer, 32 kHz stereo audio, fixed 60 Hz VI pacing, `graph_proc`, and completed title prompt observed |
 | Overclock rejection | Pass — bundled executable returns status 2 for both `--framelimit 120` and `--no-framelimit` with an acceleration warning |
 | Native picker | Build/runtime path present; the previously proven AppKit sheet covers presentation, but selecting retail data through it remains a manual product test |
-| Saves/Application Support | Pending — current baseline reports cwd-based `save/card_a`; this is not accepted product persistence |
+| Application Support path/relaunch | Pass — isolated `BELLPAD_DATA_HOME` became the reported save cwd; a second launch loaded the same settings/keybindings |
+| In-game save/atomic backups | Pending — no successful GCI creation/reload yet; atomic replacement, rotating backups, and import/export are not implemented |
 
 The iPhone simulator screenshot required rotation for human inspection because
 `simctl io screenshot` retained the physical portrait buffer while UIKit

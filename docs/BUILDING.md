@@ -24,7 +24,7 @@ BELLPAD_DISC_IMAGE="/absolute/path/to/your/Animal Crossing.iso" \
   ./scripts/build-desktop-baseline.sh
 ```
 
-The fetch script checks out commit `915fb86ba9a6c2144dabda9143d93af7a3f92be7` under ignored `ref/upstream/`, verifies the exact revision, and idempotently applies the tracked compatibility patches. The build script uses Apple Clang by default and verifies that the result is an ARM64 Mach-O. Override `BELLPAD_CC`, `BELLPAD_CXX`, and `BELLPAD_BUILD_DIR` for an independent compiler/configuration.
+The fetch script checks out commit `915fb86ba9a6c2144dabda9143d93af7a3f92be7` under ignored `ref/upstream/`, verifies the exact revision, and idempotently applies the ordered compatibility patches. Applied patch hashes are recorded under the ignored checkout's `.git/` directory so later patches may safely modify files introduced by earlier ones; changed historical patches require a clean checkout. The build script uses Apple Clang by default and verifies that the result is an ARM64 Mach-O. Override `BELLPAD_CC`, `BELLPAD_CXX`, and `BELLPAD_BUILD_DIR` for an independent compiler/configuration.
 
 Optional GCC compatibility build:
 
@@ -53,7 +53,7 @@ open ref/upstream/acgc-64bit/pc/build-bellpad-app/bin/Bellpad.app
 
 This opt-in build packages the actual compiled game core as an ARM64 app bundle. If no image was selected with `--disc PATH` and none is found by the legacy search, it presents a native `NSOpenPanel`. The core accepts only GAFE01 disc 0 revision 0 and reads the selected image in place. The bundle contains its clean GLSL shaders, executable, and plist only; it never copies the selected image.
 
-The current bundle is an honest Milestone 1 product baseline, not the final architecture: rendering remains SDL2/OpenGL, and settings/saves currently resolve relative to the process working directory instead of Application Support. The latter must be fixed before save/relaunch evidence is considered product evidence.
+The current bundle is an honest Milestone 1 product baseline, not the final architecture: rendering remains SDL2/OpenGL. On macOS it creates and enters `~/Library/Application Support/Bellpad` before loading settings, keybindings, or `save/card_a`. Set `BELLPAD_DATA_HOME` to an isolated absolute directory for development tests. This proves path stability, not a successful in-game save; atomic replacement/backups and save/relaunch gameplay evidence remain required.
 
 ## Metal/touch integration shells
 

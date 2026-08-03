@@ -26,6 +26,7 @@ Current phase: converging the playable macOS ARM64 core bundle with the proven A
 - The pinned 64-bit fork plus tracked patches compiles all 4,000 units and links ARM64 Mach-O executables with both Apple Clang 21.0.0 and GCC 16.1.0 in independent build directories.
 - The complete Apple Clang core now also packages as `Bellpad.app`. Its native picker and `--disc` API select a user-owned image in place; the core rejects non-GAFE01, nonzero-disc, and nonzero-revision headers. Bundle resources contain only the executable, plist, and clean shaders.
 - A runtime smoke launched that app binary from an unrelated temporary directory, selected the ignored image explicitly, indexed all 10 disc files, loaded 14,495 assets, opened 32 kHz audio, entered `graph_proc`, and reached the completed trademark/title loop at the fixed 60 Hz VI cadence.
+- The app now creates `~/Library/Application Support/Bellpad` before loading settings/keybindings/saves. An isolated `BELLPAD_DATA_HOME` run reported that exact test directory as its save cwd, and a second launch loaded the previously created settings and keybindings from it.
 - The Apple Clang executable has been launched against the ignored supported image and visibly reaches the correctly rendered title screen at 60 FPS.
 - A debugger sample identified the title cleanup invalid-free as static-pool corruption: an 840-byte ARM64 `SHRINE_ACTOR` occupied an 832-byte `STRUCTURE_ACTOR` slot and overwrote the following actor's identity fields.
 - Current PC-port commit `7fa20d75…` independently fixes this class of structure-pool overflow. Bellpad ports the design with 0x400-byte host slots; Apple Clang and GCC rebuild, and repeated automatic title teardown/reload cycles no longer panic.
@@ -37,7 +38,7 @@ Current phase: converging the playable macOS ARM64 core bundle with the proven A
 - A minimal keyboard-edge latch now executes inside the actual `SDL_KEYDOWN` case and carries each non-repeating GameCube button event through both controller reads in one game input update. A debugger-fed normalized A edge advanced exactly one K.K. prompt in the Apple Clang build.
 - The desktop SDL text adapter accepted the test player name `Bell` and town name `Cedar` through the in-game editors.
 - The full train sequence completed, a new town was generated, the player arrived at the station, exited into town, moved outdoors, met Tom Nook, and reached the house-selection area.
-- Tracked scripts now reproduce the pinned checkout, apply all eleven clean compatibility patches idempotently, build an Apple Clang ARM64 Mach-O or playable `Bellpad.app`, allow an isolated GCC cross-check, and optionally link or select (never copy) a local image.
+- Tracked scripts now reproduce the pinned checkout, apply all twelve clean compatibility patches idempotently, build an Apple Clang ARM64 Mach-O or playable `Bellpad.app`, allow an isolated GCC cross-check, and optionally link or select (never copy) a local image.
 - A fresh scripted build was run from an empty ignored checkout and reached the title loop with disc/archive/audio initialization complete. A targeted `SIGTERM` test terminated that clean process.
 - The Bell/Cedar run selected a house, accepted the mortgage, entered Nook's work tutorial, equipped the work uniform through inventory, planted all seven flowers and three saplings, and completed first introductions with Peaches and Chuck. Runtime quest data reported 2 friends out of Cedar's 6 starting villagers.
 - Frame-counted analog QA now sets the normalized stick, stops after an exact number of `PADRead` calls, clears it before detaching, and can queue a button edge on release. It moved Bell through town and reliably initiated both resident conversations.
@@ -64,7 +65,7 @@ Current phase: converging the playable macOS ARM64 core bundle with the proven A
 - No Animal Crossing-on-Aurora-GX render has been demonstrated locally; only Aurora's clean GX clear/example path is proven.
 - The native Metal/touch shells still do not link the game core or Aurora services. The separate playable macOS `Bellpad.app` is real-game evidence, but still uses SDL2/OpenGL and is not yet the converged Apple product architecture.
 - The iPad expanded full-window layout is code-complete but the simulator launched this unsigned build in a 960×640 resizable window; the responsive compact fallback is visually proven there. Full-screen/expanded layout still needs a separate simulator or device run.
-- Disc retention, hash allowlisting, nod indexing, compressed CISO/RVZ support, Application Support storage, and actual game launch remain after the header-validation boundary.
+- Mobile disc retention, hash allowlisting, nod indexing, compressed CISO/RVZ support, Application Support storage, and actual mobile game launch remain after the shell's header-validation boundary.
 - Simulator shell evidence exists, but simulator and physical-device Animal Crossing gameplay evidence do not.
 
 ## Requested completion criteria

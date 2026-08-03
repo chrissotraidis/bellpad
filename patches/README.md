@@ -32,3 +32,9 @@ core as an opt-in `Bellpad.app`, adds a native macOS disc picker, validates an
 explicit image as GAFE01 disc 0 revision 0, and resolves its two clean shader
 files from bundle resources. It does not add or copy retail data. Build it with
 `./scripts/build-playable-macos-app.sh`.
+
+`pc-port/0012-use-application-support-on-macos.patch` creates and enters
+`~/Library/Application Support/Bellpad` before loading settings or saves. A
+development-only `BELLPAD_DATA_HOME` override enables isolated persistence
+tests. Disc and shader paths remain absolute/bundle-resolved; no retail data is
+copied into Application Support by this patch.

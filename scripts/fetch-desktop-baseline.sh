@@ -20,11 +20,60 @@ if [ "$actual_commit" != "$baseline_commit" ]; then
     exit 1
 fi
 
-for patch_path in "$repo_root"/patches/pc-port/*.patch; do
-    if git -C "$baseline_dir" apply --unidiff-zero --reverse --check "$patch_path" 2>/dev/null; then
-        :
-    elif git -C "$baseline_dir" apply --unidiff-zero --check "$patch_path" 2>/dev/null; then
+patch_state="$baseline_dir/.git/bellpad-applied-patches"
+applied_count=0
+
+set -- "$repo_root"/patches/pc-port/*.patch
+
+# Older Bellpad checkouts predate the state file. If the newest patch can be
+# reversed, the complete ordered series is already present; record that state
+# without touching the worktree. This also upgrades this repository in place.
+if [ ! -f "$patch_state" ]; then
+    last_patch=""
+    for patch_path in "$@"; do
+        last_patch="$patch_path"
+    done
+    if [ -n "$last_patch" ] &&
+       git -C "$baseline_dir" apply --unidiff-zero --reverse --check "$last_patch" 2>/dev/null; then
+        for patch_path in "$@"; do
+            git hash-object "$patch_path"
+        done > "$patch_state"
+    fi
+fi
+
+if [ -f "$patch_state" ]; then
+    applied_count=$(wc -l < "$patch_state" | tr -d ' ')
+    patch_index=0
+    for patch_path in "$@"; do
+        patch_index=$((patch_index + 1))
+        if [ "$patch_index" -le "$applied_count" ]; then
+            expected_hash=$(sed -n "${patch_index}p" "$patch_state")
+            actual_hash=$(git hash-object "$patch_path")
+            if [ "$expected_hash" != "$actual_hash" ]; then
+                echo "Previously applied patch changed: $patch_path" >&2
+                echo "Move or clean $baseline_dir, then retry." >&2
+                exit 1
+            fi
+        fi
+    done
+    if [ "$applied_count" -gt "$patch_index" ]; then
+        echo "Recorded patch series is longer than the current series." >&2
+        echo "Move or clean $baseline_dir, then retry." >&2
+        exit 1
+    fi
+fi
+
+patch_index=0
+for patch_path in "$@"; do
+    patch_index=$((patch_index + 1))
+    if [ "$patch_index" -le "$applied_count" ]; then
+        continue
+    fi
+    if git -C "$baseline_dir" apply --unidiff-zero --check "$patch_path" 2>/dev/null; then
         git -C "$baseline_dir" apply --unidiff-zero "$patch_path"
+        git hash-object "$patch_path" >> "$patch_state"
+    elif git -C "$baseline_dir" apply --unidiff-zero --reverse --check "$patch_path" 2>/dev/null; then
+        git hash-object "$patch_path" >> "$patch_state"
     else
         echo "Patch does not apply cleanly: $patch_path" >&2
         exit 1

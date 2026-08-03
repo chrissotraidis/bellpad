@@ -1,0 +1,82 @@
+diff --git a/pc/include/pc_apple.h b/pc/include/pc_apple.h
+index 3106c82..aa24f0e 100644
+--- a/pc/include/pc_apple.h
++++ b/pc/include/pc_apple.h
+@@ -14,6 +14,10 @@ int pc_apple_choose_disc(char* out_path, size_t capacity);
+ int pc_apple_resource_path(const char* relative_path, char* out_path,
+                            size_t capacity);
+ 
++/* Creates and enters Bellpad's Application Support directory. A development
++ * run may set BELLPAD_DATA_HOME to an isolated absolute path. */
++int pc_apple_prepare_data_directory(void);
++
+ #ifdef __cplusplus
+ }
+ #endif
+diff --git a/pc/src/pc_apple.m b/pc/src/pc_apple.m
+index e639083..1da2e0b 100644
+--- a/pc/src/pc_apple.m
++++ b/pc/src/pc_apple.m
+@@ -2,7 +2,9 @@
+ 
+ #include "pc_apple.h"
+ 
++#include <stdlib.h>
+ #include <string.h>
++#include <unistd.h>
+ 
+ int pc_apple_choose_disc(char* out_path, size_t capacity) {
+     if (out_path == NULL || capacity == 0) return 0;
+@@ -45,3 +47,35 @@ int pc_apple_resource_path(const char* relative_path, char* out_path,
+         return 1;
+     }
+ }
++
++int pc_apple_prepare_data_directory(void) {
++    @autoreleasepool {
++        NSString* data_path = nil;
++        const char* override_path = getenv("BELLPAD_DATA_HOME");
++
++        if (override_path != NULL && override_path[0] != '\0') {
++            if (override_path[0] != '/') return 0;
++            data_path = [NSString stringWithUTF8String:override_path];
++        } else {
++            NSArray<NSURL*>* roots = [NSFileManager.defaultManager
++                URLsForDirectory:NSApplicationSupportDirectory
++                inDomains:NSUserDomainMask];
++            NSURL* root = roots.firstObject;
++            data_path = [[root URLByAppendingPathComponent:@"Bellpad"
++                                                isDirectory:YES] path];
++        }
++
++        if (data_path == nil) return 0;
++
++        NSError* error = nil;
++        if (![NSFileManager.defaultManager createDirectoryAtPath:data_path
++                                     withIntermediateDirectories:YES
++                                                      attributes:nil
++                                                           error:&error]) {
++            return 0;
++        }
++
++        const char* file_path = data_path.fileSystemRepresentation;
++        return file_path != NULL && chdir(file_path) == 0;
++    }
++}
+diff --git a/pc/src/pc_main.c b/pc/src/pc_main.c
+index 30c867d..d2cf88a 100644
+--- a/pc/src/pc_main.c
++++ b/pc/src/pc_main.c
+@@ -532,6 +532,12 @@ int main(int argc, char* argv[]) {
+ #endif
+ 
+     SDL_SetMainReady();
++#ifdef __APPLE__
++    if (!pc_apple_prepare_data_directory()) {
++        fprintf(stderr, "Could not create Bellpad's Application Support directory.\n");
++        return 1;
++    }
++#endif
+     pc_settings_load();
+     pc_keybindings_load();
+     pc_platform_init();

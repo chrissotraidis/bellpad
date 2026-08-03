@@ -33,7 +33,7 @@ This is a provisional selection. Milestone 1 build and runtime evidence can chan
    NPC-house entry and scene reinitialization are now explicit regression gates after reproducing an unreachable host door sample and a null e-Reader payload allocation in `play_init`.
 6. Rebase or forward-port the 64-bit work onto the current bug-fixed native port.
 7. [x] Remove compiler-blocking GCC-only pointer truncation behavior so Apple Clang can compile and run the core. Continue the broader address audit and sanitizer work; compiler acceptance alone is not proof that every guest/native boundary is correct.
-8. [x] Package the complete Apple Clang ARM64 core as an opt-in `Bellpad.app` with a native picker, explicit supported-image path, strict GAFE01 disc/revision validation, and ROM-free resources. Move its cwd-based saves/settings into Application Support before treating it as the final macOS product target.
+8. [x] Package the complete Apple Clang ARM64 core as an opt-in `Bellpad.app` with a native picker, explicit supported-image path, strict GAFE01 disc/revision validation, ROM-free resources, and Application Support settings/save paths. Atomic save backups and in-game save/relaunch proof remain separate gates.
 
 ### 64-bit and address model
 
