@@ -100,12 +100,12 @@ while :; do
         break
     fi
 
-    if [ "$attempt" -ge 3 ]; then
+    if [ "$attempt" -ge 5 ]; then
         printf '%s\n' "$output" >&2
         exit 1
     fi
     case "$output" in
-        *"already being debugged"*) sleep 1 ;;
+        *"already being debugged"*) sleep 2 ;;
         *) printf '%s\n' "$output" >&2; exit 1 ;;
     esac
     attempt=$((attempt + 1))

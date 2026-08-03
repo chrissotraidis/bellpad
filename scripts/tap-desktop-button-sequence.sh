@@ -1,13 +1,15 @@
 #!/bin/sh
 set -eu
 
-if [ "$#" -ne 2 ]; then
-    echo "Usage: $0 <AnimalCrossing-pid> <A|B|X|Y|Start|Z|L|R|DUp|DDown|DLeft|DRight>" >&2
+if [ "$#" -ne 4 ]; then
+    echo "Usage: $0 <AnimalCrossing-pid> <A|B|X|Y|Start|Z|L|R|DUp|DDown|DLeft|DRight> <count> <PADRead-interval>" >&2
     exit 2
 fi
 
 pid=$1
 button=$2
+count=$3
+pad_reads=$4
 
 case "$pid" in
     ''|*[!0-9]*)
@@ -15,6 +17,24 @@ case "$pid" in
         exit 2
         ;;
 esac
+
+for value in "$count" "$pad_reads"; do
+    case "$value" in
+        ''|*[!0-9]*)
+            echo "Count and PADRead interval must be decimal integers." >&2
+            exit 2
+            ;;
+    esac
+done
+
+if [ "$count" -lt 1 ] || [ "$count" -gt 100 ]; then
+    echo "Count must be between 1 and 100." >&2
+    exit 2
+fi
+if [ "$pad_reads" -lt 1 ] || [ "$pad_reads" -gt 10000 ]; then
+    echo "PADRead interval must be between 1 and 10000." >&2
+    exit 2
+fi
 
 command_line=$(ps -p "$pid" -o command= 2>/dev/null || true)
 case "$command_line" in
@@ -44,11 +64,23 @@ case "$button" in
         ;;
 esac
 
+set -- --batch -p "$pid" \
+    -o "expression -- (void)pc_pad_queue_scancode($scancode)"
+
+step=1
+while [ "$step" -lt "$count" ]; do
+    set -- "$@" \
+        -o "breakpoint set --name PADRead --ignore-count $pad_reads --one-shot true" \
+        -o continue \
+        -o "expression -- (void)pc_pad_queue_scancode($scancode)"
+    step=$((step + 1))
+done
+
+set -- "$@" -o detach
+
 attempt=1
 while :; do
-    if output=$(lldb --batch -p "$pid" \
-        -o "expression -- (void)pc_pad_queue_scancode($scancode)" \
-        -o detach 2>&1); then
+    if output=$(lldb "$@" 2>&1); then
         printf '%s\n' "$output"
         break
     fi

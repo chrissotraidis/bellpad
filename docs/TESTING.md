@@ -15,7 +15,7 @@ No gameplay test is marked passed without a dated result, device/OS, build revis
 | Character/town creation | Completes with text entry | Partial pass — Bell/Cedar, train, town generation, house selection, mortgage, and early work tutorial completed; first save remains pending |
 | Enter town | Stable outdoor rendering and movement | Pass — station exit, outdoor movement, Nook greeting, and housing area observed |
 | Save/exit/relaunch | Same town loads from GCI | Pending |
-| RTC | Time and date match host | Pending |
+| RTC | Time and date match host | Partial pass — fresh setup displayed Monday, August 3, 2026 and the expected host-local time; save/relaunch and clock-change behavior remain pending |
 | Memory | No unbounded growth during sustained play | Pending |
 
 ### Baseline defects reproduced on 2026-08-03
@@ -29,6 +29,11 @@ No gameplay test is marked passed without a dated result, device/OS, build revis
 - Low GBI texture pointer: an intermittent Rover train run terminated in `tex_content_hash → GXLoadTexObj → emu64::dirty_check → dl_G_TRIN` while hashing a 32×16 `GX_TF_C8` texture through `0x43C80000`. The old macOS recovery used a speculative image end. In the nine-patch build, LLDB measured the exact image interval as `0x100000000–0x1025C0000`, proved that `0x43C80000` is rejected to null, and proved that truncated arena (`0x11C47D234`) and image (`0x1009E4020`) pointers recover exactly. Both compiler builds and a normal title smoke pass.
 
 ### Gameplay evidence on 2026-08-03
+
+- Timing-sensitive evidence is collected only at the normal 60 FPS presentation rate. A short 120 FPS `[2x]` setup run was found to advance gameplay at double speed and is excluded from timing, audio, RTC, memory, save, and stability conclusions.
+- A fresh, quiet (non-verbose) Apple Clang run held 60.0 FPS outside brief LLDB stops and completed K.K./Rover setup, `Bell`/`Cedar` native text entry, train arrival, house selection, the mortgage, Nook's shop entry, uniform equipment, and the complete planting assignment.
+- The fresh planting replay consumed all seven flower bags and all three saplings through the retail inventory/context-menu path. The game rejected a paved placement with `You can't plant anything here!`, accepted grass placements, rendered all ten plants, and Nook accepted the completed job.
+- The same run returned through Nook's exterior/interior scene transition multiple times without the former low-GBI train fault. The process remained alive after approaching a nearby villager house, but its resident was outdoors and the closed door did not start a scene transition; patches 7 and 8 therefore remain runtime-pending.
 
 - Completed K.K. introduction and all Rover setup dialogue.
 - Entered `Bell` and `Cedar` through the desktop text-input adapter.
@@ -44,6 +49,7 @@ No gameplay test is marked passed without a dated result, device/OS, build revis
 - `scripts/type-desktop-text.sh <pid> Bell` validates an explicit game PID, restricts its shell-facing value to ASCII alphanumerics, and calls the same begin/commit/Enter API planned for native keyboard adapters. The underlying API retains the port's existing UTF-8 mapping, including its supported accented characters.
 - Normalized pad merge: requested left stick `(-77,55)`, C-stick `(33,-44)`, and triggers `(120,130)`. `PADRead` returned packed bytes `0x8278d42137b30060`, exactly matching all axes/triggers plus trigger-derived L/R bits `0x0060`. `scripts/set-desktop-stick.sh` also set and cleared the persistent left-stick state.
 - `scripts/pulse-desktop-stick.sh` holds a normalized left-stick value for an exact `PADRead` count, clears it before detaching, and may queue one button on release. Direct state inspection confirmed all ten virtual-pad bytes return to zero; it then drove deterministic town movement and both resident conversations.
+- `scripts/tap-desktop-button-sequence.sh` delivers repeated normalized button edges from one LLDB attachment, separated by one-shot `PADRead` breakpoints. Button and stick helpers now tolerate up to five transient debugger-ownership races with two-second backoff; shell syntax checks pass.
 - The rebuilt nine-patch Apple Clang binary again completed disc indexing, archive loading, 32 kHz audio startup, and a visible 60 FPS title loop, then returned from `graph_proc` after an exact-PID `SIGTERM`. This is a smoke pass only, not proof of the patched interior transition.
 
 ## Functional gameplay matrix
