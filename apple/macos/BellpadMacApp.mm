@@ -1,7 +1,9 @@
 #import <AppKit/AppKit.h>
 #import <GameController/GameController.h>
 #import <MetalKit/MetalKit.h>
+#import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
 
+#include "BellpadDiscValidator.h"
 #include "BellpadInput.h"
 
 @interface BellpadMetalRenderer : NSObject <MTKViewDelegate>
@@ -69,6 +71,7 @@ static BellpadPadState BellpadStateFromGamepad(GCExtendedGamepad *gamepad) {
 @implementation BellpadMacDelegate {
     NSWindow *_window;
     BellpadMetalRenderer *_renderer;
+    NSTextField *_status;
     id _connectObserver;
     id _disconnectObserver;
 }
@@ -99,19 +102,28 @@ static BellpadPadState BellpadStateFromGamepad(GCExtendedGamepad *gamepad) {
     title.translatesAutoresizingMaskIntoConstraints = NO;
     [metalView addSubview:title];
 
-    NSTextField *status = [NSTextField labelWithString:
+    _status = [NSTextField labelWithString:
         @"Metal • fixed 60 Hz presentation • GameController input ready\nGame core and user-data import are the next integration boundary."];
-    status.font = [NSFont systemFontOfSize:15];
-    status.textColor = [NSColor colorWithWhite:1.0 alpha:0.72];
-    status.maximumNumberOfLines = 2;
-    status.translatesAutoresizingMaskIntoConstraints = NO;
-    [metalView addSubview:status];
+    _status.font = [NSFont systemFontOfSize:15];
+    _status.textColor = [NSColor colorWithWhite:1.0 alpha:0.72];
+    _status.maximumNumberOfLines = 2;
+    _status.translatesAutoresizingMaskIntoConstraints = NO;
+    [metalView addSubview:_status];
+
+    NSButton *chooseData = [NSButton buttonWithTitle:@"Choose Game Data…"
+                                              target:self
+                                              action:@selector(chooseGameData:)];
+    chooseData.bezelStyle = NSBezelStyleRounded;
+    chooseData.translatesAutoresizingMaskIntoConstraints = NO;
+    [metalView addSubview:chooseData];
 
     [NSLayoutConstraint activateConstraints:@[
         [title.leadingAnchor constraintEqualToAnchor:metalView.leadingAnchor constant:36],
         [title.topAnchor constraintEqualToAnchor:metalView.topAnchor constant:36],
-        [status.leadingAnchor constraintEqualToAnchor:title.leadingAnchor],
-        [status.topAnchor constraintEqualToAnchor:title.bottomAnchor constant:12],
+        [_status.leadingAnchor constraintEqualToAnchor:title.leadingAnchor],
+        [_status.topAnchor constraintEqualToAnchor:title.bottomAnchor constant:12],
+        [chooseData.leadingAnchor constraintEqualToAnchor:title.leadingAnchor],
+        [chooseData.topAnchor constraintEqualToAnchor:_status.bottomAnchor constant:18],
     ]];
 
     _window.contentView = metalView;
@@ -135,6 +147,26 @@ static BellpadPadState BellpadStateFromGamepad(GCExtendedGamepad *gamepad) {
     for (GCController *controller in GCController.controllers) {
         [self configureController:controller];
     }
+}
+
+- (void)chooseGameData:(id)sender {
+    (void)sender;
+    NSOpenPanel *panel = [NSOpenPanel openPanel];
+    panel.canChooseDirectories = NO;
+    panel.allowsMultipleSelection = NO;
+    panel.allowedContentTypes = @[
+        [UTType typeWithFilenameExtension:@"iso"],
+        [UTType typeWithFilenameExtension:@"gcm"],
+    ];
+    [panel beginSheetModalForWindow:_window completionHandler:^(NSModalResponse response) {
+        if (response != NSModalResponseOK || panel.URL == nil) return;
+        const auto result = BellpadValidateDiscImage(panel.URL.fileSystemRepresentation);
+        const std::string message = BellpadDiscValidationMessage(result);
+        self->_status.stringValue = [NSString stringWithUTF8String:message.c_str()];
+        self->_status.textColor = result.valid()
+            ? [NSColor colorWithRed:0.45 green:0.90 blue:0.68 alpha:1.0]
+            : [NSColor colorWithRed:1.0 green:0.55 blue:0.55 alpha:1.0];
+    }];
 }
 
 - (void)configureController:(GCController *)controller {

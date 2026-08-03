@@ -7,6 +7,7 @@ if(NOT APPLE)
 endif()
 
 add_library(bellpad_platform_core STATIC
+    src/platform/BellpadDiscValidator.cpp
     src/platform/BellpadInput.cpp
 )
 target_include_directories(bellpad_platform_core PUBLIC src/platform)
@@ -31,6 +32,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
         "-framework Metal"
         "-framework MetalKit"
         "-framework GameController"
+        "-framework UniformTypeIdentifiers"
     )
 else()
     add_executable(Bellpad MACOSX_BUNDLE
@@ -49,6 +51,7 @@ else()
         "-framework Metal"
         "-framework MetalKit"
         "-framework GameController"
+        "-framework UniformTypeIdentifiers"
     )
 endif()
 

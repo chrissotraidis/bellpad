@@ -20,7 +20,8 @@ As of 2026-08-03:
 - Aurora's pinned GX example now builds and visibly renders through Metal on macOS ARM64 and sequential iPhone/iPad simulators. This proves the compatibility-layer platform path, not Animal Crossing rendering.
 - Bellpad-owned macOS and universal iOS/iPadOS bundles now build as native ARM64 applications. They render with MetalKit at a fixed 60 Hz and expose a shared normalized GameCube input boundary.
 - The mobile shell includes left/C sticks, A/B/X/Y, Z/L/R/Start, D-pad, adaptive compact/expanded layouts, safe-area handling, a touch visibility override, GameController merging, and physical-controller auto-hide on devices.
-- The game core, Aurora renderer, Files import, saves, native game text entry, audio, and IPA packaging are not connected to the shell yet.
+- Native macOS and iOS/iPadOS choosers now accept a user-selected file and pass it to a shared header validator. The current slice recognizes raw ISO/GCM, requires GameCube magic plus `GAFE01` revision 0, reads only the first 32 bytes, and neither retains nor copies the image.
+- The game core, Aurora renderer, durable disc retention/indexing, compressed image formats, saves, native game text entry, audio, and IPA packaging are not connected to the shell yet.
 
 See [STATUS.md](docs/STATUS.md), [PLAN.md](docs/PLAN.md), and [WORKLOG.md](docs/WORKLOG.md) for evidence and current blockers.
 
@@ -57,7 +58,7 @@ Files picker
 → launch the native game core
 ```
 
-The current desktop-only development procedure is documented in [BUILDING.md](docs/BUILDING.md). It uses an ignored symlink to the local image; it never copies the image into source or a bundle.
+The native shells now present Apple file choosers and validate a selected raw image header without retaining it. The current desktop-game development procedure is documented in [BUILDING.md](docs/BUILDING.md); it uses an ignored symlink to the local image and never copies the image into source or a bundle.
 
 ## Build instructions
 
@@ -130,7 +131,7 @@ See [TESTING.md](docs/TESTING.md).
 - Save creation and relaunch persistence have not yet been completed in the local baseline.
 - App-window close and lifecycle teardown still need a clean retest; `SIGTERM` exits the clean scripted build.
 - Aurora's Apple Metal/GX example path is proven, but Aurora GX coverage for this game has not yet been demonstrated.
-- The iOS/iPadOS shell and first touch UI exist; the game core, native game keyboard, Files import, and unsigned IPA remain pending.
+- The iOS/iPadOS shell, first touch UI, native Files chooser, and raw-header validator exist; durable import/indexing, the game core, native game keyboard, and unsigned IPA remain pending.
 
 ## Research and credits
 

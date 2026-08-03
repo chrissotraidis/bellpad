@@ -2,7 +2,9 @@
 #import <MetalKit/MetalKit.h>
 #import <TargetConditionals.h>
 #import <UIKit/UIKit.h>
+#import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
 
+#include "BellpadDiscValidator.h"
 #include "BellpadInput.h"
 
 #include <algorithm>
@@ -324,7 +326,7 @@ static BellpadPadState BellpadStateFromGamepad(GCExtendedGamepad *gamepad) {
     return state;
 }
 
-@interface BellpadViewController : UIViewController
+@interface BellpadViewController : UIViewController <UIDocumentPickerDelegate>
 @end
 
 @implementation BellpadViewController {
@@ -334,6 +336,8 @@ static BellpadPadState BellpadStateFromGamepad(GCExtendedGamepad *gamepad) {
     UILabel *_titleLabel;
     UILabel *_statusLabel;
     UIButton *_touchToggle;
+    UIButton *_importButton;
+    NSString *_discStatus;
     BOOL _controllerConnected;
     id _connectObserver;
     id _disconnectObserver;
@@ -379,6 +383,15 @@ static BellpadPadState BellpadStateFromGamepad(GCExtendedGamepad *gamepad) {
     [_touchToggle addTarget:self action:@selector(toggleTouchControls) forControlEvents:UIControlEventTouchUpInside];
     [self.view addSubview:_touchToggle];
 
+    _importButton = [UIButton buttonWithType:UIButtonTypeSystem];
+    [_importButton setTitle:@"Choose Game Data…" forState:UIControlStateNormal];
+    [_importButton setTitleColor:UIColor.whiteColor forState:UIControlStateNormal];
+    _importButton.titleLabel.font = [UIFont systemFontOfSize:13 weight:UIFontWeightSemibold];
+    _importButton.backgroundColor = [UIColor colorWithRed:0.22 green:0.43 blue:0.68 alpha:0.88];
+    _importButton.layer.cornerRadius = 14.0;
+    [_importButton addTarget:self action:@selector(chooseGameData) forControlEvents:UIControlEventTouchUpInside];
+    [self.view addSubview:_importButton];
+
     NSNotificationCenter *center = NSNotificationCenter.defaultCenter;
     __weak BellpadViewController *weakSelf = self;
     _connectObserver = [center addObserverForName:GCControllerDidConnectNotification
@@ -413,14 +426,20 @@ static BellpadPadState BellpadStateFromGamepad(GCExtendedGamepad *gamepad) {
     CGFloat top = insets.top + 16.0 * chromeScale;
     CGFloat available = std::max<CGFloat>(240.0, self.view.bounds.size.width - left - insets.right - 170.0);
     _titleLabel.text = self.view.bounds.size.width < 700.0 ? @"Bellpad" : @"Bellpad native Apple shell";
-    _statusLabel.text = self.view.bounds.size.width < 700.0
-        ? @"Metal • fixed 60 Hz • touch + controller\nGame core integration is next."
-        : @"Metal • fixed 60 Hz • touch + controller input\nGame core and user-data import connect next.";
+    if (_discStatus != nil) {
+        _statusLabel.text = _discStatus;
+    } else {
+        _statusLabel.text = self.view.bounds.size.width < 700.0
+            ? @"Metal • fixed 60 Hz • touch + controller\nGame core integration is next."
+            : @"Metal • fixed 60 Hz • touch + controller input\nGame core and user-data import connect next.";
+    }
     _titleLabel.font = [UIFont systemFontOfSize:std::max<CGFloat>(15.0, 22.0 * chromeScale)
                                          weight:UIFontWeightSemibold];
     _statusLabel.font = [UIFont systemFontOfSize:std::max<CGFloat>(10.0, 13.0 * chromeScale)
                                           weight:UIFontWeightRegular];
     _touchToggle.titleLabel.font = [UIFont systemFontOfSize:std::max<CGFloat>(10.0, 13.0 * chromeScale)
+                                                   weight:UIFontWeightSemibold];
+    _importButton.titleLabel.font = [UIFont systemFontOfSize:std::max<CGFloat>(10.0, 13.0 * chromeScale)
                                                    weight:UIFontWeightSemibold];
     _titleLabel.frame = CGRectMake(left, top, available, 28.0 * chromeScale);
     BOOL pad = self.traitCollection.userInterfaceIdiom == UIUserInterfaceIdiomPad &&
@@ -437,6 +456,35 @@ static BellpadPadState BellpadStateFromGamepad(GCExtendedGamepad *gamepad) {
     CGFloat toggleHeight = 30.0 * chromeScale;
     _touchToggle.frame = CGRectMake(self.view.bounds.size.width - insets.right - toggleWidth - 16.0 * chromeScale,
                                     top, toggleWidth, toggleHeight);
+    CGFloat importWidth = 148.0 * chromeScale;
+    CGFloat importHeight = 32.0 * chromeScale;
+    _importButton.frame = CGRectMake(CGRectGetMidX(self.view.bounds) - importWidth * 0.5,
+                                     CGRectGetMaxY(_statusLabel.frame) + 8.0 * chromeScale,
+                                     importWidth, importHeight);
+}
+
+- (void)chooseGameData {
+    UIDocumentPickerViewController *picker =
+        [[UIDocumentPickerViewController alloc] initForOpeningContentTypes:@[ UTTypeData ] asCopy:NO];
+    picker.delegate = self;
+    picker.allowsMultipleSelection = NO;
+    [self presentViewController:picker animated:YES completion:nil];
+}
+
+- (void)documentPicker:(UIDocumentPickerViewController *)controller
+    didPickDocumentsAtURLs:(NSArray<NSURL *> *)urls {
+    (void)controller;
+    NSURL *url = urls.firstObject;
+    if (url == nil) return;
+    const BOOL accessed = [url startAccessingSecurityScopedResource];
+    const auto result = BellpadValidateDiscImage(url.fileSystemRepresentation);
+    if (accessed) [url stopAccessingSecurityScopedResource];
+    const std::string message = BellpadDiscValidationMessage(result);
+    _discStatus = [NSString stringWithUTF8String:message.c_str()];
+    _statusLabel.text = _discStatus;
+    _statusLabel.textColor = result.valid()
+        ? [UIColor colorWithRed:0.45 green:0.90 blue:0.68 alpha:1.0]
+        : [UIColor colorWithRed:1.0 green:0.55 blue:0.55 alpha:1.0];
 }
 
 - (void)configureController:(GCController *)controller {
@@ -466,9 +514,13 @@ static BellpadPadState BellpadStateFromGamepad(GCExtendedGamepad *gamepad) {
     } else {
         _touchOverlay.hidden = NO;
         [_touchToggle setTitle:@"Hide controls" forState:UIControlStateNormal];
-        _statusLabel.text = self.view.bounds.size.width < 700.0
-            ? @"Metal • fixed 60 Hz • touch + controller\nGame core integration is next."
-            : @"Metal • fixed 60 Hz • touch + controller input\nGame core and user-data import connect next.";
+        if (_discStatus != nil) {
+            _statusLabel.text = _discStatus;
+        } else {
+            _statusLabel.text = self.view.bounds.size.width < 700.0
+                ? @"Metal • fixed 60 Hz • touch + controller\nGame core integration is next."
+                : @"Metal • fixed 60 Hz • touch + controller input\nGame core and user-data import connect next.";
+        }
     }
 }
 

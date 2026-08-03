@@ -20,6 +20,8 @@ Current phase: Apple platform foundation after proving the desktop core and Auro
 - The mobile target installs and launches sequentially on iPhone 17 Pro and iPad Pro 13-inch simulators. Its first-pass GameCube touch UI includes left/C sticks, A/B/X/Y, Z/L/R/Start, and D-pad; it scales from compact resizable iPad windows to a distinct expanded iPad layout and respects safe-area insets.
 - A thread-safe portable input mixer now merges touch and GameController sources with ORed buttons, strongest-magnitude axes, and maximum analog triggers. A native unit test proves those merge and clear rules. Device builds auto-hide touch for physical controllers; simulator-generated controllers remain visible for touch-layout QA.
 - The macOS shell launches as a normal resizable app, visibly renders its Metal view, accepts GameController state through the same mixer, and quits through the normal application path.
+- Bellpad now presents native `NSOpenPanel` and `UIDocumentPickerViewController` interfaces. Both feed a shared data-only validator that accepts `.iso`/`.gcm` only when the 32-byte header contains GameCube magic, `GAFE01`, and revision 0. It never hashes, copies, bookmarks, or retains the selected file yet.
+- Computer Use QA opened both native choosers. The iPhone Files picker appeared over the running Metal/touch shell and dismissed back to it; the macOS open sheet presented with ISO/GCM type filtering. No retail file was selected during UI QA.
 - ACreTeam's current `forest` port already integrates Aurora services, but disables Aurora GX and uses rendering stubs; it is not a playable baseline.
 - The pinned 64-bit fork plus tracked patches compiles all 4,000 units and links ARM64 Mach-O executables with both Apple Clang 21.0.0 and GCC 16.1.0 in independent build directories.
 - The Apple Clang executable has been launched against the ignored supported image and visibly reaches the correctly rendered title screen at 60 FPS.
@@ -60,6 +62,7 @@ Current phase: Apple platform foundation after proving the desktop core and Auro
 - No Animal Crossing-on-Aurora-GX render has been demonstrated locally; only Aurora's clean GX clear/example path is proven.
 - The native shells exist, but neither the desktop game core nor Aurora services are linked into them yet. Their current Metal content and controls are an integration harness, not playable-game evidence.
 - The iPad expanded full-window layout is code-complete but the simulator launched this unsigned build in a 960×640 resizable window; the responsive compact fallback is visually proven there. Full-screen/expanded layout still needs a separate simulator or device run.
+- Disc retention, hash allowlisting, nod indexing, compressed CISO/RVZ support, Application Support storage, and actual game launch remain after the header-validation boundary.
 - Simulator shell evidence exists, but simulator and physical-device Animal Crossing gameplay evidence do not.
 
 ## Requested completion criteria
@@ -69,7 +72,7 @@ Current phase: Apple platform foundation after proving the desktop core and Auro
 | 1 | Clean-checkout build | Partial — pinned desktop reference fetch/build passes with Apple Clang and GCC; product targets pending |
 | 2 | Dependencies pinned/documented | Desktop mechanism passes; product dependency mechanism pending |
 | 3 | No leaked source | Policy established; audit pending |
-| 4 | User image selection/validation | Local desktop header/hash validation only; native picker pending |
+| 4 | User image selection/validation | Partial — native macOS/iOS pickers and shared ISO/GCM `GAFE01` Rev 0 header validation pass; hash, retention, compressed formats, and launch pending |
 | 5 | Runtime resources produced/loaded | Desktop direct-image load proven; product flow pending |
 | 6 | iPhone Simulator installs/launches | Partial — Bellpad-owned native shell installs, launches, renders Metal, and shows adaptive touch controls; game pending |
 | 7 | iPad Simulator installs/launches | Partial — same universal shell launches after iPhone shutdown and adapts controls to its resizable window; game pending |

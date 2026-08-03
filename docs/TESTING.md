@@ -97,6 +97,9 @@ scene/orientation/safe-area policy and adaptive touch controls.
 | Sequential stop | Pass — iPhone app terminated and simulator shut down before iPad boot |
 | iPad Pro 13-inch Simulator | Pass — universal bundle installs/launches in a 960×640 resizable iPadOS window; actual-size scaling selects a compact no-overlap layout |
 | Expanded iPad layout | Pending — code path requires a window at least 1100×700 points; current simulator launch did not expose that size |
+| Shared disc validator | Pass — synthetic 32-byte `.iso` accepts `GAFE01` Rev 0; synthetic wrong revision/game and `.rvz` rejection pass; no retail fixture used |
+| iPhone Files picker | Pass — Computer Use activated “Choose Game Data…” and observed Apple's native Files/Recents UI; cancelled without selecting a file |
+| macOS open panel | Pass — native sheet presented with ISO/GCM content filtering; cancelled without selecting a file |
 | Game rendering/input | Not tested — shell is not yet linked to the game core/Aurora |
 
 The iPhone simulator screenshot required rotation for human inspection because

@@ -73,6 +73,15 @@ or generator fix is available.
 
 The app bundle contains no retail data. The user selects a supported image through Files. A validator reads only the header and required metadata before a nod-backed disc reader indexes the filesystem. The initial preference is direct reading from a private Application Support copy or a durable security-scoped bookmark. Any derived cache is local, versioned by image hash, removable, and excluded from source and release packages.
 
+The first product boundary is implemented: AppKit uses `NSOpenPanel`, UIKit uses
+`UIDocumentPickerViewController`, and both call one portable validator. It reads
+exactly the first 0x20 bytes of raw `.iso`/`.gcm`, checks the GameCube magic at
+`0x1C`, the six-byte game ID, and revision byte, then closes the file. UIKit
+balances security-scoped access around that read. No selected URL is persisted
+and no image is copied yet. CISO/RVZ and hash verification wait for nod-backed
+indexing and the final retention policy rather than pretending a raw header
+reader supports compressed containers.
+
 ## Saves
 
 GCI-folder mode is the initial canonical store because it gives one file per save and aligns with Dolphin import/export. Writes go to a temporary sibling, are flushed, validated, and atomically replaced; previous valid generations are retained. Save operations are serialized with lifecycle transitions.

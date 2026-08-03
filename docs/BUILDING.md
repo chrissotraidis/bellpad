@@ -57,6 +57,12 @@ The macOS command also runs the normalized-input unit test. The simulator comman
 
 To install the simulator bundle, use `xcrun simctl install <device-uuid> build/ios-simulator-arm64/Bellpad.app` and launch bundle ID `dev.bellpad.app`. Run iPhone first, terminate it, shut that simulator down, and only then boot/run iPad. The intended final build will additionally fetch only pinned source dependencies and introduce retail data only after the app launches and the user selects it through Files.
 
+The built shells include native “Choose Game Data…” buttons. They currently
+perform validation only: `.iso` and `.gcm` are checked for the GameCube header,
+`GAFE01`, and revision 0, then immediately closed. The selection is not copied,
+bookmarked, indexed, or launched. Compressed formats remain intentionally
+rejected until the nod-backed reader is linked.
+
 Run the tracked-content safety check before every commit and package build:
 
 ```sh
