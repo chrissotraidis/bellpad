@@ -86,7 +86,7 @@ The planned mobile layout has a left analog stick, large contextual A/B buttons,
 
 ## Native keyboard
 
-The desktop baseline's SDL text-input adapter has been validated for player and town names. Native UIKit text entry is still planned for names, letters, passwords, and other supported editors. Committed text will be length-checked and translated to the game's character encoding.
+The desktop baseline now exposes editor begin/end, UTF-8 commit, and editor-command functions independently of SDL events. They have been validated across player and town naming and form the narrow interface planned for UIKit names, letters, passwords, and other supported editors. Committed text is translated through the port's existing game-character mapping; product-specific length validation remains to be added.
 
 ## Saves
 
@@ -123,7 +123,7 @@ See [TESTING.md](docs/TESTING.md).
 ## Known issues
 
 - Apple Clang compilation is proven, but the full guest-address/pointer-width audit and sanitizer run are not complete.
-- Automated window-key delivery is harness-dependent. A guarded LLDB QA helper can feed button taps through the same normalized desktop pad queue; text and analog automation remain pending.
+- Automated window-key delivery is harness-dependent. Guarded LLDB QA helpers can feed button taps through the normalized pad queue and alphanumeric text through the native editor API; analog automation remains pending.
 - Save creation and relaunch persistence have not yet been completed in the local baseline.
 - App-window close and lifecycle teardown still need a clean retest; `SIGTERM` exits the clean scripted build.
 - Aurora GX coverage for this game has not yet been demonstrated.

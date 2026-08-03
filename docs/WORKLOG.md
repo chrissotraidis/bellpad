@@ -39,3 +39,5 @@
 - Resolved the invalid pointer to `aSTR_actor_cl + 2496`. Clang layout output proved that `SHRINE_ACTOR` is 840 bytes but each static slot was only the 832-byte `STRUCTURE_ACTOR`, so the Shrine tail overwrote the next actor's ID/name fields.
 - Found current PC-port commit `7fa20d75…`, which independently repairs the same structure-pool sizing mistake on its 32-bit target. Ported that storage design using 0x400-byte host slots for 64-bit safety.
 - Rebuilt the repair with Apple Clang 21 and GCC 16. Repeated automatic title teardown/reload cycles completed without the former invalid-free panic.
+- Added an SDL-independent native text surface over the existing editor queue, then refactored SDL events to use it. Both Clang and GCC rebuilt after two clean patch applications; runtime QA entered `Bell` and `Cedar` across two distinct editor lifecycles.
+- Added a guarded alphanumeric desktop text helper and short retry handling for transient LLDB detach races. The helper validates the exact AnimalCrossing PID and uses only the native editor API.

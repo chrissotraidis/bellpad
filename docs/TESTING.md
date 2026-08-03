@@ -29,11 +29,13 @@ No gameplay test is marked passed without a dated result, device/OS, build revis
 
 - Completed K.K. introduction and all Rover setup dialogue.
 - Entered `Bell` and `Cedar` through the desktop text-input adapter.
+- Repeated the `Bell`/`Cedar` flow through the new SDL-independent native text API: begin returned success, all characters were queued, Enter was accepted, and the second editor reopened cleanly.
 - Completed the train sequence and arrived in the generated town.
 - Exited the station, moved outdoors, met Tom Nook, and reached house selection.
 - Rendering and audio remained active throughout; no panic occurred on the normal title path.
 - No GCI file was created before the session ended, so save/reload is not marked passed.
 - The current Computer Use wrapper does not consistently deliver synthesized keys to SDL. The linked Homebrew library is `sdl2-compat`, backed by SDL3, so raw SDL2 event-layout injection is also invalid. For desktop QA, `scripts/tap-desktop-button.sh <pid> A` calls the same normalized queue under LLDB; it deliberately supports buttons only and does not bypass game logic.
+- `scripts/type-desktop-text.sh <pid> Bell` validates an explicit game PID, restricts its shell-facing value to ASCII alphanumerics, and calls the same begin/commit/Enter API planned for native keyboard adapters. The underlying API retains the port's existing UTF-8 mapping, including its supported accented characters.
 
 ## Functional gameplay matrix
 
