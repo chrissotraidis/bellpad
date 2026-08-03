@@ -1,0 +1,92 @@
+diff --git a/pc/CMakeLists.txt b/pc/CMakeLists.txt
+--- a/pc/CMakeLists.txt
++++ b/pc/CMakeLists.txt
+@@ -284,0 +284 @@
++    ${CMAKE_CURRENT_SOURCE_DIR}/src/pc_virtual_input.c
+diff --git a/pc/include/pc_virtual_input.h b/pc/include/pc_virtual_input.h
+new file mode 100644
+--- /dev/null
++++ b/pc/include/pc_virtual_input.h
+@@ -0,0 +1,30 @@
++#ifndef PC_VIRTUAL_INPUT_H
++#define PC_VIRTUAL_INPUT_H
++
++#include "pc_types.h"
++
++#ifdef __cplusplus
++extern "C" {
++#endif
++
++typedef struct {
++    u16 buttons;
++    s8 stick_x;
++    s8 stick_y;
++    s8 cstick_x;
++    s8 cstick_y;
++    u8 trigger_left;
++    u8 trigger_right;
++} PCVirtualPadState;
++
++extern PCVirtualPadState g_pc_virtual_pad_state;
++
++void pc_pad_set_virtual_state(u16 buttons, s8 stick_x, s8 stick_y, s8 cstick_x, s8 cstick_y, u8 trigger_left,
++                              u8 trigger_right);
++void pc_pad_clear_virtual_state(void);
++
++#ifdef __cplusplus
++}
++#endif
++
++#endif
+diff --git a/pc/src/pc_pad.c b/pc/src/pc_pad.c
+--- a/pc/src/pc_pad.c
++++ b/pc/src/pc_pad.c
+@@ -5,0 +5 @@
++#include "pc_virtual_input.h"
+@@ -140,0 +170,23 @@
++    buttons |= g_pc_virtual_pad_state.buttons;
++
++    #define PICK_STRONGER_AXIS(destination, virtual_value) \
++        do { \
++            if (abs((int)(virtual_value)) > abs((int)(destination))) destination = (virtual_value); \
++        } while (0)
++
++    PICK_STRONGER_AXIS(stickX, g_pc_virtual_pad_state.stick_x);
++    PICK_STRONGER_AXIS(stickY, g_pc_virtual_pad_state.stick_y);
++    PICK_STRONGER_AXIS(cstickX, g_pc_virtual_pad_state.cstick_x);
++    PICK_STRONGER_AXIS(cstickY, g_pc_virtual_pad_state.cstick_y);
++
++    #undef PICK_STRONGER_AXIS
++
++    if (g_pc_virtual_pad_state.trigger_left > status[0].triggerLeft) {
++        status[0].triggerLeft = g_pc_virtual_pad_state.trigger_left;
++    }
++    if (g_pc_virtual_pad_state.trigger_right > status[0].triggerRight) {
++        status[0].triggerRight = g_pc_virtual_pad_state.trigger_right;
++    }
++    if (status[0].triggerLeft > TRIGGER_THRESHOLD) buttons |= PAD_TRIGGER_L;
++    if (status[0].triggerRight > TRIGGER_THRESHOLD) buttons |= PAD_TRIGGER_R;
++
+diff --git a/pc/src/pc_virtual_input.c b/pc/src/pc_virtual_input.c
+new file mode 100644
+--- /dev/null
++++ b/pc/src/pc_virtual_input.c
+@@ -0,0 +1,18 @@
++#include "pc_virtual_input.h"
++
++PCVirtualPadState g_pc_virtual_pad_state = {0};
++
++void pc_pad_set_virtual_state(u16 buttons, s8 stick_x, s8 stick_y, s8 cstick_x, s8 cstick_y, u8 trigger_left,
++                              u8 trigger_right) {
++    g_pc_virtual_pad_state.buttons = buttons;
++    g_pc_virtual_pad_state.stick_x = stick_x;
++    g_pc_virtual_pad_state.stick_y = stick_y;
++    g_pc_virtual_pad_state.cstick_x = cstick_x;
++    g_pc_virtual_pad_state.cstick_y = cstick_y;
++    g_pc_virtual_pad_state.trigger_left = trigger_left;
++    g_pc_virtual_pad_state.trigger_right = trigger_right;
++}
++
++void pc_pad_clear_virtual_state(void) {
++    pc_pad_set_virtual_state(0, 0, 0, 0, 0, 0, 0);
++}

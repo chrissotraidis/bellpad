@@ -53,6 +53,7 @@ GCI-folder mode is the initial canonical store because it gives one file per sav
 
 - The game loop owns game state on a dedicated thread or SDL main callback compatible with iOS.
 - UIKit owns import/settings/touch overlays and forwards normalized events.
+- Touch and external-controller sources target one normalized GameCube state. Buttons are ORed, the strongest absolute value wins per stick axis, and the maximum analog trigger wins; the Apple adapter must dispatch updates on the game-input thread.
 - UIKit text fields call the separated editor begin/end, UTF-8 commit, and command API; SDL desktop events delegate to the same functions.
 - Rendering uses the SDL/CAMetalLayer surface supplied to Dawn.
 - Wall-clock changes and timezone changes are observed explicitly.

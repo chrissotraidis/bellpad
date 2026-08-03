@@ -82,7 +82,7 @@ The desktop reference uses:
 | C-stick | Arrow keys |
 | D-pad | I / J / K / L |
 
-The planned mobile layout has a left analog stick, large contextual A/B buttons, smaller X/Y buttons, Z/L/R/Start, optional D-pad, and an optional C-stick or camera-drag region. iPhone and iPad layouts will be tuned and persisted separately. Physical controllers and touch will feed the same normalized GameCube input state, and gameplay controls may auto-hide when a controller connects.
+The planned mobile layout has a left analog stick, large contextual A/B buttons, smaller X/Y buttons, Z/L/R/Start, optional D-pad, and an optional C-stick or camera-drag region. iPhone and iPad layouts will be tuned and persisted separately. A normalized GameCube state for buttons, both sticks, and analog triggers now exists in the baseline; physical controllers and touch will feed it, and gameplay controls may auto-hide when a controller connects.
 
 ## Native keyboard
 
@@ -123,7 +123,7 @@ See [TESTING.md](docs/TESTING.md).
 ## Known issues
 
 - Apple Clang compilation is proven, but the full guest-address/pointer-width audit and sanitizer run are not complete.
-- Automated window-key delivery is harness-dependent. Guarded LLDB QA helpers can feed button taps through the normalized pad queue and alphanumeric text through the native editor API; analog automation remains pending.
+- Automated window-key delivery is harness-dependent. Guarded LLDB QA helpers can feed button taps, persistent left-stick values, and alphanumeric text through the same normalized APIs planned for Apple platform adapters.
 - Save creation and relaunch persistence have not yet been completed in the local baseline.
 - App-window close and lifecycle teardown still need a clean retest; `SIGTERM` exits the clean scripted build.
 - Aurora GX coverage for this game has not yet been demonstrated.

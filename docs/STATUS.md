@@ -26,7 +26,7 @@ Current phase: desktop-baseline save/address-model work after passing the Apple 
 - A minimal keyboard-edge latch now executes inside the actual `SDL_KEYDOWN` case and carries each non-repeating GameCube button event through both controller reads in one game input update. A debugger-fed normalized A edge advanced exactly one K.K. prompt in the Apple Clang build.
 - The desktop SDL text adapter accepted the test player name `Bell` and town name `Cedar` through the in-game editors.
 - The full train sequence completed, a new town was generated, the player arrived at the station, exited into town, moved outdoors, met Tom Nook, and reached the house-selection area.
-- Tracked scripts now reproduce the pinned checkout, apply all five clean compatibility patches idempotently, build an Apple Clang ARM64 Mach-O by default, allow an isolated GCC cross-check, and optionally link (never copy) a local image.
+- Tracked scripts now reproduce the pinned checkout, apply all six clean compatibility patches idempotently, build an Apple Clang ARM64 Mach-O by default, allow an isolated GCC cross-check, and optionally link (never copy) a local image.
 - A fresh scripted build was run from an empty ignored checkout and reached the title loop with disc/archive/audio initialization complete. A targeted `SIGTERM` test terminated that clean process.
 
 ## Active blockers
@@ -34,7 +34,8 @@ Current phase: desktop-baseline save/address-model work after passing the Apple 
 - Apple Clang compilation no longer blocks iOS work, but the address model still needs sanitizer coverage and a complete audit of guest offsets versus native pointers.
 - The new town has not yet reached its first successful GCI write, controlled in-game exit, and reload, so persistence remains unproven.
 - Computer Use key synthesis is not consistently delivered to SDL in the current app-wrapper harness. The Homebrew dependency is `sdl2-compat` over SDL3, so raw SDL2 event-memory injection is not a valid substitute. `scripts/tap-desktop-button.sh` instead feeds the port's normalized pad queue under LLDB for deterministic desktop QA; save/relaunch automation still needs text and analog injection.
-- The text editor now has SDL-independent begin/end, UTF-8 commit, and command functions suitable for a UIKit adapter. The guarded desktop helper entered `Bell`, closed that editor, reopened the destination editor, and entered `Cedar`; both values were rendered by Rover. Analog QA injection and the first save/relaunch proof remain pending.
+- The text editor now has SDL-independent begin/end, UTF-8 commit, and command functions suitable for a UIKit adapter. The guarded desktop helper entered `Bell`, closed that editor, reopened the destination editor, and entered `Cedar`; both values were rendered by Rover.
+- A normalized virtual-pad state now covers GameCube buttons, both sticks, and analog triggers. Runtime `PADRead` evidence matched every requested byte and derived L/R trigger bit; a guarded desktop helper sets/clears the left stick. In-town use and the first save/relaunch proof remain pending.
 - SDL window close/Command-Q and full cleanup still require a clean retest. The earlier instrumented app-wrapper run needed `SIGKILL`, while the fresh scripted executable terminates on `SIGTERM`; the conflicting evidence is kept explicit.
 - No Animal Crossing-on-Aurora-GX render has been demonstrated locally.
 - No native iOS/iPadOS target exists yet.

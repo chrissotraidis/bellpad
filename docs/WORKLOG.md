@@ -41,3 +41,5 @@
 - Rebuilt the repair with Apple Clang 21 and GCC 16. Repeated automatic title teardown/reload cycles completed without the former invalid-free panic.
 - Added an SDL-independent native text surface over the existing editor queue, then refactored SDL events to use it. Both Clang and GCC rebuilt after two clean patch applications; runtime QA entered `Bell` and `Cedar` across two distinct editor lifecycles.
 - Added a guarded alphanumeric desktop text helper and short retry handling for transient LLDB detach races. The helper validates the exact AnimalCrossing PID and uses only the native editor API.
+- Added a normalized virtual GameCube pad with buttons, both sticks, and analog triggers, plus deterministic merge rules for simultaneous physical and virtual sources. Two clean patch applications and both compiler builds passed at 4,001 units.
+- Verified the pad ABI byte-for-byte through a live `PADRead`: the requested sticks/triggers produced packed bytes `0x8278d42137b30060`, including derived L/R bits. Added a guarded left-stick QA helper and verified set/clear calls.
