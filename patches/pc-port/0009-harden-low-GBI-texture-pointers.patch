@@ -1,0 +1,129 @@
+diff --git a/pc/include/pc_gbi_ptr.h b/pc/include/pc_gbi_ptr.h
+--- a/pc/include/pc_gbi_ptr.h
++++ b/pc/include/pc_gbi_ptr.h
+@@ -19 +19,2 @@
+ extern uintptr_t pc_image_base;
++extern uintptr_t pc_image_end;
+@@ -21,0 +23,19 @@
++static inline uintptr_t pc_gbi_recover_in_range(unsigned int truncated,
++                                                uintptr_t range_begin,
++                                                uintptr_t range_end) {
++    if (range_begin == 0 || range_end <= range_begin ||
++        range_end - range_begin > (uintptr_t)0x100000000ULL) {
++        return (uintptr_t)truncated;
++    }
++
++    uintptr_t candidate = (range_begin & ~(uintptr_t)0xFFFFFFFFu) |
++                          (uintptr_t)truncated;
++    if (candidate < range_begin) {
++        candidate += (uintptr_t)0x100000000ULL;
++    }
++    if (candidate >= range_begin && candidate < range_end) {
++        return candidate;
++    }
++    return (uintptr_t)truncated;
++}
++
+@@ -27,9 +46,4 @@
+-    uintptr_t arena_lo32 = arena_base & 0xFFFFFFFF;
+-    uintptr_t arena_hi32 = arena_base & ~(uintptr_t)0xFFFFFFFF;
+-    uintptr_t arena_end_lo32 = (arena_base + 48u * 1024u * 1024u) & 0xFFFFFFFF;
+-
+-    if (arena_lo32 <= arena_end_lo32) {
+-        /* Arena doesn't wrap in low 32 bits */
+-        if (truncated >= arena_lo32 && truncated < arena_end_lo32) {
+-            return arena_hi32 | (uintptr_t)truncated;
+-        }
++    uintptr_t recovered = pc_gbi_recover_in_range(
++        truncated, arena_base, arena_base + 48u * 1024u * 1024u);
++    if (recovered != (uintptr_t)truncated) {
++        return recovered;
+@@ -40,4 +55,4 @@
+-    uintptr_t img_hi32 = pc_image_base & ~(uintptr_t)0xFFFFFFFF;
+-    uintptr_t img_lo32 = pc_image_base & 0xFFFFFFFF;
+-    if (truncated >= img_lo32) {
+-        return img_hi32 | (uintptr_t)truncated;
++    recovered = pc_gbi_recover_in_range(
++        truncated, pc_image_base, pc_image_end);
++    if (recovered != (uintptr_t)truncated) {
++        return recovered;
+diff --git a/pc/include/pc_platform.h b/pc/include/pc_platform.h
+--- a/pc/include/pc_platform.h
++++ b/pc/include/pc_platform.h
+@@ -60,0 +61 @@
++#include <mach-o/loader.h>
+diff --git a/pc/src/pc_gx_texture.c b/pc/src/pc_gx_texture.c
+--- a/pc/src/pc_gx_texture.c
++++ b/pc/src/pc_gx_texture.c
+@@ -2,0 +3 @@
++#include "pc_gbi_ptr.h"
+@@ -10,0 +12,26 @@
++/* For this port's supported 64-bit layouts, game pointers come from mapped
++ * regions above the low 4 GiB. Recover a legacy truncated GBI pointer only
++ * when its low bits identify a byte inside the known game arena or executable
++ * image. Reject other values before texture hashing or decoding dereferences
++ * them. */
++static void* pc_gx_resolve_gbi_ptr(void* data) {
++#if UINTPTR_MAX > 0xFFFFFFFFu
++    uintptr_t raw = (uintptr_t)data;
++    if (raw != 0 && raw <= 0xFFFFFFFFu) {
++        uintptr_t recovered = pc_gbi_recover_ptr((unsigned int)raw);
++        if (recovered == raw) {
++            static int warned = 0;
++            if (!warned) {
++                fprintf(stderr,
++                        "[PC] Rejected unrecoverable low GBI texture pointer %p\n",
++                        data);
++                warned = 1;
++            }
++            return NULL;
++        }
++        return (void*)recovered;
++    }
++#endif
++    return data;
++}
++
+@@ -206 +233 @@
+-    o->image_ptr = image_ptr;
++    o->image_ptr = pc_gx_resolve_gbi_ptr(image_ptr);
+@@ -227 +254 @@
+-    o->image_ptr = image_ptr;
++    o->image_ptr = pc_gx_resolve_gbi_ptr(image_ptr);
+@@ -851 +878 @@
+-    o->data = lut;
++    o->data = pc_gx_resolve_gbi_ptr(lut);
+diff --git a/pc/src/pc_main.c b/pc/src/pc_main.c
+--- a/pc/src/pc_main.c
++++ b/pc/src/pc_main.c
+@@ -461 +461,3 @@
+-        /* macOS: use dladdr — no ELF headers available */
++        /* macOS: derive the exact loaded Mach-O range. A broad estimate can
++         * turn an arbitrary truncated value into a plausible but unmapped
++         * pointer during GBI recovery. */
+@@ -465,3 +467,22 @@
+-            /* Estimate image end — on 64-bit, seg2k0 uses threshold check
+-             * instead of image range, so this is defense-in-depth only. */
+-            pc_image_end = pc_image_base + 0x10000000;
++            const struct mach_header_64* header =
++                (const struct mach_header_64*)dl.dli_fbase;
++            const struct load_command* command =
++                (const struct load_command*)(header + 1);
++            intptr_t slide = _dyld_get_image_vmaddr_slide(0);
++
++            for (u32 i = 0; i < header->ncmds; i++) {
++                if (command->cmd == LC_SEGMENT_64) {
++                    const struct segment_command_64* segment =
++                        (const struct segment_command_64*)command;
++                    if (strcmp(segment->segname, SEG_PAGEZERO) != 0) {
++                        uintptr_t segment_end = (uintptr_t)slide +
++                            (uintptr_t)segment->vmaddr +
++                            (uintptr_t)segment->vmsize;
++                        if (segment_end > pc_image_end) {
++                            pc_image_end = segment_end;
++                        }
++                    }
++                }
++                command = (const struct load_command*)
++                    ((const u8*)command + command->cmdsize);
++            }

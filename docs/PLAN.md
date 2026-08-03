@@ -27,7 +27,7 @@ This is a provisional selection. Milestone 1 build and runtime evidence can chan
    Apple Clang 21 and GCC 16 now both complete the independent 4,000-unit ARM64 build; Clang is the default reproducible path.
 2. [x] Point it at the local retail image using a symlink; never copy the image into a tracked or packaged tree.
 3. [x] Verify the image identity before launch: `GAFE01`, USA Rev 0, and record its size/hash only in an ignored local validation record.
-4. [ ] Run from trademark/title through town creation, save, process exit, relaunch, and persistence. Current evidence completes names, train arrival, town generation, house selection, mortgage, inventory/equipment, planting, and two resident introductions. The first NPC-house transition exposed and now has patches for door reach and null optional-payload allocation; fresh interior, save creation, and relaunch evidence remain.
+4. [ ] Run from trademark/title through town creation, save, process exit, relaunch, and persistence. Current evidence completes names, train arrival, town generation, house selection, mortgage, inventory/equipment, planting, and two resident introductions. A clean replay also crossed an intermittent low-texture-pointer fault after bounded recovery was added. The first NPC-house transition exposed and now has patches for door reach and null optional-payload allocation; fresh interior, save creation, and relaunch evidence remain.
 5. Record rendering, audio, input, RTC, memory, and sanitizer evidence. Rendering, 32 kHz stereo audio, keyboard buttons, analog movement, and desktop text input have initial evidence; RTC, memory, and sanitizers remain.
    The title cleanup overflow is fixed with a padded host structure-actor pool; repeated teardown/reload is now part of the regression set.
    NPC-house entry and scene reinitialization are now explicit regression gates after reproducing an unreachable host door sample and a null e-Reader payload allocation in `play_init`.
@@ -39,7 +39,8 @@ This is a provisional selection. Milestone 1 build and runtime evidence can chan
 - Replace host pointers stored in `u32` with `uintptr_t`, typed pointers, or explicit 32-bit guest offsets as appropriate.
 - Keep serialized GameCube/N64 structures fixed-width and endian-defined; do not widen on-disc or save formats.
 - Represent segmented N64 display-list addresses as 32-bit guest addresses and resolve them through bounded segment tables.
-- Replace executable-address heuristics and fixed-address loading with explicit registration of static display-list ranges.
+- During baseline migration, recover truncated host values only inside exact arena or loaded-image intervals and reject unknown low texture/TLUT pointers before dereference.
+- Replace even the bounded executable-range baseline safeguard with explicit registration of static display-list ranges in the production address model.
 - Add compile-time size assertions for serialized structures and runtime bounds checks for every guest-offset resolution.
 - Run ASan/UBSan on macOS wherever compatible and make pointer-to-int truncation a compile error.
 

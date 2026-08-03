@@ -2,7 +2,7 @@
 
 Last updated: 2026-08-03
 
-Current phase: desktop-baseline save/address-model work after passing the Apple Clang compiler gate.
+Current phase: desktop-baseline save/address-model hardening after passing the Apple Clang compiler gate.
 
 ## Confirmed
 
@@ -26,13 +26,15 @@ Current phase: desktop-baseline save/address-model work after passing the Apple 
 - A minimal keyboard-edge latch now executes inside the actual `SDL_KEYDOWN` case and carries each non-repeating GameCube button event through both controller reads in one game input update. A debugger-fed normalized A edge advanced exactly one K.K. prompt in the Apple Clang build.
 - The desktop SDL text adapter accepted the test player name `Bell` and town name `Cedar` through the in-game editors.
 - The full train sequence completed, a new town was generated, the player arrived at the station, exited into town, moved outdoors, met Tom Nook, and reached the house-selection area.
-- Tracked scripts now reproduce the pinned checkout, apply all eight clean compatibility patches idempotently, build an Apple Clang ARM64 Mach-O by default, allow an isolated GCC cross-check, and optionally link (never copy) a local image.
+- Tracked scripts now reproduce the pinned checkout, apply all nine clean compatibility patches idempotently, build an Apple Clang ARM64 Mach-O by default, allow an isolated GCC cross-check, and optionally link (never copy) a local image.
 - A fresh scripted build was run from an empty ignored checkout and reached the title loop with disc/archive/audio initialization complete. A targeted `SIGTERM` test terminated that clean process.
 - The Bell/Cedar run selected a house, accepted the mortgage, entered Nook's work tutorial, equipped the work uniform through inventory, planted all seven flowers and three saplings, and completed first introductions with Peaches and Chuck. Runtime quest data reported 2 friends out of Cedar's 6 starting villagers.
 - Frame-counted analog QA now sets the normalized stick, stops after an exact number of `PADRead` calls, clears it before detaching, and can queue a button edge on release. It moved Bell through town and reliably initiated both resident conversations.
 - A 2 h 44 min native session remained rendered and responsive until the first NPC-house transition. The transition reproduced two host defects: the house collision stops outside the original 20-unit item sample, and an optional 9,612-byte e-Reader payload allocation can return `NULL` during `play_init`.
 - The crash report symbolicated `putLEWord → mEA_GetCardDLProgram → play_init` writing to address `0x2C`. Patch 7 now validates the resource and handles arena-allocation failure without dereferencing null. Patch 8 restores a narrowly scoped, north-facing NPC-house door reach fallback on `TARGET_PC`; both patches compile and link with Apple Clang and GCC.
-- The rebuilt Apple Clang binary mounts the ignored `GAFE01` image, loads 14,495 assets, initializes audio, reaches a stable 60 FPS title loop, and returns from `graph_proc` after an exact-PID `SIGTERM`. Fresh tutorial/house-transition runtime verification of patches 7 and 8 is still pending.
+- A separate intermittent train crash symbolicated as `tex_content_hash → GXLoadTexObj → emu64::dirty_check → dl_G_TRIN`. A low value (`0x43C80000`) had been combined with executable upper bits because the macOS image range was a speculative 256 MiB interval. Patch 9 derives exact loaded Mach-O bounds, handles wrapped low-32-bit intervals, and rejects unknown low texture/TLUT pointers before hashing or decoding.
+- LLDB verified patch 9 in a live ARM64 process: the crash value resolves to null, while truncated arena and executable pointers reconstruct exactly. The loaded image interval was `0x100000000–0x1025C0000`; Apple Clang and GCC builds pass.
+- A clean replay crossed the former train-crash point, completed native `Bell`/`Cedar` text entry, and arrived at Cedar station. The rebuilt nine-patch Apple Clang binary also mounts the ignored `GAFE01` image, loads 14,495 assets, initializes audio, reaches a stable 60 FPS title loop, and returns from `graph_proc` after an exact-PID `SIGTERM`. Fresh tutorial/house-transition runtime verification of patches 7 and 8 is still pending.
 
 ## Active blockers
 

@@ -26,6 +26,7 @@ No gameplay test is marked passed without a dated result, device/OS, build revis
 - Shutdown evidence differs by harness: app-wrapper sessions have needed SIGKILL, while one targeted raw-process `SIGTERM` test exited. A later Clang wrapper again needed SIGKILL, so window/app teardown remains open.
 - NPC-house reach: at Bunnie's active house, the host collision stopped Bell near `z=2175` while the original 20-unit forward sample could not reach the door-label unit. A diagnostic at `z=2138` produced the expected `item_in_front=0xF0A6`. A narrow `TARGET_PC` door-approach fallback compiles under both toolchains; fresh runtime replay is pending.
 - Scene-entry allocation: the first NPC-house transition terminated after 2 h 44 min with `EXC_BAD_ACCESS` at `0x2C`. The native stack is `putLEWord → mEA_GetCardDLProgram → play_init`; the optional 9,612-byte e-Reader allocation returned null. Resource/allocation guards compile under both toolchains; fresh runtime replay is pending.
+- Low GBI texture pointer: an intermittent Rover train run terminated in `tex_content_hash → GXLoadTexObj → emu64::dirty_check → dl_G_TRIN` while hashing a 32×16 `GX_TF_C8` texture through `0x43C80000`. The old macOS recovery used a speculative image end. In the nine-patch build, LLDB measured the exact image interval as `0x100000000–0x1025C0000`, proved that `0x43C80000` is rejected to null, and proved that truncated arena (`0x11C47D234`) and image (`0x1009E4020`) pointers recover exactly. Both compiler builds and a normal title smoke pass.
 
 ### Gameplay evidence on 2026-08-03
 
@@ -33,6 +34,7 @@ No gameplay test is marked passed without a dated result, device/OS, build revis
 - Entered `Bell` and `Cedar` through the desktop text-input adapter.
 - Repeated the `Bell`/`Cedar` flow through the new SDL-independent native text API: begin returned success, all characters were queued, Enter was accepted, and the second editor reopened cleanly.
 - Completed the train sequence and arrived in the generated town.
+- A second clean replay using the native text and normalized-pad APIs crossed the precise dialogue choice preceding the intermittent texture fault and arrived at Cedar station without the fault recurring.
 - Exited the station, moved outdoors, met Tom Nook, and reached house selection.
 - Selected a house, accepted the mortgage, equipped Nook's work uniform through the inventory, and planted all seven flowers and three saplings. Placement validation rejected paved locations and accepted valid soil.
 - Completed first-time resident conversations with Peaches and Chuck. Live quest inspection reported 2 friend records out of 6 starting villagers; Tortimer's work-introduction flag remained unset.
@@ -42,7 +44,7 @@ No gameplay test is marked passed without a dated result, device/OS, build revis
 - `scripts/type-desktop-text.sh <pid> Bell` validates an explicit game PID, restricts its shell-facing value to ASCII alphanumerics, and calls the same begin/commit/Enter API planned for native keyboard adapters. The underlying API retains the port's existing UTF-8 mapping, including its supported accented characters.
 - Normalized pad merge: requested left stick `(-77,55)`, C-stick `(33,-44)`, and triggers `(120,130)`. `PADRead` returned packed bytes `0x8278d42137b30060`, exactly matching all axes/triggers plus trigger-derived L/R bits `0x0060`. `scripts/set-desktop-stick.sh` also set and cleared the persistent left-stick state.
 - `scripts/pulse-desktop-stick.sh` holds a normalized left-stick value for an exact `PADRead` count, clears it before detaching, and may queue one button on release. Direct state inspection confirmed all ten virtual-pad bytes return to zero; it then drove deterministic town movement and both resident conversations.
-- The rebuilt eight-patch Apple Clang binary again completed disc indexing, archive loading, 32 kHz audio startup, and a visible 60 FPS title loop, then returned from `graph_proc` after an exact-PID `SIGTERM`. This is a smoke pass only, not proof of the patched interior transition.
+- The rebuilt nine-patch Apple Clang binary again completed disc indexing, archive loading, 32 kHz audio startup, and a visible 60 FPS title loop, then returned from `graph_proc` after an exact-PID `SIGTERM`. This is a smoke pass only, not proof of the patched interior transition.
 
 ## Functional gameplay matrix
 

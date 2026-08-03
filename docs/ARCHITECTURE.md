@@ -27,9 +27,11 @@ Host pointers are native-width. Game addresses, segmented N64 display-list addre
 
 The first Apple Clang portability pass makes DVD/audio callbacks, task payload copies, heap headers, memory archives, ARAM, retrace messages, allocation APIs, and Famicom buffers native-width where they carry host state. It deliberately does not widen serialized or guest-visible fields. Both Apple Clang and GCC builds pass, but sanitizers and the complete boundary inventory remain required evidence.
 
+Legacy 32-bit GBI fields are recovered only when their low bits fall inside a measured host range. The arena interval is explicit, and macOS derives the exact loaded image interval from non-`__PAGEZERO` Mach-O segments plus the dyld slide. Recovery handles ranges that cross a 4 GiB low-word boundary. Unknown low texture or TLUT values are rejected before content hashing/decoding instead of being combined with guessed upper bits.
+
 Host object pools must be sized for the largest native derived type, not the 32-bit base layout. The structure-actor pool therefore uses independently padded 0x400-byte slots: measured ARM64 layouts are 0x340 for the base and 0x348 for Shrine. This storage-only padding does not alter serialized or guest-visible structures.
 
-Static display lists must be registered with the resolver at startup rather than detected by assuming a low/fixed executable address. ARAM becomes an allocated host buffer whose guest addresses are offsets, not truncated host pointers.
+Static display lists must ultimately be registered with the resolver at startup rather than detected from executable placement alone. The exact executable-range check is a bounded desktop-baseline safeguard, not the final guest-address model. ARAM becomes an allocated host buffer whose guest addresses are offsets, not truncated host pointers.
 
 ## Graphics
 
