@@ -19,6 +19,16 @@ UIKit / Files / GCController / AVAudioSession
  SDL3 + nod + Dawn/WebGPU + CoreAudio + Metal
 ```
 
+### Frame pacing contract
+
+The current source port advances game simulation from VI retraces. Its core
+therefore runs at a fixed 60 Hz NTSC cadence: 120 Hz or uncapped execution is
+an overclock that doubles gameplay speed, while reducing the coupled loop to
+30 Hz would halve it. Bellpad must request a 60 Hz mobile display cadence even
+on ProMotion hardware. Any later 30/60/120 Hz presentation modes require a
+separate render scheduler and interpolation that never changes the number of
+simulation ticks.
+
 The app executes compiled C/C++ game code directly on Apple ARM64. Aurora is a source-level SDK compatibility layer, not a CPU/GPU emulator. The existing WebAssembly port is research material only and will not be embedded.
 
 ## Address and data model

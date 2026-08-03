@@ -1,0 +1,110 @@
+diff --git a/pc/src/pc_main.c b/pc/src/pc_main.c
+--- a/pc/src/pc_main.c
++++ b/pc/src/pc_main.c
+@@ -228,8 +228,0 @@
+-static void pc_speedhack_toggle(void) {
+-    g_pc_fast_forward ^= 1;
+-
+-    if (g_pc_verbose) {
+-        printf("[PC] fast-forward %s\n", g_pc_fast_forward ? "on (2x)" : "off");
+-    }
+-}
+-
+@@ -304,11 +296,3 @@
+-                if (event.key.keysym.sym == SDLK_F3 && !event.key.repeat) {
+-                if (!event.key.repeat) {
+-                    pc_pad_queue_scancode(event.key.keysym.scancode);
+-                }
+-                    pc_speedhack_toggle();
+-                    break;
+-                }
+-                if (event.key.keysym.sym == SDLK_F4 && !event.key.repeat) {
+-                    g_pc_fast_forward ^= 1;
+-                    printf("[PC] Fast forward %s (2x)\n", g_pc_fast_forward ? "ON" : "OFF");
++                if (!event.key.repeat) {
++                    pc_pad_queue_scancode(event.key.keysym.scancode);
+                 }
+@@ -391,2 +375 @@
+-            printf("  --no-framelimit     Alias for --framelimit 0\n");
+-            printf("  --framelimit N      Set the target frame rate (default 60, 0 = unlimited)\n");
++            printf("  --framelimit 60     Use the native 60 Hz simulation rate (default)\n");
+@@ -400,5 +383,8 @@
+-                if (v > 0) {
+-                    g_pc_settings.max_fps = v;
+-
+-
++                if (v == 60) {
++                    g_pc_settings.max_fps = 60;
++                } else {
++                    fprintf(stderr,
++                            "Only --framelimit 60 is supported: higher or "
++                            "uncapped rates accelerate simulation.\n");
++                    return 2;
+                 }
+@@ -409 +395,3 @@
+-            g_pc_no_framelimit = 1;
++            fprintf(stderr,
++                    "--no-framelimit is unsupported because it accelerates simulation.\n");
++            return 2;
+diff --git a/pc/src/pc_settings.c b/pc/src/pc_settings.c
+--- a/pc/src/pc_settings.c
++++ b/pc/src/pc_settings.c
+@@ -32 +32 @@
+-    "# Max FPS: 60, 120, 180, 240, or 0 for unlimited\n"
++    "# Simulation rate is fixed at the native 60 Hz cadence\n"
+@@ -78,3 +78,3 @@
+-        if (val == 0 || val == 60 || val == 120 || val == 180 || val == 240) {
+-            g_pc_settings.max_fps = val;
+-        }
++        /* The game advances simulation once per presented frame. Values above
++         * 60 (or unlimited) overclock gameplay instead of only presentation. */
++        g_pc_settings.max_fps = 60;
+@@ -96,7 +96,2 @@
+-    int max_fps = g_pc_settings.max_fps;
+-
+-    if (max_fps <= 0) {
+-        g_frame_limiter = 0;
+-    } else {
+-        g_frame_limiter = (u32)max_fps;
+-    }
++    g_pc_settings.max_fps = 60;
++    g_frame_limiter = 60;
+@@ -125 +120 @@
+-    fprintf(f, "# Max FPS: 60, 120, 180, 240, or 0 for unlimited\n");
++    fprintf(f, "# Simulation rate is fixed at the native 60 Hz cadence\n");
+diff --git a/pc/src/pc_settings_menu.c b/pc/src/pc_settings_menu.c
+--- a/pc/src/pc_settings_menu.c
++++ b/pc/src/pc_settings_menu.c
+@@ -133,5 +133,3 @@
+-            static const int steps[] = { 60, 120, 180, 240, 0 };
+-            int idx = 0;
+-            for (int i = 0; i < 5; i++) if (s_pending.max_fps == steps[i]) { idx = i; break; }
+-            idx = (idx + (dir > 0 ? 1 : 4)) % 5;
+-            s_pending.max_fps = steps[idx];
++            /* Simulation is coupled to VI retraces; this is intentionally not
++             * a selectable performance/overclock control. */
++            s_pending.max_fps = 60;
+@@ -183,2 +181 @@
+-            if (s_pending.max_fps > 0) snprintf(buf, n, "< %d >", s_pending.max_fps);
+-            else                       snprintf(buf, n, "< Unlimited >");
++            snprintf(buf, n, "< 60 (Native) >");
+diff --git a/pc/src/pc_vi.c b/pc/src/pc_vi.c
+--- a/pc/src/pc_vi.c
++++ b/pc/src/pc_vi.c
+@@ -55,5 +55,7 @@
+-    if (!g_pc_no_framelimit) {
+-        /* Timer-based pacing: sleep until target frame time.
+-         * Audio production runs on a dedicated thread and is no longer
+-         * tied to game frame timing. */
+-        Uint64 target_us = g_pc_fast_forward ? 8333 : 16667; /* 2x = 120Hz, 1x = 60Hz */
++    /* The game advances simulation from VI retraces. Running this loop above
++     * 60 Hz accelerates gameplay, audio cues, and scripted timing rather than
++     * producing a higher-fidelity presentation. Keep the native simulation
++     * clock fixed at its NTSC 60 Hz cadence. A future high-refresh display
++     * path must interpolate presentation without adding simulation ticks. */
++    {
++        const Uint64 target_us = 16667;
+@@ -95,2 +97 @@
+-            snprintf(title, sizeof(title), "Animal Crossing - %.1f FPS%s", fps,
+-                     g_pc_fast_forward ? " [2x]" : "");
++            snprintf(title, sizeof(title), "Animal Crossing - %.1f FPS", fps);

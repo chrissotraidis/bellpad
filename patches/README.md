@@ -21,3 +21,8 @@ Both patches are applied idempotently by:
 ```sh
 ./scripts/fetch-desktop-baseline.sh
 ```
+
+`pc-port/0010-lock-simulation-to-native-60hz.patch` removes the accidental
+desktop 2×/uncapped paths and constrains the current coupled game/presentation
+loop to its native 60 Hz cadence. High-refresh presentation remains future
+work and must not add simulation ticks.

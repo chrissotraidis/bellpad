@@ -31,6 +31,7 @@ No gameplay test is marked passed without a dated result, device/OS, build revis
 ### Gameplay evidence on 2026-08-03
 
 - Timing-sensitive evidence is collected only at the normal 60 FPS presentation rate. A short 120 FPS `[2x]` setup run was found to advance gameplay at double speed and is excluded from timing, audio, RTC, memory, save, and stability conclusions.
+- Patch 10 removes the F3/F4 2× toggle and hard-locks the coupled VI/game loop to 16,667 microseconds per tick. Apple Clang 21 and GCC 16 ARM64 builds pass; `--framelimit 120` and `--no-framelimit` both exit with status 2 and an acceleration warning, while `--help` exposes only `--framelimit 60`.
 - A fresh, quiet (non-verbose) Apple Clang run held 60.0 FPS outside brief LLDB stops and completed K.K./Rover setup, `Bell`/`Cedar` native text entry, train arrival, house selection, the mortgage, Nook's shop entry, uniform equipment, and the complete planting assignment.
 - The fresh planting replay consumed all seven flower bags and all three saplings through the retail inventory/context-menu path. The game rejected a paved placement with `You can't plant anything here!`, accepted grass placements, rendered all ten plants, and Nook accepted the completed job.
 - The same run returned through Nook's exterior/interior scene transition multiple times without the former low-GBI train fault. The process remained alive after approaching a nearby villager house, but its resident was outdoors and the closed door did not start a scene transition; patches 7 and 8 therefore remain runtime-pending.
