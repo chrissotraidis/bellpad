@@ -11,7 +11,7 @@ As of 2026-08-04:
 - A pinned 64-bit source-port fork builds locally as a native macOS ARM64 executable.
 - The same complete game core now builds as an opt-in ARM64 `Bellpad.app`. It accepts `--disc`, presents a native picker when needed, validates GAFE01 disc 0 revision 0, packages only clean shader resources, and reaches the title loop from an arbitrary working directory.
 - The same patched source now builds with both Apple Clang 21 and GCC 16; the Apple Clang binary reaches the correctly rendered 60 FPS title screen.
-- The pinned checkout, twenty-eight local game-core patches, four Aurora patches, simulator/device builds, and unsigned IPA packaging are reproducible with tracked scripts.
+- The pinned checkout, twenty-eight local game-core patches, five Aurora patches, simulator/device builds, and unsigned IPA packaging are reproducible with tracked scripts. Direct product archives are content-hash pinned, and the exact shipped dependency inventory is machine-readable.
 - A user-supplied `GAFE01` revision 0 image is validated and read directly without extracting or bundling its assets.
 - The desktop baseline renders the title, setup, train, and generated town at 60 FPS and starts 32 kHz stereo audio.
 - A trimmed-image aligned-read bug was identified and corrected locally.
@@ -24,7 +24,7 @@ As of 2026-08-04:
 - The mobile game includes left/C sticks, A/B/X/Y, Z/L/R/Start, D-pad, adaptive compact/expanded layouts, safe-area handling, GameController merging, physical-controller auto-hide on devices, persistent opacity/size/visibility/positions, drag editing/reset, Native/1×/2×/3×/4× render-resolution choices, and the thread-safe game-input snapshot consumed by the Aurora core.
 - Native macOS and iOS/iPadOS choosers accept a user-selected file through one shared streamed validator. The current slice recognizes raw ISO/GCM, requires GameCube magic plus `GAFE01` revision 0, accepts only the verified full or exact trimmed size, and SHA-256 checks the complete meaningful payload. On mobile, a valid selection is copied through a staging file to private Application Support, validated again, atomically installed, and used by the real core; the retained copy is reused on relaunch.
 - When the real game opens a text editor, the mobile adapter presents a native UIKit first responder and drains UTF-8, Backspace, paste, and Done events on the game thread. The iPhone flow committed exact player name `Bell` and town name `Cove`; iPad also presented and committed through the same native field. Letter writing, dictation/accessibility breadth, and physical-device keyboard behavior remain to be tested.
-- The playable macOS bundle still uses the proven SDL2/OpenGL renderer and Application Support. The mobile Aurora game bundle now runs the real core, renderer, audio, touch, persistent control settings, user-facing disc import/change/removal, native-text path, validated GCI import/export, GCI persistence, and compiled original icon on simulator and ARM64 device targets. The audited unsigned IPA contains only the executable, plist, compiled icon renditions, and asset catalog. Nod indexing/compressed formats, broader lifecycle/scene validation, signing, and physical-device runtime remain.
+- The playable macOS bundle still uses the proven SDL2/OpenGL renderer and Application Support. The mobile Aurora game bundle now runs the real core, renderer, audio, touch, persistent control settings, user-facing disc import/change/removal, native-text path, validated GCI import/export, GCI persistence, and compiled original icon on simulator and ARM64 device targets. The audited unsigned IPA contains only the executable, plist, compiled icon renditions, asset catalog, and exact third-party notices. Nod indexing/compressed formats, broader lifecycle/scene validation, signing, and physical-device runtime remain.
 
 See [STATUS.md](docs/STATUS.md), [PLAN.md](docs/PLAN.md), and [WORKLOG.md](docs/WORKLOG.md) for evidence and current blockers.
 
@@ -72,6 +72,12 @@ Before committing or packaging anything, run:
 ```sh
 ./scripts/audit-tracked-content.sh
 ```
+
+That command also validates the mixed-license notice, shipped dependency lock,
+and cryptographic archive pins. Binary bundles carry the tracked
+`ThirdPartyNotices.txt`; see [LICENSE](LICENSE),
+[THIRD_PARTY_NOTICES.txt](THIRD_PARTY_NOTICES.txt), and
+[product-dependencies.lock.json](product-dependencies.lock.json).
 
 The final build must use Apple Clang for iOS. The compiler, native save/reload, isolated Dolphin GCI-folder interchange, and save-file UI gates now pass; the remaining address-model audit, sanitizers, lifecycle hardening, and physical-device validation are still required.
 
@@ -153,13 +159,13 @@ Primary inspected projects include:
 - [GabeConway/OpenCrossing-Anbernic](https://github.com/GabeConway/OpenCrossing-Anbernic) — ARM handheld reference.
 - HarkinianPad — local architecture/UX reference only; its integration code is not assumed reusable.
 
-Exact branches, commits, licensing, provenance, purpose, and disposition are recorded in [RESEARCH.md](docs/RESEARCH.md) and [upstreams.lock.json](upstreams.lock.json).
+Exact branches, commits, licensing, provenance, purpose, and disposition are recorded in [RESEARCH.md](docs/RESEARCH.md), [upstreams.lock.json](upstreams.lock.json), and [product-dependencies.lock.json](product-dependencies.lock.json). Full license text for every linked non-system component is included in [THIRD_PARTY_NOTICES.txt](THIRD_PARTY_NOTICES.txt).
 
 ## Legal
 
 Bellpad is unofficial and is not affiliated with or endorsed by Nintendo. Animal Crossing, Nintendo, and GameCube names are used only to describe compatibility. No GameCube image, original copyrighted game asset, leaked source, or unauthorized development material is included.
 
-Users are responsible for supplying their own legally obtained supported game data. See [LEGAL.md](docs/LEGAL.md).
+Users are responsible for supplying their own legally obtained supported game data. See [LEGAL.md](docs/LEGAL.md) and the repository's mixed-license [LICENSE](LICENSE).
 
 ## Contributing
 

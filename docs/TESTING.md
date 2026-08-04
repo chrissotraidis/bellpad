@@ -135,10 +135,12 @@ scene/orientation/safe-area policy and adaptive touch controls.
 | Cleanup | Pass — the iPad app terminated, exact simulator test copies were moved to Trash, the simulator shut down, and no simulator remained booted |
 | Lifecycle/audio wiring | Pass for one bounded iPhone Simulator cycle — Home cleared input, paused presentation, and changed the SDL3 stream to paused; foreground restored live Metal output and the post-`DidBecomeActive` game-thread edge changed the stream back to unpaused. Repeated cycles, route interruptions, physical hardware, and two SDL UIKit startup warnings remain |
 | ARM64 device build | Pass (static audit) — complete product links as Mach-O arm64 with `LC_BUILD_VERSION` platform `IOS`, minimum iOS 17.0, Metal, and no SDL2; physical install/runtime remains |
-| Unsigned IPA reproducibility | Pass — two timestamp-normalized local packages and one package built from an independent fresh GitHub clone were byte-identical with SHA-256 `b0a9ff6f405a241a90f9ade71b5c54fd999922533fa3887f29bc736e6baf6e98` |
+| Unsigned IPA reproducibility | Pass — two timestamp-normalized post-notice packages were byte-identical with SHA-256 `a23c0d5c3c888f9b7db1adb5b09aaff8c242ccb293a70483ea79432730dd4ac2`; the preceding no-notice checkpoint also reproduced from an independent fresh clone |
 | Device runtime-link audit | Pass — `otool` reports only Apple system frameworks and `/usr/lib` libraries; no `LC_RPATH` remains, and the package script independently enforces both constraints |
 | Post-static-link simulator smoke | Pass — rebuilt universal bundle installed and launched to the native no-data Files screen on iPhone 17 Pro, then after shutdown on iPad Pro 13-inch; both sessions were terminated and shut down without extended control replay |
-| Unsigned IPA contents | Pass — 13 MB archive contains only the executable, plist, `Assets.car`, and two compiled icon PNGs; no signature, provisioning profile, retail data, save, key, or certificate |
+| Dependency/archive pins | Pass — product dependency lock covers every linked non-system library; Abseil, SDL3, source Dawn, iOS Dawn, and macOS Dawn hashes close the formerly version-only downloads, while all remaining fetched archives retain upstream SHA-256 pins |
+| Bundled license notices | Pass — the macOS baseline, universal Simulator app, device app, IPA staging tree, and final IPA carry byte-identical `ThirdPartyNotices.txt`, including SDL HIDAPI/yuv2rgb's separate BSD terms; the archive contains only that notice plus the executable, plist, `Assets.car`, and two compiled icon PNGs |
+| Unsigned IPA contents | Pass — 13 MiB archive contains only the executable, plist, `Assets.car`, two compiled icon PNGs, and `ThirdPartyNotices.txt`; no signature, provisioning profile, retail data, save, key, or certificate |
 
 The disc-import runs above used the native Files UI and no `--disc` argument. They
 prove the raw ISO/GCM user flow and relaunch retention. The later save-management

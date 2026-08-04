@@ -40,6 +40,19 @@ beside the tracked 1024×1024 icon.
 
 ## License handling
 
-Every incorporated upstream is pinned. Its license text, notices, exact commit, modifications, and purpose are included in release materials. “CC0” applies only to rights the contributors can waive; it does not grant Nintendo assets, trademarks, patents, or other third-party rights.
+Every incorporated upstream is pinned. `upstreams.lock.json` records inspected
+top-level projects, while `product-dependencies.lock.json` records every
+non-system implementation component linked into Apple product binaries,
+including version/commit, source or package SHA-256, purpose, reused component,
+required changes, and disposition. `THIRD_PARTY_NOTICES.txt` reproduces the
+applicable license texts and is installed into macOS, iOS, and iPadOS product
+bundles, including the separate BSD terms for SDL's compiled HIDAPI and
+yuv2rgb portions. Build and package audits require a byte-identical notice
+file.
+
+Bellpad's root `LICENSE` describes the repository's mixed-license boundary and
+does not invent an outbound license for original files whose authors have not
+provided one. “CC0” applies only to rights the contributors can waive; it does
+not grant Nintendo assets, trademarks, patents, or other third-party rights.
 
 This document records project policy and provenance; it is not legal advice.

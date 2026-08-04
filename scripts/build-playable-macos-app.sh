@@ -18,6 +18,7 @@ cmake --build "$build_dir" --parallel
 
 app_path="$build_dir/bin/Bellpad.app"
 "$script_dir/install-macos-app-icon.sh" "$app_path"
+"$script_dir/install-third-party-notices.sh" "$app_path" macos
 test -x "$app_path/Contents/MacOS/Bellpad"
 file "$app_path/Contents/MacOS/Bellpad"
 plutil -lint "$app_path/Contents/Info.plist"

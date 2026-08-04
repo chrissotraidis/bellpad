@@ -14,6 +14,7 @@ fi
 
 binary="$app/Bellpad"
 test -x "$binary"
+cmp -s "$repo_root/THIRD_PARTY_NOTICES.txt" "$app/ThirdPartyNotices.txt"
 platform=$(xcrun vtool -show-build "$binary" | awk '$1 == "platform" { print $2; exit }')
 if [ "$platform" != "IOS" ]; then
     echo "Unsigned IPA input must be an iOS device app, not '$platform'." >&2
@@ -57,6 +58,7 @@ if otool -l "$package_binary" | rg -q 'LC_CODE_SIGNATURE'; then
     echo "Unsigned IPA staging binary still contains a code signature." >&2
     exit 1
 fi
+cmp -s "$repo_root/THIRD_PARTY_NOTICES.txt" "$package_app/ThirdPartyNotices.txt"
 
 find "$package_dir/Payload" -exec touch -h -t 202001010000 {} +
 mkdir -p "$(dirname -- "$output")"
@@ -73,6 +75,8 @@ if [ -n "$archive_matches" ]; then
     printf '%s\n' "$archive_matches" >&2
     exit 1
 fi
+unzip -p "$archive_tmp" Payload/Bellpad.app/ThirdPartyNotices.txt | \
+    cmp -s "$repo_root/THIRD_PARTY_NOTICES.txt" -
 
 mv -f "$archive_tmp" "$output"
 echo "Audited unsigned IPA: $output"

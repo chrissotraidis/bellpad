@@ -46,6 +46,7 @@ binary="$app/Bellpad"
 plist="$app/Info.plist"
 
 "$script_dir/install-ios-app-icon.sh" "$app" iphonesimulator
+"$script_dir/install-third-party-notices.sh" "$app" ios
 
 test -x "$binary"
 file "$binary" | grep -q 'Mach-O 64-bit executable arm64'
@@ -68,6 +69,7 @@ if otool -l "$binary" | grep -q 'cmd LC_RPATH'; then
     echo "iOS Simulator game target contains a build-directory runtime search path." >&2
     exit 1
 fi
+cmp -s "$repo_root/THIRD_PARTY_NOTICES.txt" "$app/ThirdPartyNotices.txt"
 
 if find "$app" -type f \( \
     -iname '*.iso' -o -iname '*.gcm' -o -iname '*.ciso' -o -iname '*.rvz' -o \

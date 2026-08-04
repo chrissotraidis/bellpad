@@ -175,6 +175,13 @@ linked statically; Apple system frameworks and `/usr/lib` libraries remain
 dynamic. This is an unsigned build; installation still requires a user-owned
 signing identity and provisioning profile outside the repository.
 
+Direct Abseil, SDL3, Dawn source, and Apple Dawn package downloads are now
+SHA-256 verified in addition to their exact version/commit pins; the remaining
+fetched archives were already hash-pinned. `product-dependencies.lock.json`
+records every linked non-system component and `THIRD_PARTY_NOTICES.txt`
+reproduces its license. The build installs that notice byte-for-byte into the
+app, and `scripts/audit-release-compliance.sh` verifies it independently.
+
 The package script accepts only an iOS device app, removes any incidental code
 signature and provisioning profile from its private staging copy, audits both
 the staging tree and final archive, normalizes timestamps, and writes the ignored
@@ -184,18 +191,22 @@ reads or packages the ignored development disc image. Set
 `BELLPAD_SKIP_IOS_DEVICE_BUILD=1` to repackage an already audited device build.
 
 Observed 2026-08-04: the output contains exactly the executable, plist,
-`Assets.car`, `AppIcon60x60@2x.png`, and `AppIcon76x76@2x~ipad.png`; it is 13 MiB
-compressed and targets ARM64 iOS 17.0 through Metal. Source-prefix mapping keeps
-the checkout location out of Bellpad-built objects. Two packages from the
-working tree and one from an independent fresh GitHub clone produced identical
-bytes with SHA-256
-`b0a9ff6f405a241a90f9ade71b5c54fd999922533fa3887f29bc736e6baf6e98`.
+`Assets.car`, `AppIcon60x60@2x.png`, `AppIcon76x76@2x~ipad.png`, and the tracked
+`ThirdPartyNotices.txt`; it is 13 MiB compressed and targets ARM64 iOS 17.0
+through Metal. Source-prefix mapping keeps the checkout location out of
+Bellpad-built objects. Two post-notice packages produced identical bytes with
+SHA-256
+`a23c0d5c3c888f9b7db1adb5b09aaff8c242ccb293a70483ea79432730dd4ac2`.
 
 Run the tracked-content safety check before every commit and package build:
 
 ```sh
 ./scripts/audit-tracked-content.sh
 ```
+
+That command includes the release-compliance audit. It validates both JSON lock
+files, required full license sections, archive-hash pins, and (when given an app
+path directly) the bundled notice bytes.
 
 ## Aurora Apple-platform probes
 

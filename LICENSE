@@ -1,0 +1,24 @@
+Bellpad repository licensing notice
+
+This repository is a mixed-license work. There is no single license covering
+every file.
+
+Original Bellpad integration code, Apple platform code, documentation, scripts,
+branding, and other original material are copyright their respective authors.
+No outbound license is granted for that material unless a file or contribution
+explicitly states otherwise.
+
+The reverse-engineered game core, PC compatibility code, compatibility
+libraries, and bundled third-party components retain their upstream licenses.
+Their exact revisions, provenance, purposes, modifications, and license texts
+are recorded in THIRD_PARTY_NOTICES.txt, docs/RESEARCH.md, docs/LEGAL.md,
+upstreams.lock.json, and the tracked patch directories.
+
+No license in this repository grants rights to a retail game image, extracted
+game assets, Nintendo trademarks, leaked source code, unauthorized development
+materials, or any other third-party material that a licensor does not own.
+Bellpad does not include those materials. Users must supply their own legally
+obtained supported retail data.
+
+The Bellpad name and original icon are not licensed for use as an endorsement
+of derived products.

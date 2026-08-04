@@ -26,4 +26,6 @@ if [ -n "$symlink_matches" ]; then
   exit 1
 fi
 
+"$repo_root/scripts/audit-release-compliance.sh"
+
 printf '%s\n' 'Tracked-content audit passed.'

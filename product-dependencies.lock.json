@@ -1,0 +1,129 @@
+{
+  "schema": 1,
+  "updated": "2026-08-04",
+  "scope": "Third-party implementation code linked into Bellpad Apple product binaries",
+  "dependencies": [
+    {
+      "name": "Dawn and Tint",
+      "url": "https://github.com/encounter/dawn",
+      "revision": "266c1cf8de969a364afa4fa49311631fc99a881e",
+      "packageRelease": "v20260618.032059",
+      "sourceSha256": "03ca9de39e1b534c9a443ede66ce8fcf61521edfa7d526f9356972241cbd957d",
+      "iosArm64PackageSha256": "ada0bafc173152d80eba7c3b2f9609a71185d5809cbd5dd3251b91a0803a7ae2",
+      "darwinArm64PackageSha256": "a9cc9903761e60cf70d7d771bd0c482be1943e273717782d71c33313afeb6080",
+      "license": "BSD-3-Clause with file-specific Apache-2.0 terms",
+      "purpose": "WebGPU implementation and Metal renderer",
+      "reusedComponents": "Static webgpu_dawn library and public headers",
+      "requiredChanges": "None; Bellpad hash-pins the source and Apple packages",
+      "disposition": "Static product dependency through Aurora"
+    },
+    {
+      "name": "Abseil",
+      "url": "https://github.com/abseil/abseil-cpp",
+      "revision": "20240722.0",
+      "sourceSha256": "f50e5ac311a81382da7fa75b97310e4b9006474f9560ac46f54a9967f07d4ae3",
+      "license": "Apache-2.0",
+      "purpose": "Containers and support code used by Aurora and Dawn",
+      "reusedComponents": "Statically linked Abseil libraries",
+      "requiredChanges": "None",
+      "disposition": "Static product dependency"
+    },
+    {
+      "name": "SDL3",
+      "url": "https://github.com/libsdl-org/SDL",
+      "revision": "release-3.4.10",
+      "sourceSha256": "0dc11d980ba17250200718fa4e28011da293f27ed92f92203afffe396811f307",
+      "license": "Zlib; compiled HIDAPI and yuv2rgb portions are BSD-3-Clause",
+      "purpose": "Apple application, audio, input, controller, and lifecycle platform layer",
+      "reusedComponents": "Vendored static SDL3 build, including HIDAPI controller backends and yuv2rgb conversion",
+      "requiredChanges": "No Apple source changes; Aurora's configured Android patch commands do not alter the Apple build",
+      "disposition": "Static product dependency through Aurora"
+    },
+    {
+      "name": "fmt",
+      "url": "https://github.com/fmtlib/fmt",
+      "revision": "12.1.0",
+      "sourceSha256": "ea7de4299689e12b6dddd392f9896f08fb0777ac7168897a244a6d6085043fea",
+      "license": "MIT",
+      "purpose": "Formatting support",
+      "reusedComponents": "Static fmt library",
+      "requiredChanges": "None",
+      "disposition": "Static product dependency through Aurora"
+    },
+    {
+      "name": "FreeType",
+      "url": "https://freetype.org",
+      "revision": "2.14.3",
+      "sourceSha256": "e61b31ab26358b946e767ed7eb7f4bb2e507da1cfefeb7a8861ace7fd5c899a1",
+      "license": "FreeType License or GPL-2.0-or-later; Bellpad uses the FreeType License option",
+      "purpose": "Font support",
+      "reusedComponents": "Static FreeType library",
+      "requiredChanges": "None; Brotli, HarfBuzz, and PNG integration are disabled",
+      "disposition": "Static product dependency through Aurora"
+    },
+    {
+      "name": "libpng",
+      "url": "https://github.com/pnggroup/libpng",
+      "revision": "v1.6.58",
+      "sourceSha256": "a9d4df463d36a6e5f9c29bd6f4967312d17e996c1854f3511f833924eb1993cf",
+      "license": "libpng-2.0",
+      "purpose": "PNG image support",
+      "reusedComponents": "Static libpng16 library",
+      "requiredChanges": "None; Bellpad forces static linkage",
+      "disposition": "Static product dependency through Aurora"
+    },
+    {
+      "name": "Dear ImGui",
+      "url": "https://github.com/ocornut/imgui",
+      "revision": "v1.91.9b-docking",
+      "sourceSha256": "466fdef9b18de15f0bb6e288e3d00ffa3d82200ec458ce5e4f724a161d9528a5",
+      "license": "MIT",
+      "purpose": "Aurora UI support",
+      "reusedComponents": "Static core and SDL/WebGPU backend libraries",
+      "requiredChanges": "Aurora supplies its own configuration header and adapter source",
+      "disposition": "Static product dependency through Aurora"
+    },
+    {
+      "name": "xxHash",
+      "url": "https://github.com/Cyan4973/xxHash",
+      "revision": "v0.8.3",
+      "sourceSha256": "aae608dfe8213dfd05d909a57718ef82f30722c392344583d3f39050c7f29a80",
+      "license": "BSD-2-Clause",
+      "purpose": "Hashing support",
+      "reusedComponents": "Static xxHash library",
+      "requiredChanges": "None",
+      "disposition": "Static product dependency through Aurora"
+    },
+    {
+      "name": "Tracy",
+      "url": "https://github.com/wolfpld/tracy",
+      "revision": "6789e7d6f9a65ec98926b602097a33a9676d2606",
+      "sourceSha256": "ebfe4fb50d7c254901979355c80a7d4cd33624aa2ec0fe90b3b238153cd5d69b",
+      "license": "BSD-3-Clause",
+      "purpose": "Disabled/on-demand instrumentation support required by Aurora targets",
+      "reusedComponents": "Static TracyClient library",
+      "requiredChanges": "Profiling is disabled in the product build",
+      "disposition": "Static product dependency through Aurora"
+    },
+    {
+      "name": "bc7decomp",
+      "url": "embedded in https://github.com/birabittoh/ACGC-PC-Port",
+      "revision": "parent commit 915fb86ba9a6c2144dabda9143d93af7a3f92be7",
+      "license": "MIT or public domain; Bellpad uses the MIT option",
+      "purpose": "BC7 texture decoding",
+      "reusedComponents": "pc/lib/bc7decomp.cpp and pc/lib/bc7decomp.h",
+      "requiredChanges": "None",
+      "disposition": "Compiled game-core dependency"
+    },
+    {
+      "name": "FixNES",
+      "url": "embedded in https://github.com/birabittoh/ACGC-PC-Port",
+      "revision": "parent commit 915fb86ba9a6c2144dabda9143d93af7a3f92be7",
+      "license": "MIT",
+      "purpose": "Embedded NES emulation core used by Animal Crossing's NES feature",
+      "reusedComponents": "pc/lib/fixnes",
+      "requiredChanges": "PC-port library adaptation; legacy OpenGL presentation remains disabled on Aurora",
+      "disposition": "Compiled game-core dependency"
+    }
+  ]
+}
