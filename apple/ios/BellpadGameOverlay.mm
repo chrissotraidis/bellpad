@@ -345,6 +345,19 @@ static void BellpadQueueNativeTextCommand(int command) {
     BPStickView *_moveStick;
     BPStickView *_cameraStick;
     NSMutableArray<BPGameButton *> *_buttons;
+    NSMutableArray<UIPanGestureRecognizer *> *_editGestures;
+    UIButton *_settingsButton;
+    UIView *_settingsPanel;
+    UISlider *_opacitySlider;
+    UISlider *_scaleSlider;
+    UISwitch *_hideControlsSwitch;
+    UISwitch *_editLayoutSwitch;
+    CGFloat _controlOpacity;
+    CGFloat _controlScale;
+    BOOL _manualControlsHidden;
+    BOOL _controllerConnected;
+    BOOL _editingLayout;
+    NSString *_loadedSettingsProfile;
     id _connectObserver;
     id _disconnectObserver;
 }
@@ -355,6 +368,9 @@ static void BellpadQueueNativeTextCommand(int command) {
         self.multipleTouchEnabled = YES;
         self.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
         _buttons = [NSMutableArray array];
+        _editGestures = [NSMutableArray array];
+        _controlOpacity = 0.76;
+        _controlScale = 1.0;
         _moveStick = [self addStick:1 name:@"Move"];
         _cameraStick = [self addStick:2 name:@"Camera"];
         [self addButton:@"A" mask:BellpadButtonA color:[UIColor colorWithRed:0.20 green:0.72 blue:0.43 alpha:0.76]];
@@ -369,6 +385,7 @@ static void BellpadQueueNativeTextCommand(int command) {
         [self addButton:@"▼" mask:BellpadButtonDPadDown color:[UIColor colorWithWhite:0.26 alpha:0.64]];
         [self addButton:@"◀" mask:BellpadButtonDPadLeft color:[UIColor colorWithWhite:0.26 alpha:0.64]];
         [self addButton:@"▶" mask:BellpadButtonDPadRight color:[UIColor colorWithWhite:0.26 alpha:0.64]];
+        [self buildSettingsPanel];
 
         NSNotificationCenter *center = NSNotificationCenter.defaultCenter;
         __weak BPGameOverlay *weakSelf = self;
@@ -407,6 +424,7 @@ static void BellpadQueueNativeTextCommand(int command) {
     stick.delegate = self;
     stick.accessibilityLabel = name;
     [self addSubview:stick];
+    [self addEditGestureToControl:stick];
     return stick;
 }
 
@@ -426,11 +444,285 @@ static void BellpadQueueNativeTextCommand(int command) {
                                                                       UIControlEventTouchCancel];
     [_buttons addObject:button];
     [self addSubview:button];
+    [self addEditGestureToControl:button];
 }
 
 - (BPGameButton *)button:(NSString *)name {
     for (BPGameButton *button in _buttons) if ([button.currentTitle isEqualToString:name]) return button;
     return nil;
+}
+
+- (NSArray<UIView *> *)gameplayControls {
+    NSMutableArray<UIView *> *controls = [NSMutableArray arrayWithArray:_buttons];
+    if (_moveStick) [controls addObject:_moveStick];
+    if (_cameraStick) [controls addObject:_cameraStick];
+    return controls;
+}
+
+- (NSString *)settingsProfile {
+    return self.traitCollection.userInterfaceIdiom == UIUserInterfaceIdiomPad ? @"ipad" : @"iphone";
+}
+
+- (NSString *)settingsKey:(NSString *)name {
+    return [NSString stringWithFormat:@"Bellpad.Touch.%@.%@", [self settingsProfile], name];
+}
+
+- (void)loadSettingsForCurrentProfile {
+    NSString *profile = [self settingsProfile];
+    if ([_loadedSettingsProfile isEqualToString:profile]) return;
+    _loadedSettingsProfile = profile;
+
+    NSUserDefaults *defaults = NSUserDefaults.standardUserDefaults;
+    NSNumber *opacity = [defaults objectForKey:[self settingsKey:@"opacity"]];
+    NSNumber *scale = [defaults objectForKey:[self settingsKey:@"scale"]];
+    NSNumber *hidden = [defaults objectForKey:[self settingsKey:@"hidden"]];
+    _controlOpacity = std::clamp<CGFloat>(opacity ? opacity.doubleValue : 0.76, 0.25, 1.0);
+    _controlScale = std::clamp<CGFloat>(scale ? scale.doubleValue : 1.0, 0.70, 1.35);
+    _manualControlsHidden = hidden ? hidden.boolValue : NO;
+    _opacitySlider.value = _controlOpacity;
+    _scaleSlider.value = _controlScale;
+    _hideControlsSwitch.on = _manualControlsHidden;
+    [self updateControlAppearance];
+}
+
+- (void)addEditGestureToControl:(UIView *)control {
+    UIPanGestureRecognizer *gesture = [[UIPanGestureRecognizer alloc]
+        initWithTarget:self action:@selector(moveControl:)];
+    gesture.enabled = NO;
+    gesture.cancelsTouchesInView = YES;
+    [control addGestureRecognizer:gesture];
+    [_editGestures addObject:gesture];
+}
+
+- (UIView *)settingsRowWithTitle:(NSString *)title control:(UIControl *)control {
+    UIView *row = [UIView new];
+    UILabel *label = [UILabel new];
+    label.translatesAutoresizingMaskIntoConstraints = NO;
+    label.text = title;
+    label.textColor = [UIColor colorWithWhite:1.0 alpha:0.90];
+    label.font = [UIFont systemFontOfSize:15.0 weight:UIFontWeightMedium];
+    [row addSubview:label];
+
+    control.translatesAutoresizingMaskIntoConstraints = NO;
+    [row addSubview:control];
+    NSMutableArray<NSLayoutConstraint *> *constraints = [NSMutableArray arrayWithArray:@[
+        [label.leadingAnchor constraintEqualToAnchor:row.leadingAnchor],
+        [label.centerYAnchor constraintEqualToAnchor:row.centerYAnchor],
+        [control.trailingAnchor constraintEqualToAnchor:row.trailingAnchor],
+        [control.centerYAnchor constraintEqualToAnchor:row.centerYAnchor],
+        [label.trailingAnchor constraintLessThanOrEqualToAnchor:control.leadingAnchor constant:-12.0],
+        [row.heightAnchor constraintEqualToConstant:38.0],
+    ]];
+    if ([control isKindOfClass:UISlider.class]) {
+        [constraints addObject:[control.widthAnchor constraintEqualToConstant:148.0]];
+    }
+    [NSLayoutConstraint activateConstraints:constraints];
+    return row;
+}
+
+- (void)buildSettingsPanel {
+    _settingsButton = [UIButton buttonWithType:UIButtonTypeSystem];
+    [_settingsButton setTitle:@"⚙︎" forState:UIControlStateNormal];
+    [_settingsButton setTitleColor:UIColor.whiteColor forState:UIControlStateNormal];
+    _settingsButton.titleLabel.font = [UIFont systemFontOfSize:24.0 weight:UIFontWeightSemibold];
+    _settingsButton.backgroundColor = [UIColor colorWithWhite:0.06 alpha:0.72];
+    _settingsButton.layer.cornerRadius = 20.0;
+    _settingsButton.layer.borderWidth = 1.0;
+    _settingsButton.layer.borderColor = [UIColor colorWithWhite:1.0 alpha:0.30].CGColor;
+    _settingsButton.accessibilityLabel = @"Touch control settings";
+    [_settingsButton addTarget:self action:@selector(toggleSettings) forControlEvents:UIControlEventTouchUpInside];
+    [self addSubview:_settingsButton];
+
+    _settingsPanel = [UIView new];
+    _settingsPanel.backgroundColor = [UIColor colorWithWhite:0.035 alpha:0.94];
+    _settingsPanel.layer.cornerRadius = 16.0;
+    _settingsPanel.layer.borderWidth = 1.0;
+    _settingsPanel.layer.borderColor = [UIColor colorWithWhite:1.0 alpha:0.22].CGColor;
+    _settingsPanel.hidden = YES;
+    [self addSubview:_settingsPanel];
+
+    UILabel *title = [UILabel new];
+    title.text = @"Touch Controls";
+    title.textColor = UIColor.whiteColor;
+    title.font = [UIFont systemFontOfSize:18.0 weight:UIFontWeightBold];
+
+    _opacitySlider = [UISlider new];
+    _opacitySlider.minimumValue = 0.25;
+    _opacitySlider.maximumValue = 1.0;
+    _opacitySlider.accessibilityLabel = @"Control opacity";
+    [_opacitySlider addTarget:self action:@selector(opacityChanged:) forControlEvents:UIControlEventValueChanged];
+
+    _scaleSlider = [UISlider new];
+    _scaleSlider.minimumValue = 0.70;
+    _scaleSlider.maximumValue = 1.35;
+    _scaleSlider.accessibilityLabel = @"Control size";
+    [_scaleSlider addTarget:self action:@selector(scaleChanged:) forControlEvents:UIControlEventValueChanged];
+
+    _hideControlsSwitch = [UISwitch new];
+    _hideControlsSwitch.accessibilityLabel = @"Hide touch controls";
+    [_hideControlsSwitch addTarget:self action:@selector(hiddenChanged:) forControlEvents:UIControlEventValueChanged];
+
+    _editLayoutSwitch = [UISwitch new];
+    _editLayoutSwitch.accessibilityLabel = @"Edit touch control positions";
+    [_editLayoutSwitch addTarget:self action:@selector(editLayoutChanged:) forControlEvents:UIControlEventValueChanged];
+
+    UIButton *reset = [UIButton buttonWithType:UIButtonTypeSystem];
+    [reset setTitle:@"Reset This Device Layout" forState:UIControlStateNormal];
+    [reset setTitleColor:UIColor.whiteColor forState:UIControlStateNormal];
+    reset.titleLabel.font = [UIFont systemFontOfSize:15.0 weight:UIFontWeightSemibold];
+    reset.backgroundColor = [UIColor colorWithWhite:0.18 alpha:0.88];
+    reset.layer.cornerRadius = 10.0;
+    reset.accessibilityLabel = @"Reset touch control layout";
+    [reset addTarget:self action:@selector(resetControlSettings) forControlEvents:UIControlEventTouchUpInside];
+
+    UIStackView *stack = [[UIStackView alloc] initWithArrangedSubviews:@[
+        title,
+        [self settingsRowWithTitle:@"Opacity" control:_opacitySlider],
+        [self settingsRowWithTitle:@"Size" control:_scaleSlider],
+        [self settingsRowWithTitle:@"Hide controls" control:_hideControlsSwitch],
+        [self settingsRowWithTitle:@"Move controls" control:_editLayoutSwitch],
+        reset,
+    ]];
+    stack.translatesAutoresizingMaskIntoConstraints = NO;
+    stack.axis = UILayoutConstraintAxisVertical;
+    stack.spacing = 7.0;
+    [_settingsPanel addSubview:stack];
+    [NSLayoutConstraint activateConstraints:@[
+        [stack.leadingAnchor constraintEqualToAnchor:_settingsPanel.leadingAnchor constant:16.0],
+        [stack.trailingAnchor constraintEqualToAnchor:_settingsPanel.trailingAnchor constant:-16.0],
+        [stack.topAnchor constraintEqualToAnchor:_settingsPanel.topAnchor constant:14.0],
+        [stack.bottomAnchor constraintEqualToAnchor:_settingsPanel.bottomAnchor constant:-14.0],
+        [reset.heightAnchor constraintEqualToConstant:40.0],
+    ]];
+}
+
+- (void)toggleSettings {
+    _settingsPanel.hidden = !_settingsPanel.hidden;
+    if (!_settingsPanel.hidden) {
+        [self bringSubviewToFront:_settingsPanel];
+        [self bringSubviewToFront:_settingsButton];
+    }
+}
+
+- (void)opacityChanged:(UISlider *)slider {
+    _controlOpacity = slider.value;
+    [NSUserDefaults.standardUserDefaults setDouble:_controlOpacity
+                                            forKey:[self settingsKey:@"opacity"]];
+    [self updateControlAppearance];
+}
+
+- (void)scaleChanged:(UISlider *)slider {
+    _controlScale = slider.value;
+    [NSUserDefaults.standardUserDefaults setDouble:_controlScale
+                                            forKey:[self settingsKey:@"scale"]];
+    [self setNeedsLayout];
+}
+
+- (void)hiddenChanged:(UISwitch *)toggle {
+    _manualControlsHidden = toggle.on;
+    [NSUserDefaults.standardUserDefaults setBool:_manualControlsHidden
+                                          forKey:[self settingsKey:@"hidden"]];
+    if (_manualControlsHidden && _editingLayout) {
+        _editLayoutSwitch.on = NO;
+        [self editLayoutChanged:_editLayoutSwitch];
+    }
+    [self updateControlAppearance];
+}
+
+- (void)editLayoutChanged:(UISwitch *)toggle {
+    _editingLayout = toggle.on;
+    if (_editingLayout && _manualControlsHidden) {
+        _manualControlsHidden = NO;
+        _hideControlsSwitch.on = NO;
+        [NSUserDefaults.standardUserDefaults setBool:NO forKey:[self settingsKey:@"hidden"]];
+    }
+    [self clearTouchInput];
+    for (UIPanGestureRecognizer *gesture in _editGestures) gesture.enabled = _editingLayout;
+    for (UIView *control in [self gameplayControls]) {
+        control.layer.borderColor = (_editingLayout
+            ? [UIColor colorWithRed:1.0 green:0.78 blue:0.20 alpha:0.95]
+            : [UIColor colorWithWhite:1.0 alpha:0.42]).CGColor;
+    }
+    [self updateControlAppearance];
+}
+
+- (void)resetControlSettings {
+    NSUserDefaults *defaults = NSUserDefaults.standardUserDefaults;
+    [defaults removeObjectForKey:[self settingsKey:@"centers"]];
+    [defaults removeObjectForKey:[self settingsKey:@"opacity"]];
+    [defaults removeObjectForKey:[self settingsKey:@"scale"]];
+    [defaults removeObjectForKey:[self settingsKey:@"hidden"]];
+    _controlOpacity = 0.76;
+    _controlScale = 1.0;
+    _manualControlsHidden = NO;
+    _opacitySlider.value = _controlOpacity;
+    _scaleSlider.value = _controlScale;
+    _hideControlsSwitch.on = NO;
+    _editLayoutSwitch.on = NO;
+    [self editLayoutChanged:_editLayoutSwitch];
+    [self setNeedsLayout];
+}
+
+- (void)updateControlAppearance {
+    BOOL hidden = _manualControlsHidden || _controllerConnected;
+    if (hidden) [self clearTouchInput];
+    for (UIView *control in [self gameplayControls]) {
+        control.hidden = hidden;
+        control.alpha = _controlOpacity;
+        control.userInteractionEnabled = !hidden;
+    }
+}
+
+- (void)moveControl:(UIPanGestureRecognizer *)gesture {
+    if (!_editingLayout || !gesture.view) return;
+    UIView *control = gesture.view;
+    CGPoint translation = [gesture translationInView:self];
+    CGPoint center = CGPointMake(control.center.x + translation.x, control.center.y + translation.y);
+    [gesture setTranslation:CGPointZero inView:self];
+
+    CGRect safe = UIEdgeInsetsInsetRect(self.bounds, self.safeAreaInsets);
+    CGFloat halfWidth = control.bounds.size.width * 0.5;
+    CGFloat halfHeight = control.bounds.size.height * 0.5;
+    center.x = std::clamp<CGFloat>(center.x, CGRectGetMinX(safe) + halfWidth,
+                                  CGRectGetMaxX(safe) - halfWidth);
+    center.y = std::clamp<CGFloat>(center.y, CGRectGetMinY(safe) + halfHeight,
+                                  CGRectGetMaxY(safe) - halfHeight);
+    control.center = center;
+
+    if (gesture.state == UIGestureRecognizerStateEnded ||
+        gesture.state == UIGestureRecognizerStateCancelled) {
+        NSString *identifier = control.accessibilityLabel;
+        if (!identifier || safe.size.width <= 0.0 || safe.size.height <= 0.0) return;
+        CGPoint normalized = CGPointMake((center.x - CGRectGetMinX(safe)) / safe.size.width,
+                                         (center.y - CGRectGetMinY(safe)) / safe.size.height);
+        NSUserDefaults *defaults = NSUserDefaults.standardUserDefaults;
+        NSDictionary *existing = [defaults dictionaryForKey:[self settingsKey:@"centers"]];
+        NSMutableDictionary *centers = existing ? [existing mutableCopy] : [NSMutableDictionary dictionary];
+        centers[identifier] = NSStringFromCGPoint(normalized);
+        [defaults setObject:centers forKey:[self settingsKey:@"centers"]];
+    }
+}
+
+- (void)applySavedControlCentersInSafeRect:(CGRect)safe {
+    NSDictionary *centers = [NSUserDefaults.standardUserDefaults
+        dictionaryForKey:[self settingsKey:@"centers"]];
+    if (!centers || safe.size.width <= 0.0 || safe.size.height <= 0.0) return;
+    for (UIView *control in [self gameplayControls]) {
+        NSString *identifier = control.accessibilityLabel;
+        if (!identifier) continue;
+        NSString *value = centers[identifier];
+        if (![value isKindOfClass:NSString.class]) continue;
+        CGPoint normalized = CGPointFromString(value);
+        CGPoint center = CGPointMake(CGRectGetMinX(safe) + normalized.x * safe.size.width,
+                                     CGRectGetMinY(safe) + normalized.y * safe.size.height);
+        CGFloat halfWidth = control.bounds.size.width * 0.5;
+        CGFloat halfHeight = control.bounds.size.height * 0.5;
+        center.x = std::clamp<CGFloat>(center.x, CGRectGetMinX(safe) + halfWidth,
+                                      CGRectGetMaxX(safe) - halfWidth);
+        center.y = std::clamp<CGFloat>(center.y, CGRectGetMinY(safe) + halfHeight,
+                                      CGRectGetMaxY(safe) - halfHeight);
+        control.center = center;
+    }
 }
 
 - (UIView *)hitTest:(CGPoint)point withEvent:(UIEvent *)event {
@@ -444,6 +736,7 @@ static void BellpadQueueNativeTextCommand(int command) {
 }
 
 - (void)buttonDown:(BPGameButton *)button {
+    if (_editingLayout) return;
     _state.buttons |= button.inputMask;
     if (button.inputMask == BellpadButtonL) _state.triggerL = 255;
     if (button.inputMask == BellpadButtonR) _state.triggerR = 255;
@@ -452,6 +745,7 @@ static void BellpadQueueNativeTextCommand(int command) {
 }
 
 - (void)buttonUp:(BPGameButton *)button {
+    if (_editingLayout) return;
     _state.buttons &= ~button.inputMask;
     if (button.inputMask == BellpadButtonL) _state.triggerL = 0;
     if (button.inputMask == BellpadButtonR) _state.triggerR = 0;
@@ -460,18 +754,23 @@ static void BellpadQueueNativeTextCommand(int command) {
 }
 
 - (void)stick:(NSInteger)tag changedX:(std::int8_t)x y:(std::int8_t)y {
+    if (_editingLayout) return;
     if (tag == 1) { _state.stickX = x; _state.stickY = y; }
     else { _state.cStickX = x; _state.cStickY = y; }
     BellpadSetInputState(BellpadInputSource::Touch, _state);
 }
 
-- (void)clearInput {
+- (void)clearTouchInput {
     _state = {};
     BellpadClearInputState(BellpadInputSource::Touch);
-    BellpadClearInputState(BellpadInputSource::Controller);
     for (BPGameButton *button in _buttons) button.transform = CGAffineTransformIdentity;
     [_moveStick reset];
     [_cameraStick reset];
+}
+
+- (void)clearInput {
+    [self clearTouchInput];
+    BellpadClearInputState(BellpadInputSource::Controller);
 }
 
 - (void)configureController:(GCController *)controller {
@@ -510,22 +809,25 @@ static void BellpadQueueNativeTextCommand(int command) {
         if (controller.extendedGamepad) { connected = YES; break; }
     }
 #endif
-    if (connected) [self clearInput];
-    self.hidden = connected;
+    if (connected) [self clearTouchInput];
+    _controllerConnected = connected;
+    [self updateControlAppearance];
 }
 
 - (void)layoutSubviews {
     [super layoutSubviews];
     CGRect safe = UIEdgeInsetsInsetRect(self.bounds, self.safeAreaInsets);
+    [self loadSettingsForCurrentProfile];
     BOOL pad = self.traitCollection.userInterfaceIdiom == UIUserInterfaceIdiomPad && safe.size.width >= 1000.0;
-    CGFloat scale = pad ? 1.0 : std::min<CGFloat>(1.0, std::min(safe.size.width / 800.0, safe.size.height / 380.0));
-    CGFloat margin = pad ? 34.0 : std::max<CGFloat>(8.0, 18.0 * scale);
-    CGFloat stick = pad ? 172.0 : 126.0 * scale;
-    CGFloat small = pad ? 62.0 : 46.0 * scale;
-    CGFloat medium = pad ? 76.0 : 58.0 * scale;
-    CGFloat large = pad ? 104.0 : 78.0 * scale;
+    CGFloat baseScale = pad ? 1.0 : std::min<CGFloat>(1.0, std::min(safe.size.width / 800.0, safe.size.height / 380.0));
+    CGFloat scale = baseScale * _controlScale;
+    CGFloat margin = pad ? 34.0 : std::max<CGFloat>(8.0, 18.0 * baseScale);
+    CGFloat stick = (pad ? 172.0 : 126.0 * baseScale) * _controlScale;
+    CGFloat small = (pad ? 62.0 : 46.0 * baseScale) * _controlScale;
+    CGFloat medium = (pad ? 76.0 : 58.0 * baseScale) * _controlScale;
+    CGFloat large = (pad ? 104.0 : 78.0 * baseScale) * _controlScale;
     _moveStick.frame = CGRectMake(CGRectGetMinX(safe) + margin, CGRectGetMaxY(safe) - stick - margin, stick, stick);
-    CGFloat camera = pad ? 112.0 : 86.0 * scale;
+    CGFloat camera = (pad ? 112.0 : 86.0 * baseScale) * _controlScale;
     _cameraStick.frame = CGRectMake(CGRectGetMaxX(safe) - margin - camera, CGRectGetMaxY(safe) - margin - camera, camera, camera);
 
     BPGameButton *a = [self button:@"A"], *b = [self button:@"B"], *x = [self button:@"X"], *y = [self button:@"Y"];
@@ -534,15 +836,15 @@ static void BellpadQueueNativeTextCommand(int command) {
     x.frame = CGRectMake(CGRectGetMidX(a.frame) - small * 0.5, CGRectGetMinY(a.frame) - small - 10.0 * scale, small, small);
     y.frame = CGRectMake(CGRectGetMinX(a.frame) - small - 8.0 * scale, CGRectGetMinY(a.frame) - small + 8.0, small, small);
 
-    CGFloat shoulderWidth = pad ? 132.0 : 94.0 * scale;
-    CGFloat shoulderY = CGRectGetMinY(safe) + (pad ? 92.0 : 68.0 * scale);
+    CGFloat shoulderWidth = (pad ? 132.0 : 94.0 * baseScale) * _controlScale;
+    CGFloat shoulderY = CGRectGetMinY(safe) + (pad ? 92.0 : 68.0 * baseScale);
     [self button:@"L"].frame = CGRectMake(CGRectGetMinX(safe) + margin, shoulderY, shoulderWidth, small);
     [self button:@"R"].frame = CGRectMake(CGRectGetMaxX(safe) - margin - shoulderWidth, shoulderY, shoulderWidth, small);
     [self button:@"Z"].frame = CGRectMake(CGRectGetMaxX(safe) - margin - shoulderWidth - small - 12.0 * scale, shoulderY, small, small);
-    CGFloat startWidth = pad ? 116.0 : 92.0 * scale;
+    CGFloat startWidth = (pad ? 116.0 : 92.0 * baseScale) * _controlScale;
     [self button:@"START"].frame = CGRectMake(CGRectGetMidX(safe) - startWidth * 0.5, CGRectGetMinY(safe) + margin, startWidth, small);
 
-    CGFloat d = pad ? 48.0 : 36.0 * scale;
+    CGFloat d = (pad ? 48.0 : 36.0 * baseScale) * _controlScale;
     CGFloat dx = CGRectGetMaxX(_moveStick.frame) + (pad ? 34.0 : 18.0 * scale);
     CGFloat dy = CGRectGetMidY(_moveStick.frame) - d * 0.5;
     [self button:@"▲"].frame = CGRectMake(dx + d, dy - d, d, d);
@@ -552,6 +854,20 @@ static void BellpadQueueNativeTextCommand(int command) {
     for (BPGameButton *button in _buttons) {
         button.layer.cornerRadius = std::min(button.bounds.size.width, button.bounds.size.height) * 0.5;
     }
+    [self applySavedControlCentersInSafeRect:safe];
+
+    CGFloat settingsSide = 40.0;
+    _settingsButton.frame = CGRectMake(CGRectGetMaxX(safe) - settingsSide,
+                                       CGRectGetMinY(safe) + 8.0,
+                                       settingsSide, settingsSide);
+    CGFloat panelWidth = std::min<CGFloat>(300.0, std::max<CGFloat>(240.0, safe.size.width - 24.0));
+    CGFloat panelHeight = std::min<CGFloat>(286.0, safe.size.height - 62.0);
+    _settingsPanel.frame = CGRectMake(CGRectGetMaxX(safe) - panelWidth,
+                                      CGRectGetMinY(safe) + 54.0,
+                                      panelWidth, panelHeight);
+    [self updateControlAppearance];
+    [self bringSubviewToFront:_settingsPanel];
+    [self bringSubviewToFront:_settingsButton];
 }
 
 @end

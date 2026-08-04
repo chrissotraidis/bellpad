@@ -64,7 +64,7 @@ GX reaches Metal as: game/JSystem/emu64 GX calls → Aurora GX command processor
 ## Milestone 3 — mobile targets and data import
 
 - [x] Generate a native macOS application and a universal iOS/iPadOS application target with real product bundle metadata, MetalKit surfaces, fixed 60 Hz presentation, and a shared portable input library.
-- [x] Add the first adaptive GameCube touch overlay and GameController merge. The real iPhone and iPad game bundle now displays the compact and expanded layouts over Aurora's Metal surface; editing and persistence remain.
+- [x] Add the adaptive GameCube touch overlay and GameController merge. The real iPhone and iPad game bundle displays compact and expanded layouts over Aurora's Metal surface, with persistent device-class settings and drag editing.
 - [x] Align the product input mask with GameCube PAD and add a thread-safe pull ABI. The linked UIKit product exports the strong snapshot consumed by patch 19 on the game thread. Rising button edges are latched until one 60 Hz poll consumes them so short taps cannot disappear between frames.
 - [x] Add native macOS/iOS document choosers and one shared raw ISO/GCM header validator for GameCube magic, `GAFE01`, and revision 0. The UI presentation and synthetic-header tests pass without selecting retail data.
 - [x] Connect the working Aurora game target to a native universal iOS/iPadOS bundle. SDL3/Aurora owns `UIApplicationMain`, lifecycle, and the `CAMetalLayer`; Bellpad attaches a transparent UIKit overlay to that existing view instead of creating a second renderer. The real game reaches title on both simulators, and an iPhone touch A advances into K.K.'s opening.
@@ -90,9 +90,9 @@ GX reaches Metal as: game/JSystem/emu64 GX calls → Aurora GX command processor
 
 - iPhone: large contextual A/B buttons, smaller X/Y, left stick, shoulders/Z/Start, optional D-pad, and a camera drag region.
 - iPad: wider separated controls, larger camera region, and layouts tuned independently from iPhone.
-- Persist position, scale, visibility, and opacity per device class and orientation; respect safe areas.
-- Add a layout editor, reset presets, controller auto-hide, and accessible labels.
-- Route touch and physical input through the same normalization and conflict-resolution layer.
+- [x] Persist position, scale, visibility, and opacity in separate iPhone/iPad profiles; the app is landscape-only and recomputes normalized positions for both supported landscape orientations and resizable safe areas.
+- [x] Add a drag layout editor, per-device reset, controller auto-hide, and accessible labels.
+- [x] Route touch and physical input through the same normalization and conflict-resolution layer.
 
 ## Milestone 6 — verification and packaging
 
