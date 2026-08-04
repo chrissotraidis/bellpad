@@ -1,0 +1,650 @@
+--- a/include/dolphin/pad.h
++++ b/include/dolphin/pad.h
+@@ -57,6 +57,11 @@
+     /*0x08*/ u8 analogA;
+     /*0x09*/ u8 analogB;
+     /*0x0A*/ s8 err;
++#ifdef AURORA
++    /* Aurora reports additional host buttons after the SDK-compatible data.
++     * Keep the caller's array stride identical to Aurora's PADStatus ABI. */
++    u32 extButton;
++#endif
+ } PADStatus;
+ 
+ // PAD.c
+--- a/pc/CMakeLists.txt
++++ b/pc/CMakeLists.txt
+@@ -3,8 +3,26 @@
+ 
+ option(BELLPAD_MACOS_BUNDLE "Build the playable Apple Silicon baseline as Bellpad.app" OFF)
+ option(BELLPAD_AURORA_CORE_PROBE "Compile the game core with Aurora integration enabled" OFF)
++option(BELLPAD_AURORA_LINK_PROBE "Link the game core to Aurora for macOS" OFF)
++set(BELLPAD_AURORA_SOURCE_DIR "" CACHE PATH "Path to the pinned Aurora source checkout")
+ if(APPLE)
+     enable_language(OBJC)
++endif()
++
++if(BELLPAD_AURORA_LINK_PROBE)
++    if(NOT APPLE)
++        message(FATAL_ERROR "The Bellpad Aurora link probe currently supports macOS only")
++    endif()
++    if(NOT EXISTS "${BELLPAD_AURORA_SOURCE_DIR}/CMakeLists.txt")
++        message(FATAL_ERROR "Set BELLPAD_AURORA_SOURCE_DIR to the pinned Aurora checkout")
++    endif()
++    set(AURORA_ENABLE_GX ON CACHE BOOL "" FORCE)
++    set(AURORA_ENABLE_DVD OFF CACHE BOOL "" FORCE)
++    set(AURORA_ENABLE_CARD ON CACHE BOOL "" FORCE)
++    set(AURORA_CACHE_USE_ZSTD OFF CACHE BOOL "" FORCE)
++    set(AURORA_DAWN_PROVIDER package CACHE STRING "" FORCE)
++    set(AURORA_SDL3_PROVIDER system CACHE STRING "" FORCE)
++    add_subdirectory("${BELLPAD_AURORA_SOURCE_DIR}" aurora)
+ endif()
+ 
+ set(CMAKE_C_STANDARD 11)
+@@ -451,6 +469,57 @@
+     target_compile_definitions(ac_aurora_core_probe PRIVATE AURORA)
+ endif()
+ 
++if(BELLPAD_AURORA_LINK_PROBE)
++    set(BELLPAD_AURORA_SUPPORT_SOURCES ${PC_SOURCES})
++    list(REMOVE_ITEM BELLPAD_AURORA_SUPPORT_SOURCES
++        ${CMAKE_CURRENT_SOURCE_DIR}/src/pc_main.c
++        ${CMAKE_CURRENT_SOURCE_DIR}/src/pc_gx.c
++        ${CMAKE_CURRENT_SOURCE_DIR}/src/pc_gx_tev.c
++        ${CMAKE_CURRENT_SOURCE_DIR}/src/pc_gx_texture.c
++        ${CMAKE_CURRENT_SOURCE_DIR}/src/pc_pad.c
++        ${CMAKE_CURRENT_SOURCE_DIR}/src/pc_apple.m
++        ${CMAKE_CURRENT_SOURCE_DIR}/src/pc_audio.c
++        ${DECOMP_ROOT}/src/static/dolphin/pad/Padclamp.c
++    )
++    list(APPEND BELLPAD_AURORA_SUPPORT_SOURCES
++        ${CMAKE_CURRENT_SOURCE_DIR}/src/pc_aurora_main.c
++        ${CMAKE_CURRENT_SOURCE_DIR}/src/pc_audio_aurora.c
++    )
++
++    add_executable(ac_aurora
++        ${BELLPAD_AURORA_SUPPORT_SOURCES}
++        ${FIXNES_SOURCES}
++        ${GAME_C_SOURCES}
++        ${GAME_CXX_SOURCES}
++    )
++    target_compile_definitions(ac_aurora PRIVATE AURORA)
++    # Several still-decompiling game translation units contain optimization-
++    # sensitive undefined behavior. Keep the game target at the proven -O0
++    # desktop baseline while Aurora and its dependencies retain Release flags.
++    target_compile_options(ac_aurora PRIVATE -O0)
++    target_link_libraries(ac_aurora PRIVATE
++        glad
++        aurora::core
++        aurora::main
++        aurora::os
++        aurora::pad
++        aurora::si
++        aurora::mtx
++        aurora::vi
++        aurora::card
++        aurora::gx
++        aurora::gd
++        "-framework Cocoa"
++        "-framework IOKit"
++        pthread
++        m
++    )
++    set_target_properties(ac_aurora PROPERTIES
++        OUTPUT_NAME "BellpadAurora"
++        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
++    )
++endif()
++
+ add_executable(ac_pc ${AC_PC_EXECUTABLE_TYPE}
+     ${PC_SOURCES}
+     ${FIXNES_SOURCES}
+--- /dev/null
++++ b/pc/src/pc_audio_aurora.c
+@@ -0,0 +1,202 @@
++/* SDL3 audio backend for the Aurora target. */
++#include <stdbool.h>
++#include <stdint.h>
++#include <stdio.h>
++#include <string.h>
++
++#include <SDL3/SDL.h>
++
++#include "types.h"
++#include "pc_audio_ptr.h"
++#include "pc_settings.h"
++#include "jaudio_NES/audiothread.h"
++
++#if UINTPTR_MAX > 0xFFFFFFFFu
++uintptr_t pc_audio_ptr_base = 0;
++#endif
++
++#define PC_AUDIO_SAMPLE_RATE 32000
++#define RING_BUF_SAMPLES 32768
++#define RING_BUF_MASK (RING_BUF_SAMPLES - 1)
++#define AUDIO_PRODUCE_THRESHOLD 4480
++#define AUDIO_CALLBACK_CHUNK_SAMPLES 4096
++
++static s16 ring_buffer[RING_BUF_SAMPLES];
++static SDL_AtomicInt ring_write_pos;
++static SDL_AtomicInt ring_read_pos;
++static SDL_AtomicInt audio_thread_running;
++static SDL_AudioStream* audio_stream;
++static SDL_Thread* audio_producer_thread;
++
++typedef void (*AIDMACallback)(void);
++static AIDMACallback ai_dma_callback;
++static u32 ai_dsp_sample_rate = PC_AUDIO_SAMPLE_RATE;
++
++int pc_audio_get_buffer_fill(void) {
++    return SDL_GetAtomicInt(&ring_write_pos) - SDL_GetAtomicInt(&ring_read_pos);
++}
++
++static int pc_audio_producer_func(void* data) {
++    (void)data;
++    while (SDL_GetAtomicInt(&audio_thread_running)) {
++        if (pc_audio_get_buffer_fill() < AUDIO_PRODUCE_THRESHOLD) {
++            pc_audio_process_frame();
++        } else {
++            SDL_Delay(1);
++        }
++    }
++    return 0;
++}
++
++void pc_audio_start_producer_thread(void) {
++    if (audio_producer_thread) return;
++    SDL_SetAtomicInt(&audio_thread_running, 1);
++    audio_producer_thread = SDL_CreateThread(pc_audio_producer_func, "AudioProducer", NULL);
++    if (audio_producer_thread) {
++        printf("[AUDIO] SDL3 producer thread started\n");
++    } else {
++        printf("[AUDIO] Failed to create producer thread: %s\n", SDL_GetError());
++    }
++}
++
++static void pc_audio_stream_callback(void* userdata, SDL_AudioStream* stream,
++                                     int additional_amount, int total_amount) {
++    (void)userdata;
++    (void)total_amount;
++    s16 output[AUDIO_CALLBACK_CHUNK_SAMPLES];
++
++    while (additional_amount > 0) {
++        int wanted = additional_amount / (int)sizeof(s16);
++        if (wanted > AUDIO_CALLBACK_CHUNK_SAMPLES) wanted = AUDIO_CALLBACK_CHUNK_SAMPLES;
++        wanted &= ~1;
++        if (wanted <= 0) break;
++
++        u32 wp = (u32)SDL_GetAtomicInt(&ring_write_pos);
++        SDL_MemoryBarrierAcquire();
++        u32 rp = (u32)SDL_GetAtomicInt(&ring_read_pos);
++        u32 used = wp - rp;
++        if (used > RING_BUF_SAMPLES) {
++            rp = (wp - RING_BUF_SAMPLES) & ~1u;
++            used = wp - rp;
++        }
++
++        int available = (int)used & ~1;
++        int copied = available < wanted ? available : wanted;
++        for (int i = 0; i < copied; ++i) {
++            output[i] = ring_buffer[(rp + (u32)i) & RING_BUF_MASK];
++        }
++        if (copied < wanted) {
++            memset(output + copied, 0, (size_t)(wanted - copied) * sizeof(s16));
++        }
++        SDL_MemoryBarrierRelease();
++        SDL_SetAtomicInt(&ring_read_pos, (int)(rp + (u32)copied));
++
++        int bytes = wanted * (int)sizeof(s16);
++        if (!SDL_PutAudioStreamData(stream, output, bytes)) break;
++        additional_amount -= bytes;
++    }
++}
++
++void AIInit(u8* stack) {
++    (void)stack;
++    if (audio_stream) return;
++
++    if (!SDL_InitSubSystem(SDL_INIT_AUDIO)) {
++        printf("[AUDIO] Failed to initialize SDL3 audio: %s\n", SDL_GetError());
++        return;
++    }
++
++    const SDL_AudioSpec wanted = {
++        .format = SDL_AUDIO_S16,
++        .channels = 2,
++        .freq = PC_AUDIO_SAMPLE_RATE,
++    };
++    audio_stream = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK,
++                                             &wanted, pc_audio_stream_callback, NULL);
++    if (audio_stream) {
++        printf("[AUDIO] Opened SDL3 stream: %d Hz, stereo S16\n", PC_AUDIO_SAMPLE_RATE);
++    } else {
++        printf("[AUDIO] Failed to open SDL3 stream: %s\n", SDL_GetError());
++    }
++}
++
++void AIInitDMA(uintptr_t addr, u32 size) {
++    s16* src = (s16*)addr;
++    u32 samples = (size / sizeof(s16)) & ~1u;
++    u32 wp = (u32)SDL_GetAtomicInt(&ring_write_pos);
++    u32 rp = (u32)SDL_GetAtomicInt(&ring_read_pos);
++    SDL_MemoryBarrierAcquire();
++    u32 used = wp - rp;
++    u32 free_samples = used < RING_BUF_SAMPLES ? RING_BUF_SAMPLES - used : 0;
++    if (samples > free_samples) samples = free_samples & ~1u;
++
++    int volume = g_pc_settings.master_volume;
++    if (volume < 0) volume = 0;
++    if (volume > 100) volume = 100;
++    for (u32 i = 0; i < samples; ++i) {
++        int sample = ((int)src[i] * volume) / 100;
++        if (sample > 32767) sample = 32767;
++        if (sample < -32768) sample = -32768;
++        ring_buffer[(wp + i) & RING_BUF_MASK] = (s16)sample;
++    }
++    SDL_MemoryBarrierRelease();
++    SDL_SetAtomicInt(&ring_write_pos, (int)(wp + samples));
++}
++
++void AIStartDMA(void) {
++    if (audio_stream) SDL_ResumeAudioStreamDevice(audio_stream);
++}
++
++void AIStopDMA(void) {
++    if (audio_stream) SDL_PauseAudioStreamDevice(audio_stream);
++}
++
++void pc_audio_set_paused(int paused) {
++    if (!audio_stream) return;
++    if (paused) SDL_PauseAudioStreamDevice(audio_stream);
++    else SDL_ResumeAudioStreamDevice(audio_stream);
++}
++
++u32 AIGetDMAStartAddr(void) { return 0; }
++u16 AIGetDMALength(void) { return 0; }
++u32 AIGetStreamTrigger(void) { return 0; }
++u32 AIGetStreamSampleCount(void) { return 0; }
++void AISetStreamPlayState(u32 state) { (void)state; }
++u32 AIGetStreamPlayState(void) { return 0; }
++void AISetStreamSampleRate(u32 rate) { (void)rate; }
++u32 AIGetStreamSampleRate(void) { return PC_AUDIO_SAMPLE_RATE; }
++void AISetStreamVolLeft(u8 volume) { (void)volume; }
++void AISetStreamVolRight(u8 volume) { (void)volume; }
++u8 AIGetStreamVolLeft(void) { return 0; }
++u8 AIGetStreamVolRight(void) { return 0; }
++void AIResetStreamSampleCount(void) {}
++void AISetDSPSampleRate(u32 rate) { ai_dsp_sample_rate = rate; }
++u32 AIGetDSPSampleRate(void) { return ai_dsp_sample_rate; }
++
++void* AIRegisterDMACallback(void* callback) {
++    void* previous = (void*)ai_dma_callback;
++    ai_dma_callback = (AIDMACallback)callback;
++    return previous;
++}
++
++void DSPInit(void) {}
++BOOL DSPCheckMailToDSP(void) { return FALSE; }
++BOOL DSPCheckMailFromDSP(void) { return FALSE; }
++u32 DSPReadMailFromDSP(void) { return 0; }
++void DSPSendMailToDSP(u32 mail) { (void)mail; }
++void DSPAssertInt(void) {}
++void* DSPAddTask(void* task) { return task; }
++
++int pc_audio_is_active(void) { return audio_stream != NULL; }
++
++void pc_audio_shutdown(void) {
++    SDL_SetAtomicInt(&audio_thread_running, 0);
++    if (audio_producer_thread) {
++        SDL_WaitThread(audio_producer_thread, NULL);
++        audio_producer_thread = NULL;
++    }
++    if (audio_stream) {
++        SDL_DestroyAudioStream(audio_stream);
++        audio_stream = NULL;
++    }
++}
+--- /dev/null
++++ b/pc/src/pc_aurora_main.c
+@@ -0,0 +1,200 @@
++#define _GNU_SOURCE
++
++#include "types.h"
++#include "pc_assets.h"
++#include "pc_disc.h"
++#include "pc_settings.h"
++
++#include <aurora/aurora.h>
++#include <aurora/event.h>
++#include <aurora/main.h>
++
++#include <dlfcn.h>
++#include <mach-o/dyld.h>
++#include <mach-o/loader.h>
++#include <stdbool.h>
++#include <stdint.h>
++#include <setjmp.h>
++#include <signal.h>
++#include <stdio.h>
++#include <stdlib.h>
++#include <string.h>
++
++struct SDL_Window* g_pc_window = NULL;
++void* g_pc_gl_context = NULL;
++int g_pc_running = 1;
++int g_pc_no_framelimit = 0;
++int g_pc_fast_forward = 0;
++int g_pc_verbose = 1;
++int g_pc_time_override = -1;
++int g_pc_min_override = -1;
++int g_pc_sec_override = -1;
++int g_pc_weather_override = -1;
++int g_pc_weather_intensity_override = 2;
++int g_pc_window_w = 640;
++int g_pc_window_h = 480;
++int g_pc_widescreen_stretch = 0;
++uintptr_t pc_image_base = 0;
++uintptr_t pc_image_end = 0;
++
++static bool s_aurora_initialized;
++static jmp_buf* s_crash_jump;
++static volatile uintptr_t s_crash_address;
++
++extern void ac_entry(void);
++extern int boot_main(int argc, const char** argv);
++extern void pc_audio_shutdown(void);
++extern void pc_audio_mq_shutdown(void);
++
++static void bellpad_crash_handler(int signal_number, siginfo_t* info, void* context) {
++    (void)context;
++    if (s_crash_jump) {
++        s_crash_address = (uintptr_t)info->si_addr;
++        jmp_buf* destination = s_crash_jump;
++        s_crash_jump = NULL;
++        longjmp(*destination, 1);
++    }
++    signal(signal_number, SIG_DFL);
++    raise(signal_number);
++}
++
++void pc_crash_set_jmpbuf(jmp_buf* destination) {
++    static bool installed;
++    if (!installed) {
++        struct sigaction action;
++        memset(&action, 0, sizeof(action));
++        action.sa_sigaction = bellpad_crash_handler;
++        action.sa_flags = SA_SIGINFO;
++        sigaction(SIGSEGV, &action, NULL);
++        sigaction(SIGILL, &action, NULL);
++        sigaction(SIGFPE, &action, NULL);
++        installed = true;
++    }
++    s_crash_jump = destination;
++}
++
++uintptr_t pc_crash_get_addr(void) {
++    return s_crash_address;
++}
++
++uintptr_t pc_crash_get_data_addr(void) {
++    return s_crash_address;
++}
++
++void pc_gx_restore_after_nes(void) {
++}
++
++static void bellpad_log(AuroraLogLevel level, const char* module, const char* message, unsigned int length) {
++    FILE* stream = level >= LOG_ERROR ? stderr : stdout;
++    fprintf(stream, "[Aurora:%s] %.*s\n", module ? module : "", (int)length, message ? message : "");
++    fflush(stream);
++    if (level == LOG_FATAL) {
++        abort();
++    }
++}
++
++static void bellpad_find_image_range(void) {
++    Dl_info info;
++    if (!dladdr((void*)bellpad_find_image_range, &info) || !info.dli_fbase) {
++        return;
++    }
++
++    pc_image_base = (uintptr_t)info.dli_fbase;
++    const struct mach_header_64* header = (const struct mach_header_64*)info.dli_fbase;
++    const struct load_command* command = (const struct load_command*)(header + 1);
++    intptr_t slide = _dyld_get_image_vmaddr_slide(0);
++    for (u32 index = 0; index < header->ncmds; ++index) {
++        if (command->cmd == LC_SEGMENT_64) {
++            const struct segment_command_64* segment = (const struct segment_command_64*)command;
++            if (strcmp(segment->segname, SEG_PAGEZERO) != 0) {
++                uintptr_t end = (uintptr_t)slide + (uintptr_t)segment->vmaddr + (uintptr_t)segment->vmsize;
++                if (end > pc_image_end) {
++                    pc_image_end = end;
++                }
++            }
++        }
++        command = (const struct load_command*)((const u8*)command + command->cmdsize);
++    }
++}
++
++int pc_platform_poll_events(void) {
++    const AuroraEvent* event = aurora_update();
++    while (event && event->type != AURORA_NONE) {
++        if (event->type == AURORA_EXIT) {
++            g_pc_running = 0;
++        } else if (event->type == AURORA_WINDOW_RESIZED) {
++            g_pc_window_w = (int)event->windowSize.native_fb_width;
++            g_pc_window_h = (int)event->windowSize.native_fb_height;
++        }
++        ++event;
++    }
++    return g_pc_running;
++}
++
++void pc_platform_update_window_size(void) {
++}
++
++void pc_platform_swap_buffers(void) {
++}
++
++void pc_platform_shutdown(void) {
++    pc_audio_shutdown();
++    pc_audio_mq_shutdown();
++    pc_disc_shutdown();
++    if (s_aurora_initialized) {
++        s_aurora_initialized = false;
++        aurora_shutdown();
++    }
++}
++
++int main(int argc, char* argv[]) {
++    setvbuf(stdout, NULL, _IONBF, 0);
++    setvbuf(stderr, NULL, _IONBF, 0);
++    for (int index = 1; index < argc; ++index) {
++        if (strcmp(argv[index], "--disc") == 0 && index + 1 < argc) {
++            if (!pc_disc_set_path(argv[++index])) {
++                fprintf(stderr, "Disc image path is too long.\n");
++                return 2;
++            }
++        } else if (strcmp(argv[index], "--framelimit") == 0) {
++            if (index + 1 >= argc || strcmp(argv[++index], "60") != 0) {
++                fprintf(stderr, "Aurora integration is fixed to the native 60 Hz simulation rate.\n");
++                return 2;
++            }
++        } else if (strcmp(argv[index], "--no-framelimit") == 0) {
++            fprintf(stderr, "Uncapped simulation is unsupported.\n");
++            return 2;
++        }
++    }
++
++    bellpad_find_image_range();
++    const AuroraConfig config = {
++        .appName = "Bellpad Aurora",
++        .desiredBackend = BACKEND_METAL,
++        .vsync = true,
++        .pauseOnFocusLost = true,
++        .windowWidth = 640,
++        .windowHeight = 480,
++        .logCallback = bellpad_log,
++        .logLevel = LOG_INFO,
++        .mem1Size = 256 * 1024 * 1024,
++        .mem2Size = 16 * 1024 * 1024,
++    };
++    AuroraInfo info = aurora_initialize(argc, argv, &config);
++    s_aurora_initialized = true;
++    g_pc_window = info.window;
++    g_pc_window_w = (int)info.windowSize.native_fb_width;
++    g_pc_window_h = (int)info.windowSize.native_fb_height;
++
++    pc_settings_load();
++    if (!pc_disc_init() || !pc_assets_init()) {
++        fprintf(stderr, "Bellpad needs a supported user-supplied GAFE01 revision 0 image via --disc PATH.\n");
++        pc_platform_shutdown();
++        return 1;
++    }
++
++    ac_entry();
++    boot_main(argc, (const char**)argv);
++    pc_platform_shutdown();
++    return 0;
++}
+--- a/pc/src/pc_misc.c
++++ b/pc/src/pc_misc.c
+@@ -153,10 +153,12 @@
+ void bcopy(const void* src, void* dst, unsigned int n) { memmove(dst, src, n); }
+ #endif
+ 
++#ifndef AURORA
+ u8 GXNtsc480IntDf[64] = {0};
+ u8 GXNtsc480Int[64] = {0};
+ u8 GXMpal480IntDf[64] = {0};
+ u8 GXPal528IntDf[64] = {0};
++#endif
+ u8 GXEurgb60Hz480IntDf[64] = {0};
+ 
+ void* __gUnkThread1 = NULL;
+--- a/pc/src/pc_settings.c
++++ b/pc/src/pc_settings.c
+@@ -202,10 +202,12 @@
+     add_preset(2560, 1440);
+     add_preset(3840, 2160);
+     /* Desktop native (inserted sorted, de-duped against the list above). */
++#ifndef AURORA
+     SDL_DisplayMode mode;
+     if (SDL_GetDesktopDisplayMode(0, &mode) == 0) {
+         add_preset(mode.w, mode.h);
+     }
++#endif
+ }
+ 
+ /* Find the closest preset by total pixel count. Used when the caller's
+@@ -240,6 +242,10 @@
+ void pc_settings_apply(void) {
+     apply_frame_limit_setting();
+ 
++#ifdef AURORA
++    /* Aurora owns the native window, swap interval, and drawable sizing. */
++    return;
++#else
+     if (!g_pc_window) return;
+ 
+     int w = g_pc_settings.window_width;
+@@ -288,6 +294,7 @@
+     printf("[Settings] Applied: %dx%d fullscreen=%d vsync=%d max_fps=%d msaa=%d\n",
+            g_pc_settings.window_width, g_pc_settings.window_height,
+            g_pc_settings.fullscreen, g_pc_settings.vsync, g_pc_settings.max_fps, g_pc_settings.msaa);
++#endif
+ }
+ 
+ void pc_settings_load(void) {
+--- a/pc/src/pc_stubs.c
++++ b/pc/src/pc_stubs.c
+@@ -65,9 +65,11 @@
+ void OSReportEnable(void) {}
+ 
+ /* VI */
++#ifndef AURORA
+ void VIConfigurePan(u16 x_origin, u16 y_origin, u16 width, u16 height) {
+     (void)x_origin; (void)y_origin; (void)width; (void)height;
+ }
++#endif
+ 
+ int __abs(int x) { return x < 0 ? -x : x; }
+ void _strip(float x) { (void)x; }
+--- a/pc/src/pc_vi.c
++++ b/pc/src/pc_vi.c
+@@ -17,6 +17,7 @@
+ static void (*vi_pre_callback)(u32) = NULL;
+ static void (*vi_post_callback)(u32) = NULL;
+ 
++#ifndef AURORA
+ void VIInit(void) {
+     if (g_frame_limiter > 0) {
+         printf("[VI] frame limit=%dus (%lu Hz)\n",
+@@ -27,10 +28,13 @@
+ }
+ 
+ void VIConfigure(void* rm) { (void)rm; }
++#endif
+ 
+ void VISetNextFrameBuffer(void* fb) { (void)fb; }
+ 
++#ifndef AURORA
+ void VIFlush(void) {}
++#endif
+ 
+ void VIWaitForRetrace(void) {
+     if (!perf_freq) perf_freq = SDL_GetPerformanceFrequency();
+@@ -111,7 +115,9 @@
+ 
+ void VISetBlack(BOOL black) { (void)black; }
+ 
++#ifndef AURORA
+ u32 VIGetTvFormat(void) { return 0; /* VI_NTSC */ }
++#endif
+ u32 VIGetDTVStatus(void) { return 0; }
+ 
+ void* VISetPreRetraceCallback(void* cb) {
+--- a/src/static/jsyswrap.cpp
++++ b/src/static/jsyswrap.cpp
+@@ -316,12 +316,28 @@
+ }
+ 
+ static bool FrameDrawing = false;
++
++#ifdef AURORA
++extern "C" const void* aurora_update(void);
++extern "C" bool aurora_begin_frame(void);
++extern "C" void aurora_end_frame(void);
++#endif
+ 
+ #if defined(TARGET_PC) && !defined(AURORA)
+ extern "C" void pc_gx_begin_frame(void);
+ #endif
+ 
+ extern void JW_BeginFrame() {
++#ifdef AURORA
++    aurora_update();
++    aurora_begin_frame();
++    /* The original JFWDisplay tick wait depends on the GameCube VI message
++     * thread. The native PC runtime drives frames synchronously, so entering
++     * that wait deadlocks before the first draw. Aurora already owns frame
++     * acquisition; mirror the established native-PC frame boundary here. */
++    FrameDrawing = true;
++    return;
++#endif
+ #if defined(TARGET_PC) && !defined(AURORA)
+     /* Clear framebuffer at frame start so we don't see undefined data */
+     pc_gx_begin_frame();
+@@ -343,6 +359,12 @@
+ 
+ extern void JW_EndFrame() {
+     void* mgr = JC_JFWDisplay_getManager();
++#ifdef AURORA
++    aurora_end_frame();
++    VIWaitForRetrace();
++    FrameDrawing = false;
++    return;
++#endif
+ #if defined(TARGET_PC) && !defined(AURORA)
+     /* On PC: pump events, swap buffers, vsync via VIWaitForRetrace */
+     VIWaitForRetrace();

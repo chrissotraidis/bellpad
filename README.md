@@ -2,7 +2,7 @@
 
 Bellpad is an experimental, native Apple ARM64 source port project for the original US revision of Animal Crossing for Nintendo GameCube. The intended application compiles legally clean reverse-engineered game code for macOS, iOS, and iPadOS. It is not a GameCube emulator and will not embed a WebAssembly/browser port.
 
-The repository is in active platform integration. The proven ARM64 game core now packages as a playable macOS `Bellpad.app`, and separate native macOS and universal iOS/iPadOS Metal shells establish the future shared platform boundary. It does not yet contain a playable mobile game build.
+The repository is in active platform integration. The proven ARM64 game core packages as a playable macOS `Bellpad.app`; a separate convergence target now runs that complete core through Aurora, SDL3, and Metal; and native macOS plus universal iOS/iPadOS shells establish the shared touch/platform boundary. It does not yet contain a playable mobile game build.
 
 ## Current status
 
@@ -17,12 +17,12 @@ As of 2026-08-03:
 - A trimmed-image aligned-read bug was identified and corrected locally.
 - Player and town naming work through the port's native SDL text-input path; a test player entered and moved around a newly generated town.
 - Save creation/relaunch and app-window lifecycle remain under investigation. The title cleanup invalid-free was traced to an undersized static structure-actor pool and repaired with an upstream-derived host slot layout.
-- Aurora is the selected production compatibility layer. A compiled-object audit proves that its patched GX/GD library exports all 112 symbols required by the desktop-compiled core, and a compiled ABI probe proves compatible value types and sufficient opaque texture/palette storage. The complete 3,904-object core also compiles with Aurora enabled: all 111 resulting GX/GD imports resolve and no legacy OpenGL renderer hooks remain.
-- Aurora's pinned GX example now builds and visibly renders through Metal on macOS ARM64 and sequential iPhone/iPad simulators. This proves the compatibility-layer platform path, not Animal Crossing rendering.
+- Aurora is the selected production compatibility layer. The complete game now links natively to Aurora/SDL3, selects Metal on Apple Silicon, validates and reads a private retail image, loads all game archives, starts 32 kHz audio, and reaches the interactive title menu at the fixed 60 Hz simulation rate.
+- That first Animal Crossing-on-Aurora image is recognizably the title/menu, but its colors, textures, and portions of its geometry are corrupted. It is a meaningful integration pass, not correct-rendering or gameplay evidence.
 - Bellpad-owned macOS and universal iOS/iPadOS bundles now build as native ARM64 applications. They render with MetalKit at a fixed 60 Hz and expose a shared normalized GameCube input boundary.
 - The mobile shell includes left/C sticks, A/B/X/Y, Z/L/R/Start, D-pad, adaptive compact/expanded layouts, safe-area handling, a touch visibility override, GameController merging, and physical-controller auto-hide on devices.
 - Native macOS and iOS/iPadOS choosers now accept a user-selected file and pass it to a shared header validator. The current slice recognizes raw ISO/GCM, requires GameCube magic plus `GAFE01` revision 0, reads only the first 32 bytes, and neither retains nor copies the image.
-- The playable macOS bundle still uses the proven SDL2/OpenGL renderer, but now stores settings and its GCI save tree under Application Support. The Metal shells remain separate integration harnesses; Aurora rendering, durable disc retention/indexing, atomic save backups/import/export, mobile game text entry/audio, and IPA packaging are not connected yet.
+- The playable macOS bundle still uses the proven SDL2/OpenGL renderer and Application Support. The new Aurora target is an unbundled macOS convergence executable with transitional disc/path/input ownership; the mobile shell is still separate. Correct GX rendering, durable disc retention/indexing, atomic save backups/import/export, mobile text/audio/lifecycle integration, and IPA packaging remain.
 
 See [STATUS.md](docs/STATUS.md), [PLAN.md](docs/PLAN.md), and [WORKLOG.md](docs/WORKLOG.md) for evidence and current blockers.
 
@@ -30,7 +30,7 @@ See [STATUS.md](docs/STATUS.md), [PLAN.md](docs/PLAN.md), and [WORKLOG.md](docs/
 
 | Platform | Status |
 |---|---|
-| Apple Silicon macOS | Playable ARM64 `Bellpad.app` reaches the title and the underlying baseline reaches a generated town; separate Metal-shell migration remains |
+| Apple Silicon macOS | Playable OpenGL `Bellpad.app` reaches a generated town; native Aurora/Metal target reaches a corrupted but interactive title menu |
 | iPhone Simulator/device | Bellpad ARM64 simulator shell installs, launches, renders, and shows touch controls; game core pending |
 | iPad Simulator/device | Same universal shell passes sequentially with adaptive resizable-window controls; game core pending |
 | Intel macOS, Windows, Linux | Upstream-reference platforms, not Bellpad release targets |
@@ -132,7 +132,7 @@ See [TESTING.md](docs/TESTING.md).
 - Save creation and relaunch persistence have not yet been completed in the local baseline.
 - The playable macOS bundle now uses Application Support, but atomic save replacement, rotating backups, import/export, and a successful in-game save/relaunch proof remain required.
 - App-window close and lifecycle teardown still need a clean retest; `SIGTERM` exits the clean scripted build.
-- Aurora now covers the compiled game's complete GX/GD symbol surface and passes the host-structure ABI gate. The real Animal Crossing target still must be linked and rendered through Aurora; representative display-list and full-scene correctness remain open.
+- The real Animal Crossing target now links and reaches its title menu through Aurora/Metal, but GX output is visibly corrupted. Texture/palette/vertex correctness and representative full scenes remain open.
 - The iOS/iPadOS shell, first touch UI, native Files chooser, and raw-header validator exist; durable import/indexing, the game core, native game keyboard, audio/lifecycle integration, and unsigned IPA remain pending.
 
 ## Research and credits

@@ -11,7 +11,7 @@ Bellpad is a native Apple-platform source port. It will not ship an emulator, a 
 - Final compatibility layer: Aurora (MIT), initially for SDL3/application lifecycle, DVD/nod, PAD, CARD, OS/RTC, VI, MTX, and Metal-backed GX through Dawn/WebGPU.
 - Mobile shell: a thin Objective-C++/UIKit layer around a portable C/C++ game target. HarkinianPad is an architecture and UX reference only unless separately licensed code is explicitly contributed.
 
-This selection is now supported by platform, symbol-surface, ABI, and source-boundary evidence. The desktop-compiled core requires 112 GX/GD symbols; Bellpad's pinned Aurora patch supplies all 112, and compiled probes verify matching value types plus sufficient opaque texture/palette storage. The complete 3,904-object core also compiles with `AURORA` enabled, requires 111 GX/GD symbols with zero gaps, and imports no legacy OpenGL renderer hooks. Actual executable linking and Animal Crossing scene correctness must still pass before OpenGL is retired.
+This selection is now supported by platform, symbol-surface, ABI, source-boundary, executable-link, and first-frame evidence. The desktop-compiled core requires 112 GX/GD symbols; Bellpad's pinned Aurora patch supplies all 112, and compiled probes verify matching value types plus sufficient opaque texture/palette storage. The complete core now links to Aurora without SDL2, initializes Metal and SDL3 audio, reads the supported image, and reaches the interactive title menu at 60 Hz. The rendered image is visibly corrupted, so GX data correctness and representative gameplay scenes must still pass before OpenGL is retired.
 
 ## Milestone 0 — safety, research, and provenance
 
@@ -49,12 +49,12 @@ This selection is now supported by platform, symbol-surface, ABI, and source-bou
 
 1. [x] Build and visibly run Aurora's Metal-backed example for macOS ARM64.
    [x] Build the same pinned GX example for ARM64 iOS Simulator and launch it sequentially on iPhone and iPad simulators. This is a dependency proof, not a Bellpad app pass.
-2. [ ] Create a minimal Animal Crossing target using Aurora core/VI/MTX/OS/PAD/DVD/CARD. GX symbol and ABI prerequisites now pass; executable/platform convergence remains.
+2. [x] Create a minimal Animal Crossing target using Aurora core/VI/MTX/OS/PAD/DVD/CARD. The native ARM64 executable links without SDL2, initializes Metal/SDL3, loads the game, and reaches the title menu.
 3. [x] Inventory every GX/GD function called by the game and compare it to Aurora exports. The 3,905 compiled game-core objects require 112 symbols; patched Aurora provides all of them.
    [x] Compile-check the GX host ABI. Value types match exactly; the core's 88-byte `GXTexObj` holds Aurora's 64-byte implementation, and patch 13 expands `GXTlutObj` from 16 to the required 40 bytes.
    [x] Compile the complete game source with the Aurora path enabled and audit undefined symbols. All 3,904 core objects compile, all 111 resulting GX/GD imports resolve, and no `pc_gx_*` or renderer diagnostic globals remain. Host-generated palettes use one explicit `AuroraInitTlutObjHost` extension so byte order is not hidden inside the old OpenGL backend.
-4. Feed representative Animal Crossing display lists through Aurora GX.
-5. Validate title, train, outdoor town, interiors, inventory, dialogue, particles, framebuffer effects, and NES output.
+4. [x] Feed the title scene's Animal Crossing display lists through Aurora GX. The result proves command flow but is visibly corrupted; correct texture, palette, vertex, and copy behavior remain the active gate.
+5. Validate correct title, train, outdoor town, interiors, inventory, dialogue, particles, framebuffer effects, and NES output.
 6. Use Aurora GX after the real core link and scene-rendering gates pass. Keep the existing OpenGL renderer only as a temporary desktop oracle.
 
 GX reaches Metal as: game/JSystem/emu64 GX calls → Aurora GX command processor → WebGPU → Dawn Metal backend → `CAMetalLayer`.
@@ -64,7 +64,7 @@ GX reaches Metal as: game/JSystem/emu64 GX calls → Aurora GX command processor
 - [x] Generate a native macOS application and a universal iOS/iPadOS application target with real product bundle metadata, MetalKit surfaces, fixed 60 Hz presentation, and a shared portable input library.
 - [x] Add the first adaptive GameCube touch overlay and GameController merge. Compact iPhone/resizable-iPad layouts are visually proven; expanded iPad layout, editing, and persistence remain.
 - [x] Add native macOS/iOS document choosers and one shared raw ISO/GCM header validator for GameCube magic, `GAFE01`, and revision 0. The UI presentation and synthetic-header tests pass without selecting retail data.
-- Connect the portable Animal Crossing core and Aurora services to the Metal/touch product targets. The separate playable macOS bundle proves the core can live in an app bundle, but does not by itself connect the Aurora renderer or mobile shell.
+- Connect the working Aurora game target to the Bellpad-owned Metal/touch product targets after its GX output is correct. Its current macOS executable proves core/compatibility-layer convergence, but it does not yet adopt the product shell's normalized input, Files flow, lifecycle, or bundle paths.
 - Add hash allowlisting, security-scoped bookmark or Application Support retention, nod indexing, and measured CISO/RVZ support before enabling launch.
 - Use a document picker for security-scoped ISO/GCM/CISO/RVZ selection.
 - Validate disc header, revision, size, and known supported hashes before retaining data.

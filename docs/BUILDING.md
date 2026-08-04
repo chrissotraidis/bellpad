@@ -2,7 +2,7 @@
 
 Last updated: 2026-08-03
 
-The repository now builds a playable macOS game-core bundle, Bellpad-owned Metal/touch integration shells, and pinned Aurora Metal/GX probes. The mobile shell does not yet link the game core.
+The repository now builds a playable macOS game-core bundle, a native Aurora/Metal game convergence executable, Bellpad-owned Metal/touch integration shells, and pinned compatibility probes. The mobile shell does not yet link the game core.
 
 ## Host
 
@@ -11,6 +11,7 @@ The repository now builds a playable macOS game-core bundle, Bellpad-owned Metal
 - CMake 3.27.1
 - Ninja 1.13.2
 - SDL2 compatibility package 2.32.70
+- SDL3 3.2.20 for the Aurora target
 - Apple Clang 21.0.0 (Xcode default)
 - Homebrew GCC 16.1.0 (optional compatibility check)
 
@@ -54,6 +55,30 @@ open ref/upstream/acgc-64bit/pc/build-bellpad-app/bin/Bellpad.app
 This opt-in build packages the actual compiled game core as an ARM64 app bundle. If no image was selected with `--disc PATH` and none is found by the legacy search, it presents a native `NSOpenPanel`. The core accepts only GAFE01 disc 0 revision 0 and reads the selected image in place. The bundle contains its clean GLSL shaders, executable, and plist only; it never copies the selected image.
 
 The current bundle is an honest Milestone 1 product baseline, not the final architecture: rendering remains SDL2/OpenGL. On macOS it creates and enters `~/Library/Application Support/Bellpad` before loading settings, keybindings, or `save/card_a`. Set `BELLPAD_DATA_HOME` to an isolated absolute directory for development tests. This proves path stability, not a successful in-game save; atomic replacement/backups and save/relaunch gameplay evidence remain required.
+
+## Native Aurora/Metal game convergence
+
+```sh
+./scripts/build-aurora-game-macos.sh
+```
+
+This fetches the pinned game and Aurora trees, applies their tracked patches,
+builds the complete game at the proven unoptimized core setting, and links an
+ARM64 `BellpadAurora` executable against SDL3 and Metal. The script rejects a
+binary that links the legacy SDL2 runtime. It contains no game image or extracted
+asset; launch it only with a private supported file:
+
+```sh
+ref/upstream/acgc-64bit/pc/build-bellpad-aurora-game-macos/bin/BellpadAurora \
+  --disc /absolute/private/path/to/game.iso
+```
+
+Observed 2026-08-03: a clean target completes 4,258 build actions, selects the Apple
+M2 Metal adapter, loads 14,495 assets, opens 32 kHz stereo audio, and reaches an
+interactive 60 FPS title menu. The title is visibly corrupted, so this command
+is an integration and regression target—not a correct-rendering product build.
+It also uses the launch working directory rather than the product's Application
+Support policy and requires the explicit `--disc` path.
 
 ## Aurora game-core compatibility audits
 
