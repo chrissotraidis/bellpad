@@ -185,7 +185,8 @@ for installation before the next core startup. The previous canonical save is
 retained as `DobutsunomoriP_MURA.gci.pre-import`. Dolphin 5.0-17995 has read the
 same canonical GCI through an isolated GCI Folder, and Bellpad has installed and
 loaded that Dolphin-managed file before startup. Real Files exports pass on both
-simulator families; a fully UI-driven import selection remains separate.
+simulator families. A fully UI-driven iPhone Files import also selected,
+validated, staged, and installed a 467,008-byte GCI before normal startup.
 
 Patch 22 connects the core's SDL-independent editor API to Bellpad's native
 UIKit text proxy. The proxy is shown only while the game reports an active
@@ -240,7 +241,7 @@ Observed 2026-08-04: the output contains exactly the executable, plist,
 through Metal. Source-prefix mapping keeps the checkout location out of
 Bellpad-built objects. Two post-notice packages produced identical bytes with
 SHA-256
-`5e6b8d832d46a97ed499214088d601cd23cd4256e493f2d06d31619251b0601e`.
+`5a2150bf0a74a340a5af1260a975f039185b7539ad5517ff3857ff492bdfbd8e`.
 
 Run the tracked-content safety check before every commit and package build:
 

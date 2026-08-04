@@ -690,7 +690,7 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
         [control.trailingAnchor constraintEqualToAnchor:row.trailingAnchor],
         [control.centerYAnchor constraintEqualToAnchor:row.centerYAnchor],
         [label.trailingAnchor constraintLessThanOrEqualToAnchor:control.leadingAnchor constant:-12.0],
-        [row.heightAnchor constraintEqualToConstant:38.0],
+        [row.heightAnchor constraintEqualToConstant:34.0],
     ]];
     if ([control isKindOfClass:UISlider.class]) {
         [constraints addObject:[control.widthAnchor constraintEqualToConstant:148.0]];
@@ -808,7 +808,7 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
     ]];
     stack.translatesAutoresizingMaskIntoConstraints = NO;
     stack.axis = UILayoutConstraintAxisVertical;
-    stack.spacing = 7.0;
+    stack.spacing = 4.0;
 
     _settingsScrollView = [UIScrollView new];
     _settingsScrollView.translatesAutoresizingMaskIntoConstraints = NO;
@@ -823,8 +823,8 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
         [_settingsScrollView.bottomAnchor constraintEqualToAnchor:_settingsPanel.bottomAnchor],
         [stack.leadingAnchor constraintEqualToAnchor:_settingsScrollView.contentLayoutGuide.leadingAnchor constant:16.0],
         [stack.trailingAnchor constraintEqualToAnchor:_settingsScrollView.contentLayoutGuide.trailingAnchor constant:-16.0],
-        [stack.topAnchor constraintEqualToAnchor:_settingsScrollView.contentLayoutGuide.topAnchor constant:14.0],
-        [stack.bottomAnchor constraintEqualToAnchor:_settingsScrollView.contentLayoutGuide.bottomAnchor constant:-14.0],
+        [stack.topAnchor constraintEqualToAnchor:_settingsScrollView.contentLayoutGuide.topAnchor constant:8.0],
+        [stack.bottomAnchor constraintEqualToAnchor:_settingsScrollView.contentLayoutGuide.bottomAnchor constant:-8.0],
         [stack.widthAnchor constraintEqualToAnchor:_settingsScrollView.frameLayoutGuide.widthAnchor constant:-32.0],
         [reset.heightAnchor constraintEqualToConstant:40.0],
         [data.heightAnchor constraintEqualToConstant:40.0],
