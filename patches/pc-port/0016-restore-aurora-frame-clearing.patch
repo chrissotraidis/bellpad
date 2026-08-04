@@ -1,0 +1,25 @@
+--- a/src/static/jsyswrap.cpp
++++ b/src/static/jsyswrap.cpp
+@@ -335,6 +335,14 @@
+      * thread. The native PC runtime drives frames synchronously, so entering
+      * that wait deadlocks before the first draw. Aurora already owns frame
+      * acquisition; mirror the established native-PC frame boundary here. */
++    void* auroraDisplayManager = JC_JFWDisplay_getManager();
++    GXColor clearColor = {0, 0, 0, 255};
++    JC_JFWDisplay_clearEfb(auroraDisplayManager, clearColor);
++    GXInvalidateTexAll();
++    GXInvalidateVtxCache();
++    JC_J2DOrthoGraph_setOrtho(jc_gport, 0, 0, JC_JFWDisplay_getEfbWidth(auroraDisplayManager),
++                              JC_JFWDisplay_getEfbHeight(auroraDisplayManager));
++    JC_J2DOrthoGraph_setPort(jc_gport);
+     FrameDrawing = true;
+     return;
+ #endif
+@@ -360,6 +368,7 @@
+ extern void JW_EndFrame() {
+     void* mgr = JC_JFWDisplay_getManager();
+ #ifdef AURORA
++    JC_JFWDisplay_endRender(mgr);
+     aurora_end_frame();
+     VIWaitForRetrace();
+     FrameDrawing = false;

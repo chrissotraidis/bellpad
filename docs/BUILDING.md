@@ -75,7 +75,8 @@ ref/upstream/acgc-64bit/pc/build-bellpad-aurora-game-macos/bin/BellpadAurora \
 
 Observed 2026-08-03: a clean target completes 4,258 build actions, selects the Apple
 M2 Metal adapter, loads 14,495 assets, opens 32 kHz stereo audio, and reaches an
-interactive 60 FPS title menu. The title is visibly corrupted, so this command
+interactive 60 FPS title menu. Explicit host EFB clearing prevents moving frames
+from accumulating, but the emu64 logo placement/color remains visibly wrong, so this command
 is an integration and regression target—not a correct-rendering product build.
 It also uses the launch working directory rather than the product's Application
 Support policy and requires the explicit `--disc` path.

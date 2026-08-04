@@ -53,7 +53,7 @@ This selection is now supported by platform, symbol-surface, ABI, source-boundar
 3. [x] Inventory every GX/GD function called by the game and compare it to Aurora exports. The 3,905 compiled game-core objects require 112 symbols; patched Aurora provides all of them.
    [x] Compile-check the GX host ABI. Value types match exactly; the core's 88-byte `GXTexObj` holds Aurora's 64-byte implementation, and patch 13 expands `GXTlutObj` from 16 to the required 40 bytes.
    [x] Compile the complete game source with the Aurora path enabled and audit undefined symbols. All 3,904 core objects compile, all 111 resulting GX/GD imports resolve, and no `pc_gx_*` or renderer diagnostic globals remain. Host-generated palettes use one explicit `AuroraInitTlutObjHost` extension so byte order is not hidden inside the old OpenGL backend.
-4. [x] Feed the title scene's Animal Crossing display lists through Aurora GX. The result proves command flow but is visibly corrupted; correct texture, palette, vertex, and copy behavior remain the active gate.
+4. [x] Feed the title scene's Animal Crossing display lists through Aurora GX. Restoring explicit host EFB clearing removed the accumulated-frame smear; incorrect emu64 logo placement/color remains, so texture, palette, matrix, and vertex behavior are the active gates.
 5. Validate correct title, train, outdoor town, interiors, inventory, dialogue, particles, framebuffer effects, and NES output.
 6. Use Aurora GX after the real core link and scene-rendering gates pass. Keep the existing OpenGL renderer only as a temporary desktop oracle.
 

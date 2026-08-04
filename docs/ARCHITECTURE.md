@@ -74,8 +74,9 @@ was sufficient to link the real target. A runtime PAD crash exposed a second
 ABI boundary: Aurora's host `PADStatus` is 16 bytes rather than the SDK's 12,
 so the game-side array now includes Aurora's extension field and retains the
 same stride. With that fixed, the complete game reaches the interactive title
-menu through Metal. The recognizable but corrupted image proves retained
-`emu64` command flow, not texture/palette/vertex correctness.
+menu through Metal. Explicit JSystem EFB clearing now prevents successive frames
+from accumulating; the remaining incorrectly placed/colored logo pieces prove
+retained `emu64` command flow, not matrix/texture/palette/vertex correctness.
 
 The entire game source has dedicated `AURORA` compile and link targets.
 That build follows the original JSystem frame lifecycle, retains host/ARM64
