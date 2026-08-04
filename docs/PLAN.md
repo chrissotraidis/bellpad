@@ -64,10 +64,11 @@ GX reaches Metal as: game/JSystem/emu64 GX calls → Aurora GX command processor
 ## Milestone 3 — mobile targets and data import
 
 - [x] Generate a native macOS application and a universal iOS/iPadOS application target with real product bundle metadata, MetalKit surfaces, fixed 60 Hz presentation, and a shared portable input library.
-- [x] Add the first adaptive GameCube touch overlay and GameController merge. Compact iPhone/resizable-iPad layouts are visually proven; expanded iPad layout, editing, and persistence remain.
-- [x] Align the product input mask with GameCube PAD and add a thread-safe pull ABI. The UIKit/GameController side exports a strong snapshot function; patch 19 polls it on the Aurora game thread and supplies a weak fallback while the targets are still separate.
+- [x] Add the first adaptive GameCube touch overlay and GameController merge. The real iPhone and iPad game bundle now displays the compact and expanded layouts over Aurora's Metal surface; editing and persistence remain.
+- [x] Align the product input mask with GameCube PAD and add a thread-safe pull ABI. The linked UIKit product exports the strong snapshot consumed by patch 19 on the game thread. Rising button edges are latched until one 60 Hz poll consumes them so short taps cannot disappear between frames.
 - [x] Add native macOS/iOS document choosers and one shared raw ISO/GCM header validator for GameCube magic, `GAFE01`, and revision 0. The UI presentation and synthetic-header tests pass without selecting retail data.
-- Connect the working Aurora game target to the Bellpad-owned Metal/touch product targets after its GX output is correct. The thread-safe input ABI is ready on both sides and desktop keyboard mapping is live; executable ownership, Files flow, lifecycle, bundle paths, and UIKit/Aurora surface ownership are still separate.
+- [x] Connect the working Aurora game target to a native universal iOS/iPadOS bundle. SDL3/Aurora owns `UIApplicationMain`, lifecycle, and the `CAMetalLayer`; Bellpad attaches a transparent UIKit overlay to that existing view instead of creating a second renderer. The real game reaches title on both simulators, and an iPhone touch A advances into K.K.'s opening.
+- Connect the existing Files picker/validator to durable disc retention and the real boot path. Development currently supplies an ignored private simulator file with `--disc`; this is test-only, not the final user workflow.
 - Add hash allowlisting, security-scoped bookmark or Application Support retention, nod indexing, and measured CISO/RVZ support before enabling launch.
 - Use a document picker for security-scoped ISO/GCM/CISO/RVZ selection.
 - Validate disc header, revision, size, and known supported hashes before retaining data.

@@ -92,15 +92,32 @@ scene/orientation/safe-area policy and adaptive touch controls.
 |---|---|
 | macOS ARM64 configure/build | Pass — native `Bellpad.app`, ARM64 Mach-O, valid Info.plist |
 | macOS launch/Metal/quit | Pass — visible MetalKit surface at requested 60 FPS; normal app quit terminates |
-| Normalized input merge | Pass — native unit test covers exact GameCube button masks, eight-byte state layout, ORed buttons, strongest axes, maximum triggers, clearing, invalid snapshot outputs, and 10,000 concurrent writes/copies without a torn state |
+| Normalized input merge | Pass — native unit test covers exact GameCube button masks, eight-byte state layout, ORed buttons, strongest axes, maximum triggers, clearing, one-poll short-tap latching, invalid snapshot outputs, and 10,000 concurrent writes/copies without a torn state |
 | iPhone 17 Pro Simulator | Pass — product bundle installs/launches; full GameCube touch set is visible without overlap after safe-area layout correction |
 | Sequential stop | Pass — iPhone app terminated and simulator shut down before iPad boot |
 | iPad Pro 13-inch Simulator | Pass — universal bundle installs/launches in a 960×640 resizable iPadOS window; actual-size scaling selects a compact no-overlap layout |
-| Expanded iPad layout | Pending — code path requires a window at least 1100×700 points; current simulator launch did not expose that size |
+| Expanded iPad layout | Pass on the real game target — iPad metrics are visibly applied over the 2752×2064 Aurora framebuffer; current iPadOS may still manage the game in a system window |
 | Shared disc validator | Pass — synthetic 32-byte `.iso` accepts `GAFE01` Rev 0; synthetic wrong revision/game and `.rvz` rejection pass; no retail fixture used |
 | iPhone Files picker | Pass — Computer Use activated “Choose Game Data…” and observed Apple's native Files/Recents UI; cancelled without selecting a file |
 | macOS open panel | Pass — native sheet presented with ISO/GCM content filtering; cancelled without selecting a file |
-| Shell game rendering/input | Not tested — this Metal/touch harness is not yet linked to the game core/Aurora |
+| Shell game rendering/input | Superseded — the product overlay is now linked directly into the Aurora game bundle |
+
+### Native iOS/iPadOS game evidence — 2026-08-03
+
+| Test | Result |
+|---|---|
+| Product build | Pass — complete game core links as an ARM64 `IOSSIMULATOR` `Bellpad.app` with SDL3, Aurora, Dawn/Metal, UIKit overlay, and strong normalized-input snapshot |
+| Package contents | Pass — bundle contains only the executable and plist; no ISO/GCM/CISO/RVZ, extracted retail asset, GCI, or raw card |
+| iPhone real-game launch | Pass — private ignored GAFE01 data was read from the simulator sandbox, 14,495 assets loaded, 32 kHz audio opened, and the animated title rendered at the fixed 60 Hz simulation cadence |
+| iPhone touch-to-game path | Pass — UIKit A advanced the real title into K.K.'s opening; the button edge crossed the mutex snapshot and Aurora PAD on the game thread |
+| iPhone layout | Pass — landscape controls are upright after rotating the simulated hardware and avoid the Dynamic Island/safe areas |
+| Sequential stop | Pass — iPhone app terminated, its simulator-only disc copy was removed, and the simulator shut down before iPad boot |
+| iPad real-game launch | Pass — the same universal bundle loaded the private image and rendered the animated title through the 2752×2064 Metal framebuffer with iPad control metrics |
+| Cleanup | Pass — the iPad app terminated, its simulator-only disc copy was removed, the simulator shut down, and no simulator remained booted |
+
+These launches use a development-only `--disc` argument. The native Files picker
+is not yet connected to durable retention and boot, so this evidence does not
+claim final user-facing import, save persistence, or mobile lifecycle completion.
 
 ### Playable macOS app evidence — 2026-08-03
 
@@ -128,7 +145,7 @@ scene/orientation/safe-area policy and adaptive touch controls.
 | Legacy renderer-hook isolation | Pass — zero `pc_gx_*`, `pc_emu64_frame_*`, or `s_tlut_*` imports; host TLUT byte order resolves through the explicit Aurora bridge |
 | OpenGL baseline regression rebuild | Pass — ARM64 `Bellpad.app` relinked after the conditional split, proving the temporary playable backend still compiles |
 | Animal Crossing through Aurora/Metal | Partial — native ARM64 executable selects Metal, loads disc/assets/audio, and reaches an interactive title menu at 60 FPS; EFB clearing prevents accumulation, palette/cache fixes hold, counter-clockwise WebGPU front faces restore complete title geometry, and keyboard A advances correctly rendered multi-line K.K. dialogue. Water, choices, train/town scenes, and long-session memory still need direct evidence |
-| Aurora normalized input boundary | Partial pass — default keyboard mapping preserved existing user bindings and a held Space/A advanced title action 3→4→5. Patch 19 compiles the game-thread pull into `BellpadAurora`; `nm` verifies the standalone game has the weak snapshot fallback and the iOS shell has the strong implementation. Live UIKit-to-game execution awaits product-target convergence |
+| Aurora normalized input boundary | Pass for title input — default keyboard mapping remains, patch 19 pulls on the game thread, the mobile executable links the strong snapshot, and UIKit A advances the real game. Broader gameplay control coverage remains pending |
 
 The iPhone simulator screenshot required rotation for human inspection because
 `simctl io screenshot` retained the physical portrait buffer while UIKit

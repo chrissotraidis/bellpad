@@ -9,6 +9,7 @@ namespace {
 
 std::mutex gInputMutex;
 std::array<BellpadPadState, 2> gInputStates{};
+std::array<std::uint16_t, 2> gLatchedButtons{};
 
 template <typename T>
 T strongestAxis(T first, T second) {
@@ -24,7 +25,8 @@ BellpadPadState mergedInputState() {
     const auto& controller = gInputStates[1];
 
     BellpadPadState merged;
-    merged.buttons = touch.buttons | controller.buttons;
+    merged.buttons = touch.buttons | controller.buttons |
+                     gLatchedButtons[0] | gLatchedButtons[1];
     merged.stickX = strongestAxis(touch.stickX, controller.stickX);
     merged.stickY = strongestAxis(touch.stickY, controller.stickY);
     merged.cStickX = strongestAxis(touch.cStickX, controller.cStickX);
@@ -38,11 +40,16 @@ BellpadPadState mergedInputState() {
 
 void BellpadSetInputState(BellpadInputSource source, const BellpadPadState& state) {
     std::scoped_lock lock(gInputMutex);
-    gInputStates[sourceIndex(source)] = state;
+    const std::size_t index = sourceIndex(source);
+    gLatchedButtons[index] |= state.buttons & ~gInputStates[index].buttons;
+    gInputStates[index] = state;
 }
 
 void BellpadClearInputState(BellpadInputSource source) {
-    BellpadSetInputState(source, {});
+    std::scoped_lock lock(gInputMutex);
+    const std::size_t index = sourceIndex(source);
+    gInputStates[index] = {};
+    gLatchedButtons[index] = 0;
 }
 
 BellpadPadState BellpadGetMergedInputState() {
@@ -64,7 +71,9 @@ extern "C" int bellpad_copy_normalized_pad_state(
         return 0;
     }
 
-    const BellpadPadState state = BellpadGetMergedInputState();
+    std::scoped_lock lock(gInputMutex);
+    const BellpadPadState state = mergedInputState();
+    gLatchedButtons = {};
     *buttons = state.buttons;
     *stickX = state.stickX;
     *stickY = state.stickY;

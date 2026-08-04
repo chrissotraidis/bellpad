@@ -31,7 +31,7 @@ simulation ticks.
 
 The app executes compiled C/C++ game code directly on Apple ARM64. Aurora is a source-level SDK compatibility layer, not a CPU/GPU emulator. The existing WebAssembly port is research material only and will not be embedded.
 
-The current implementation has three deliberately visible tracks. `Bellpad.app` is the complete playable ARM64 behavior oracle using temporary SDL2/OpenGL. The Bellpad-owned AppKit/UIKit shells prove native product surfaces, Files UI, lifecycle hooks, and normalized touch/controller input. `BellpadAurora` is the convergence target: it links the complete game to Aurora/SDL3/Metal, renders the full title geometry and K.K. dialogue correctly, and accepts live desktop input, but representative gameplay rendering and product services are not yet converged. Completion merges the latter two tracks and retires the oracle; it does not launch one app from another or preserve multiple products.
+The current implementation has two deliberately visible tracks. The macOS `Bellpad.app` remains the complete playable ARM64 behavior oracle using temporary SDL2/OpenGL. The Aurora production track now packages the complete game as both a native macOS convergence executable and a universal iOS/iPadOS `Bellpad.app`. On mobile, SDL3/Aurora owns `UIApplicationMain`, the UIKit window, lifecycle events, and the Metal surface; Bellpad attaches its native controls to that existing view. Representative gameplay rendering and product services are not yet complete, so the OpenGL oracle remains until those gates pass.
 
 ## Address and data model
 
@@ -106,17 +106,18 @@ The convergence target deliberately uses SDL3 only. Its audio adapter exposes
 the game's 32 kHz stereo DMA stream through an SDL3/CoreAudio stream and producer
 thread. Aurora owns window creation, event acquisition, frame begin/end, Dawn,
 and Metal. JSystem's GameCube VI-message wait is bypassed on this synchronous
-host path because it otherwise deadlocks before the first draw. Event/input
-ownership is still transitional. The Aurora executable installs keyboard defaults
+host path because it otherwise deadlocks before the first draw. The Aurora executable installs keyboard defaults
 only when no user mapping exists. Touch and GameController callbacks write one
 mutex-protected Bellpad state using the exact GameCube PAD button mask; they never
 call Aurora from UIKit's thread. Instead, patch 19 asks the strong product-side
 `bellpad_copy_normalized_pad_state` function for a snapshot from the game thread,
-then updates Aurora's virtual PAD before event processing. The standalone game
-provides a weak false-returning fallback until the product and core link together.
+then updates Aurora's virtual PAD before event processing. The standalone macOS
+game provides a weak false-returning fallback; the mobile game bundle links
+Bellpad's strong implementation directly.
 This avoids a data race in Aurora's unguarded virtual-pad storage and preserves
-one game-facing input representation. Lifecycle and surface ownership still need
-consolidation before the target becomes the mobile product.
+one game-facing input representation. Rising button edges are retained until a
+game-thread snapshot consumes them, preventing very short UIKit taps from falling
+between 60 Hz polls.
 
 Aurora's released Dawn archive for iOS is device-platform only. Simulator builds
 therefore compile Dawn from source with Ninja, vendored SDL3, protobuf disabled,
@@ -146,13 +147,13 @@ GCI-folder mode is the initial canonical store because it gives one file per sav
 
 ## Platform integration
 
-- The game loop will own game state on a dedicated thread or SDL main callback compatible with iOS. The current shell deliberately contains no second simulation clock.
-- Bellpad now owns native AppKit and UIKit bundles. Their MetalKit views request 60 FPS, establish bundle/lifecycle ownership, and provide the surface that will be replaced or adopted by Aurora's Dawn path.
+- SDL3's iOS main callback owns the game thread and UIKit lifecycle. Bellpad does not create a second application delegate, window, Metal view, or simulation clock.
+- Aurora/Dawn renders through SDL3's existing `CAMetalLayer`; the UIKit overlay is transparent and returns hits only for controls, leaving the render view and keyboard/event path intact.
 - The full desktop core also has an opt-in native macOS app-bundle target. Its `NSOpenPanel` and explicit disc-path API launch real game code, shaders resolve from bundle resources, and settings/GCI paths live under Application Support. This is the playable migration baseline; it still uses SDL2/OpenGL and does not yet provide atomic save backups/import/export.
-- UIKit owns the first adaptive touch overlay. Compact sizing is computed from actual safe-area width/height for iPhone and resizable iPad windows; an expanded layout activates only when an iPad window has sufficient space.
-- Touch and external-controller sources now target one portable, mutex-protected normalized GameCube state. Buttons are ORed, the strongest absolute value wins per stick axis, and the maximum analog trigger wins. The game-core adapter will snapshot this state at `PADRead` boundaries rather than receiving UIKit callbacks directly.
+- UIKit owns the adaptive touch overlay. Compact sizing is computed from actual safe-area width/height for iPhone and resizable iPad windows; expanded iPad sizing is visibly proven over the real game target.
+- Touch and external-controller sources now target one portable, mutex-protected normalized GameCube state. Buttons are ORed, the strongest absolute value wins per stick axis, and the maximum analog trigger wins. The linked game-core adapter snapshots this state on the game thread before Aurora PAD/event processing rather than receiving UIKit callbacks directly.
 - The touch source is cleared on resign-active. Presentation pauses while inactive and resumes on become-active. A physical controller hides touch on real devices while retaining an explicit user override; simulator virtual controllers do not hide the overlay so touch QA remains possible.
-- UIKit text fields call the separated editor begin/end, UTF-8 commit, and command API; SDL desktop events delegate to the same functions.
+- The separated editor begin/end, UTF-8 commit, and command API is ready for a UIKit text adapter; SDL desktop events already delegate to it, while the real mobile product adapter remains pending.
 - Rendering uses the SDL/CAMetalLayer surface supplied to Dawn.
 - Wall-clock changes and timezone changes are observed explicitly.
 - Backgrounding pauses presentation/audio and requests a safe save flush; foregrounding recreates transient resources.

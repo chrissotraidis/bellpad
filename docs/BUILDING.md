@@ -2,7 +2,7 @@
 
 Last updated: 2026-08-03
 
-The repository now builds a playable macOS game-core bundle, a native Aurora/Metal game convergence executable, Bellpad-owned Metal/touch integration shells, and pinned compatibility probes. The mobile shell does not yet link the game core.
+The repository now builds a playable macOS game-core bundle, native Aurora/Metal game targets for macOS and iOS Simulator, Bellpad-owned Metal/touch integration shells, and pinned compatibility probes.
 
 ## Host
 
@@ -112,6 +112,23 @@ The current clean shell build contains only Bellpad-authored platform code and A
 The macOS command also runs the normalized-input unit test. The simulator command verifies an ARM64 `IOSSIMULATOR` Mach-O and validates the product Info.plist. Build products remain under ignored `build/` unless `BELLPAD_APP_BUILD_DIR` selects another ignored directory.
 
 To install the simulator bundle, use `xcrun simctl install <device-uuid> build/ios-simulator-arm64/Bellpad.app` and launch bundle ID `dev.bellpad.app`. Run iPhone first, terminate it, shut that simulator down, and only then boot/run iPad. The intended final build will additionally fetch only pinned source dependencies and introduce retail data only after the app launches and the user selects it through Files.
+
+## Native Aurora/Metal iOS game bundle
+
+```sh
+./scripts/build-aurora-game-ios-simulator.sh
+```
+
+This applies the pinned twenty-patch game series and four-patch Aurora series,
+builds Dawn and SDL3 for ARM64 iOS Simulator, and links the complete game core,
+Aurora GX/Metal renderer, SDL3 audio, normalized input bridge, and UIKit GameCube
+overlay into `Bellpad.app`. The script verifies the Mach-O platform, plist,
+Metal linkage, absence of SDL2, and absence of disc/save formats in the bundle.
+
+The current development launch accepts `--disc /absolute/private/path.iso`.
+That path must point into local private storage and is never copied into the app
+bundle. The final product picker-to-retention flow is still pending; do not treat
+the command-line development path as user-facing import support.
 
 The built shells include native “Choose Game Data…” buttons. They currently
 perform validation only: `.iso` and `.gcm` are checked for the GameCube header,

@@ -107,6 +107,21 @@ int main() {
         &copied.triggerL, &copied.triggerR) == 1);
     assert(copied.buttons == 0);
 
+    BellpadPadState quickTap;
+    quickTap.buttons = BellpadButtonA;
+    BellpadSetInputState(BellpadInputSource::Touch, quickTap);
+    BellpadSetInputState(BellpadInputSource::Touch, {});
+    assert(bellpad_copy_normalized_pad_state(
+        &copied.buttons, &copied.stickX, &copied.stickY,
+        &copied.cStickX, &copied.cStickY,
+        &copied.triggerL, &copied.triggerR) == 1);
+    assert(copied.buttons == BellpadButtonA);
+    assert(bellpad_copy_normalized_pad_state(
+        &copied.buttons, &copied.stickX, &copied.stickY,
+        &copied.cStickX, &copied.cStickY,
+        &copied.triggerL, &copied.triggerR) == 1);
+    assert(copied.buttons == 0);
+
     BellpadPadState alternate = touch;
     alternate.buttons = BellpadButtonY | BellpadButtonDPadRight;
     alternate.stickX = 75;
@@ -130,7 +145,13 @@ int main() {
             &concurrent.buttons, &concurrent.stickX, &concurrent.stickY,
             &concurrent.cStickX, &concurrent.cStickY,
             &concurrent.triggerL, &concurrent.triggerR) == 1);
-        assert(sameState(concurrent, {}) || sameState(concurrent, touch) || sameState(concurrent, alternate));
+        BellpadPadState touchWithLatchedButtons = touch;
+        touchWithLatchedButtons.buttons |= alternate.buttons;
+        BellpadPadState alternateWithLatchedButtons = alternate;
+        alternateWithLatchedButtons.buttons |= touch.buttons;
+        assert(sameState(concurrent, {}) || sameState(concurrent, touch) ||
+               sameState(concurrent, alternate) || sameState(concurrent, touchWithLatchedButtons) ||
+               sameState(concurrent, alternateWithLatchedButtons));
     }
     writer.join();
     BellpadClearInputState(BellpadInputSource::Touch);
