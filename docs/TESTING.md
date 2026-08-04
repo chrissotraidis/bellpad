@@ -127,7 +127,7 @@ scene/orientation/safe-area policy and adaptive touch controls.
 | Aurora-defined full-core compile | Pass — 3,904 game objects compile with `AURORA`; 111 GX/GD imports all resolve |
 | Legacy renderer-hook isolation | Pass — zero `pc_gx_*`, `pc_emu64_frame_*`, or `s_tlut_*` imports; host TLUT byte order resolves through the explicit Aurora bridge |
 | OpenGL baseline regression rebuild | Pass — ARM64 `Bellpad.app` relinked after the conditional split, proving the temporary playable backend still compiles |
-| Animal Crossing through Aurora/Metal | Partial — native ARM64 executable selects Metal, loads disc/assets/audio, and reaches an interactive title menu at 60 FPS; EFB clearing now prevents frame accumulation, but emu64 logo placement/color remain wrong, so rendering correctness fails |
+| Animal Crossing through Aurora/Metal | Partial — native ARM64 executable selects Metal, loads disc/assets/audio, and reaches an interactive title menu at 60 FPS; EFB clearing prevents frame accumulation, static palette colors are plausible, unsafe draw merging is isolated, and a post-cache-fix smoke reached 5,000 frames without the pre-fix Metal allocation failure; geometry remains wrong, so rendering correctness and long-session memory still fail |
 
 The iPhone simulator screenshot required rotation for human inspection because
 `simctl io screenshot` retained the physical portrait buffer while UIKit

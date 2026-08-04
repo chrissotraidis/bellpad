@@ -1,0 +1,84 @@
+diff --git a/lib/dolphin/gx/GXTexture.cpp b/lib/dolphin/gx/GXTexture.cpp
+index e2f19f6..67877a1 100644
+--- a/lib/dolphin/gx/GXTexture.cpp
++++ b/lib/dolphin/gx/GXTexture.cpp
+@@ -351,7 +351,7 @@ void GXLoadTlut(const GXTlutObj* obj_, u32 idx) {
+ // TODO GXInvalidateTexRegion
+ 
+ void GXInvalidateTexAll() {
+-  // no-op?
++  aurora::gx::clear_static_texture_cache();
+ }
+ 
+ // TODO GXPreLoadEntireTexture
+diff --git a/lib/gx/command_processor.cpp b/lib/gx/command_processor.cpp
+index 63fd9a5..90b7c73 100644
+--- a/lib/gx/command_processor.cpp
++++ b/lib/gx/command_processor.cpp
+@@ -1578,8 +1578,10 @@ static void draw_prim(GXPrimitive prim, GXVtxFmt fmt, u16 vtxCount, const u8* da
+     UNLIKELY { handle_draw_overrun(totalVtxBytes, data, pos, size); }
+ 
+   auto* lastDraw = !g_gxState.stateDirty ? gfx::get_last_draw_command<DrawData>() : nullptr;
+-  const bool canMerge = lastDraw != nullptr && prim != GX_LINES && prim != GX_LINESTRIP && prim != GX_POINTS &&
+-                        lastDraw->instanceCount == 1;
++  // Draw state equality is insufficient for emu64 display lists: state can be
++  // rewritten through reused objects and matrices between draws. Keep draws
++  // isolated until the merge key represents those dependencies explicitly.
++  const bool canMerge = false;
+ 
+   // Push raw vertex data to buffer. Merged draws must remain byte-contiguous with the previous range.
+   gfx::Range vertRange = gfx::push_verts(data + pos, totalVtxBytes, canMerge ? 0 : 4);
+diff --git a/lib/gx/gx.cpp b/lib/gx/gx.cpp
+index 2b40fdb..ef15738 100644
+--- a/lib/gx/gx.cpp
++++ b/lib/gx/gx.cpp
+@@ -134,6 +134,19 @@ void store_cached_texture(const GXTexObj_& obj, gfx::TextureHandle handle, u32 t
+   }
+ }
+ 
++const u8* palette_data_big_endian(const GXTlutObj_& tlut, std::vector<u16>& converted) {
++  if (!tlut.host_endian()) {
++    return static_cast<const u8*>(tlut.data);
++  }
++
++  const auto* nativeData = static_cast<const u16*>(tlut.data);
++  converted.reserve(tlut.numEntries);
++  for (u16 i = 0; i < tlut.numEntries; ++i) {
++    converted.push_back(bswap(nativeData[i]));
++  }
++  return reinterpret_cast<const u8*>(converted.data());
++}
++
+ gfx::TextureHandle get_tlut_texture(const GXTlutObj_& tlut) {
+   if (tlut.tlutObjId != 0) {
+     auto& cache = s_tlutObjectCaches[tlut.tlutObjId];
+@@ -148,15 +161,7 @@ gfx::TextureHandle get_tlut_texture(const GXTlutObj_& tlut) {
+   }
+ 
+   std::vector<u16> bigEndianData;
+-  const u8* paletteData = static_cast<const u8*>(tlut.data);
+-  if (tlut.host_endian()) {
+-    const auto* nativeData = static_cast<const u16*>(tlut.data);
+-    bigEndianData.reserve(tlut.numEntries);
+-    for (u16 i = 0; i < tlut.numEntries; ++i) {
+-      bigEndianData.push_back(bswap(nativeData[i]));
+-    }
+-    paletteData = reinterpret_cast<const u8*>(bigEndianData.data());
+-  }
++  const u8* paletteData = palette_data_big_endian(tlut, bigEndianData);
+ 
+   const auto handle = gfx::new_static_texture_2d(
+       tlut.numEntries, 1, 1, gfx::tlut_texture_format(tlut.format),
+@@ -223,9 +228,11 @@ gfx::TextureHandle resolve_static_palette_texture(const GXTexObj_& obj, const GX
+   if (const auto replacement = gfx::texture_replacement::find_replacement(obj, tlut); replacement.has_value()) {
+     handle = *replacement;
+   } else {
++    std::vector<u16> bigEndianTlutData;
++    const u8* paletteData = palette_data_big_endian(tlut, bigEndianTlutData);
+     auto converted = gfx::convert_texture_palette(
+         obj.format(), obj.width(), obj.height(), obj.mip_count(), {static_cast<const u8*>(obj.data), UINT32_MAX},
+-        tlut.format, tlut.numEntries, {static_cast<const u8*>(tlut.data), static_cast<size_t>(tlut.numEntries) * 2});
++        tlut.format, tlut.numEntries, {paletteData, static_cast<size_t>(tlut.numEntries) * sizeof(u16)});
+     if (converted.data.empty()) {
+       return {};
+     }

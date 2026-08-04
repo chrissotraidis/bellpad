@@ -51,3 +51,12 @@ software-FIFO frame abort, texture-copy clamping, scissor-box offset, the
 source port's single-thread ownership contract, and hardware-counter fallback
 for the original GP hang diagnostic. `./scripts/fetch-aurora.sh` applies the
 ordered Aurora patch series idempotently.
+
+`aurora/0002-support-host-endian-tluts.patch` makes palette provenance explicit
+for source ports that generate or byte-swap 16-bit TLUT entries in host memory.
+
+`aurora/0003-fix-emu64-texture-lifetime-and-batching.patch` applies that
+byte-order contract to static as well as dynamic paletted textures, connects
+`GXInvalidateTexAll` to Aurora's cache invalidation, and disables draw merging
+for the emu64 integration until the merge key represents reused texture and
+matrix dependencies. The patch contains no game data.
