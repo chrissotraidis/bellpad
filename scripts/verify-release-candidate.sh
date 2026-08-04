@@ -9,6 +9,7 @@ cd "$repo_root"
 "$script_dir/audit-tracked-content.sh"
 "$script_dir/build-apple-shell.sh" macos
 "$script_dir/test-pc-rtc-clock.sh"
+"$script_dir/test-pc-nes-gx-frame.sh"
 
 for script in "$script_dir"/*.sh; do
     /bin/sh -n "$script"

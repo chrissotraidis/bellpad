@@ -110,6 +110,13 @@ activation, significant-time-change, and timezone-change notifications.
 precision to that rebase, avoiding a visible fractional-second correction on
 normal resume while retaining overflow-safe GameCube tick conversion.
 
+`pc-port/0032-render-nes-framebuffer-through-aurora-gx.patch` replaces the
+Aurora NES blank-frame stub with a GX presenter. It converts fixNES's linear,
+red-in-low-bits RGB565 framebuffer into GameCube 4×4-tiled big-endian RGB565,
+crops the same visible rows as the OpenGL oracle, draws with nearest filtering,
+and preserves the configured stretch/4:3 policy. A retail-data-free unit test
+checks conversion, ordering, bounds, and crop behavior.
+
 `aurora/0001-complete-acgc-gx-compatibility.patch` applies to Aurora commit
 `5027ed63a73dfba28de9eceed00481fb09a19c35`. It implements the five GX calls
 used by the compiled game core that the pinned Aurora library did not export:

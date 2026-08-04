@@ -130,7 +130,7 @@ To install the simulator bundle, use `xcrun simctl install <device-uuid> build/i
 ./scripts/build-aurora-game-ios-simulator.sh
 ```
 
-This applies the pinned thirty-one-patch game series and five-patch Aurora series,
+This applies the pinned thirty-two-patch game series and five-patch Aurora series,
 builds Dawn and SDL3 for ARM64 iOS Simulator, and links the complete game core,
 Aurora GX/Metal renderer, SDL3 audio, normalized input bridge, and UIKit GameCube
 overlay into `Bellpad.app`. The script verifies the Mach-O platform, plist,
@@ -145,6 +145,8 @@ again, atomically installed, and then supplied to the real Aurora disc reader.
 The app reuses that retained copy on subsequent launches.
 
 Patches 30 and 31 keep Animal Crossing's local-time clock synchronized after long sessions and mobile suspension. The game clock combines a subsecond host wall clock with an overflow-safe monotonic performance counter, checks drift periodically, and rebases on iOS activation, significant-time-change, and timezone-change notifications. `./scripts/test-pc-rtc-clock.sh` covers epoch conversion, timezone offsets, development time overrides, large counters, zero-frequency defense, and nanosecond conversion without using retail data.
+
+Patch 32 presents fixNES output through Aurora GX instead of the excluded OpenGL renderer. `./scripts/test-pc-nes-gx-frame.sh` verifies the visible-row crop, RGB565 red/blue field conversion, big-endian byte order, 4×4 tile ordering, buffer rejection, and final-pixel placement without a retail ROM. The complete macOS, iOS Simulator, and iOS device targets compile and link this path; an actual NES-furniture session remains required runtime evidence.
 
 The top-right gear panel's `Game Data & Saves…` menu can request a replacement
 image or removal on the next launch without deleting saves. It also exports a
@@ -208,7 +210,7 @@ Observed 2026-08-04: the output contains exactly the executable, plist,
 through Metal. Source-prefix mapping keeps the checkout location out of
 Bellpad-built objects. Two post-notice packages produced identical bytes with
 SHA-256
-`a9e85a86a9cc2956ab0d161080b418bb9d358b692551e9cba21d9fb167914075`.
+`4275c925e1bce87f652044e34b1eb9f147be3afa2d2b9c5fe29f4d52e1fbac55`.
 
 Run the tracked-content safety check before every commit and package build:
 

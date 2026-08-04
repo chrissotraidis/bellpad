@@ -61,7 +61,8 @@ This selection is now supported by platform, symbol-surface, ABI, source-boundar
 5. Validate correct title, train, outdoor town, interiors, inventory, dialogue, particles, framebuffer effects, and NES output.
    [x] Title composition and multi-line K.K. dialogue match the OpenGL oracle at the fixed 60 Hz cadence.
    [x] A saved-player iPhone run visibly completed returning-player dialogue and the train arrival at Cove station through Metal.
-   [ ] Choice UI, water, broader outdoor town traversal, interiors, inventory, particles, framebuffer effects, and NES output remain.
+   [x] Choice UI and animated title water render through Metal.
+   [ ] Broader outdoor town traversal, interiors, inventory, particles, framebuffer effects, and runtime NES output remain. The NES GX/Metal presenter and deterministic tiled-RGB565 tests now compile in every Apple target.
 6. Use Aurora GX after the real core link and scene-rendering gates pass. Keep the existing OpenGL renderer only as a temporary desktop oracle.
 
 GX reaches Metal as: game/JSystem/emu64 GX calls → Aurora GX command processor → WebGPU → Dawn Metal backend → `CAMetalLayer`.

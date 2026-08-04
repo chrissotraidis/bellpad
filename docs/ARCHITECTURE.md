@@ -108,6 +108,16 @@ provides complete title-scene geometry, and the explicit color/font boundary
 produces correctly colored and positioned K.K. dialogue. Broader scene output
 remains under audit.
 
+The PC integration's fixNES emulator produces a linear 256×240 host framebuffer
+with red in the low RGB565 bits. The Aurora path crops the same eight top rows as
+the proven OpenGL presenter, swaps the red/blue bit fields, writes big-endian
+pixels in GameCube 4×4 tile order, invalidates the GX texture cache, and draws a
+nearest-filtered 256×224 quad through Aurora. The existing NES aspect preference
+selects Aurora's stretch or 4:3-fit viewport policy and cleanup restores the
+normal game policy. The conversion is deterministic and compiler-tested on all
+Apple targets; an actual NES-furniture session is still required before runtime
+rendering is marked passed.
+
 The convergence target deliberately uses SDL3 only. Its audio adapter exposes
 the game's 32 kHz stereo DMA stream through an SDL3/CoreAudio stream and producer
 thread. Aurora owns window creation, event acquisition, frame begin/end, Dawn,
