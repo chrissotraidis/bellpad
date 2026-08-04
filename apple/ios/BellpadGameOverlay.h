@@ -34,6 +34,12 @@ int bellpad_poll_native_text_event(char* utf8,
  * device's native drawable resolution; one through four select an EFB scale. */
 float bellpad_get_framebuffer_scale(void);
 
+/* Return one once for UIKit's matching activation edges. The game thread uses
+ * these to pause when UIKit actually resigns active and to resume only after
+ * the CoreAudio interruption has ended. */
+int bellpad_consume_will_resign_active(void);
+int bellpad_consume_did_become_active(void);
+
 #ifdef __cplusplus
 }
 #endif

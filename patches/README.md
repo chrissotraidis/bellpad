@@ -85,6 +85,12 @@ mobile render-resolution preference on the game thread and applies it through
 Aurora's framebuffer-scale API. Native follows the Metal drawable; 1× through
 4× change the internal framebuffer without changing the fixed 60 Hz simulation.
 
+`pc-port/0027-resume-audio-after-ios-activation.patch` consumes Bellpad's
+one-shot UIKit resign/activation edges on the game thread. This pauses audio
+when UIKit actually resigns active and resumes only after
+`UIApplicationDidBecomeActive`; Aurora's earlier window-unpause event can occur
+before iOS finishes the audio interruption, causing CoreAudio to remain paused.
+
 `aurora/0001-complete-acgc-gx-compatibility.patch` applies to Aurora commit
 `5027ed63a73dfba28de9eceed00481fb09a19c35`. It implements the five GX calls
 used by the compiled game core that the pinned Aurora library did not export:

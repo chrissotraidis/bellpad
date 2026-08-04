@@ -101,6 +101,9 @@ static std::mutex sNativeTextMutex;
 static std::deque<BPNativeTextEvent> sNativeTextEvents;
 static std::atomic_bool sNativeTextRequested{false};
 static std::atomic_int sFrameBufferScaleMode{0};
+static std::atomic_bool sDidBecomeActive{false};
+static std::atomic_bool sWasInactive{false};
+static std::atomic_bool sWillResignActive{false};
 
 static void BellpadQueueNativeText(NSString *text) {
     const char *utf8 = text.UTF8String;
@@ -402,10 +405,12 @@ static void BellpadQueueNativeTextCommand(int command) {
             BellpadClearInputState(BellpadInputSource::Controller);
             [weakSelf refreshControllerVisibility];
         }];
-        [center addObserver:self selector:@selector(clearInput)
+        [center addObserver:self selector:@selector(willResignActive:)
                        name:UIApplicationWillResignActiveNotification object:nil];
         [center addObserver:self selector:@selector(clearInput)
                        name:UIApplicationWillTerminateNotification object:nil];
+        [center addObserver:self selector:@selector(didBecomeActive:)
+                       name:UIApplicationDidBecomeActiveNotification object:nil];
         for (GCController *controller in GCController.controllers) [self configureController:controller];
         [self refreshControllerVisibility];
     }
@@ -803,6 +808,20 @@ static void BellpadQueueNativeTextCommand(int command) {
     BellpadClearInputState(BellpadInputSource::Controller);
 }
 
+- (void)didBecomeActive:(NSNotification *)notification {
+    (void)notification;
+    if (sWasInactive.exchange(false, std::memory_order_acq_rel)) {
+        sDidBecomeActive.store(true, std::memory_order_release);
+    }
+}
+
+- (void)willResignActive:(NSNotification *)notification {
+    (void)notification;
+    [self clearInput];
+    sWasInactive.store(true, std::memory_order_release);
+    sWillResignActive.store(true, std::memory_order_release);
+}
+
 - (void)configureController:(GCController *)controller {
     GCExtendedGamepad *gamepad = controller.extendedGamepad;
     if (!gamepad) return;
@@ -1111,4 +1130,12 @@ int bellpad_poll_native_text_event(char* utf8,
 float bellpad_get_framebuffer_scale(void) {
     const int mode = sFrameBufferScaleMode.load(std::memory_order_relaxed);
     return mode >= 1 && mode <= 4 ? static_cast<float>(mode) : 0.0f;
+}
+
+int bellpad_consume_did_become_active(void) {
+    return sDidBecomeActive.exchange(false, std::memory_order_acq_rel) ? 1 : 0;
+}
+
+int bellpad_consume_will_resign_active(void) {
+    return sWillResignActive.exchange(false, std::memory_order_acq_rel) ? 1 : 0;
 }

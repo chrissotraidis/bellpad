@@ -4,6 +4,10 @@ Last updated: 2026-08-04
 
 Bellpad is a native Apple-platform source port. It will not ship an emulator, a WebAssembly build, a retail disc image, or extracted retail assets.
 
+## Current completion focus
+
+The Apple wrappers are converged: macOS, iPhone, and iPad builds exist; normalized touch/controller input, the gear menu, persistent per-device layouts, Native/1×/2×/3×/4× rendering, Files import, native setup text, and GCI persistence have representative runtime evidence. Do not spend ongoing implementation time replaying every button across every activity. Finish the product by validating representative mobile Metal gameplay, adding user-facing save/disc management, and closing release/device gates. The exhaustive activity matrix remains a final acceptance pass.
+
 ## Evidence-based foundation
 
 - Game code: ACreTeam's CC0 `ac-decomp`, carried through a maintained native-port tree.
@@ -83,7 +87,7 @@ GX reaches Metal as: game/JSystem/emu64 GX calls → Aurora GX command processor
 - RTC: wall clock plus monotonic time; observe timezone and significant-time-change notifications; preserve GameCube tick conversion without overflow; test Resetti/time-travel behaviors.
 - Audio: native SDL3/CoreAudio route with AVAudioSession ownership, interruption/route-change recovery, suspension-safe queues, and no busy-loop while inactive.
 - Input: one normalized GameCube state merging touch, GCController/SDL controller, and keyboard sources. Physical-controller connection optionally hides gameplay touch controls.
-- Lifecycle: Aurora already stops presentation while inactive, Bellpad clears input, and pause/unpause events now pause/resume SDL3 audio. Runtime-test background/foreground and interruption recovery; handle memory warnings without discarding live save state. Do not invent an out-of-band gameplay save during suspension.
+- Lifecycle: [x] One bounded iPhone Simulator background/foreground cycle stops presentation, clears input, pauses SDL3 audio, restores Metal output, and resumes the stream only after `UIApplicationDidBecomeActive`. Repeat-cycle, route-interruption, physical-device, and memory-warning tests remain. Do not invent an out-of-band gameplay save during suspension.
 - Keyboard: extend the proven native player-name path through town names, letters, passwords, and other supported editors; add editor-aware return keys, paste backpressure, length validation, and physical-device/accessibility coverage.
 
 ## Milestone 5 — touch and adaptive UI

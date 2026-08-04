@@ -128,9 +128,9 @@ scene/orientation/safe-area policy and adaptive touch controls.
 | Original app icon | Pass — opaque full-bleed 1024×1024 source has no alpha or baked rounded corners; `actool` emitted iPhone/iPad renditions and plist metadata, the installed iPhone home screen displayed the Bellpad icon, and macOS `iconutil` round-tripped all ten 16–1024 px iconset files |
 | iPad retained relaunch | Pass — terminate/relaunch with no arguments returned directly to the animated Metal title using the retained private copy |
 | Cleanup | Pass — the iPad app terminated, exact simulator test copies were moved to Trash, the simulator shut down, and no simulator remained booted |
-| Lifecycle/audio wiring | Partial — UIKit resign-active clears product input and Aurora pause/unpause now pauses/resumes SDL3 audio; a bounded background/foreground runtime pass remains |
+| Lifecycle/audio wiring | Pass for one bounded iPhone Simulator cycle — Home cleared input, paused presentation, and changed the SDL3 stream to paused; foreground restored live Metal output and the post-`DidBecomeActive` game-thread edge changed the stream back to unpaused. Repeated cycles, route interruptions, physical hardware, and two SDL UIKit startup warnings remain |
 | ARM64 device build | Pass (static audit) — complete product links as Mach-O arm64 with `LC_BUILD_VERSION` platform `IOS`, minimum iOS 17.0, Metal, and no SDL2; physical install/runtime remains |
-| Unsigned IPA reproducibility | Pass — two timestamp-normalized packages were byte-identical with SHA-256 `3599d9cb757bcccfb706e2225b506f06472adf436963497587d28d68796e6064` |
+| Unsigned IPA reproducibility | Pass — two timestamp-normalized lifecycle-fix packages were byte-identical with SHA-256 `12273ffce1f06214433bd54f64104501e5a78b588ccbce3efd1614ebdc29e55c` |
 | Unsigned IPA contents | Pass — 13 MB archive contains only the executable, plist, `Assets.car`, and two compiled icon PNGs; no signature, provisioning profile, retail data, save, key, or certificate |
 
 The import runs above used the native Files UI and no `--disc` argument. They

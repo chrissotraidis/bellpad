@@ -11,7 +11,7 @@ As of 2026-08-04:
 - A pinned 64-bit source-port fork builds locally as a native macOS ARM64 executable.
 - The same complete game core now builds as an opt-in ARM64 `Bellpad.app`. It accepts `--disc`, presents a native picker when needed, validates GAFE01 disc 0 revision 0, packages only clean shader resources, and reaches the title loop from an arbitrary working directory.
 - The same patched source now builds with both Apple Clang 21 and GCC 16; the Apple Clang binary reaches the correctly rendered 60 FPS title screen.
-- The pinned checkout, twenty-six local game-core patches, four Aurora patches, simulator/device builds, and unsigned IPA packaging are reproducible with tracked scripts.
+- The pinned checkout, twenty-seven local game-core patches, four Aurora patches, simulator/device builds, and unsigned IPA packaging are reproducible with tracked scripts.
 - A user-supplied `GAFE01` revision 0 image is validated and read directly without extracting or bundling its assets.
 - The desktop baseline renders the title, setup, train, and generated town at 60 FPS and starts 32 kHz stereo audio.
 - A trimmed-image aligned-read bug was identified and corrected locally.
@@ -136,10 +136,10 @@ See [TESTING.md](docs/TESTING.md).
 - Apple Clang compilation is proven, but the full guest-address/pointer-width audit and sanitizer run are not complete.
 - Automated window-key delivery is harness-dependent. Guarded LLDB QA helpers can feed button taps, persistent left-stick values, and alphanumeric text through the same normalized APIs planned for Apple platform adapters.
 - Native save creation, atomic replacement, backup rotation, process relaunch, and reload now pass on the local baseline. The retail save dialogue, user-facing GCI import/export, recovery UI, and update persistence remain required.
-- A normal macOS window close returned cleanly from the game process. Mobile logs still report unbalanced SDL UIKit appearance transitions during startup, and bounded background/foreground plus audio-interruption testing remains open.
+- A normal macOS window close returned cleanly from the game process. One bounded iPhone Simulator cycle paused presentation/audio on Home and restored both after activation; the pinned SDL UIKit startup still reports two unbalanced appearance-transition warnings, and real audio-route/interruption plus repeated lifecycle testing remains open.
 - The real Animal Crossing target now links, renders the complete title composition, and correctly displays and advances multi-line K.K. dialogue through Aurora/Metal. Water, choices, and representative train/town rendering remain open.
 - The embedded NES emulator and audio path compile under Aurora, but its legacy OpenGL framebuffer presenter is intentionally disabled; a GX/Metal upload path is still required before NES games can display.
-- The iOS/iPadOS real-game bundle, touch UI, native Files import, private data retention, relaunch boot, native name-entry path, iPhone GCI rewrite/reload, ARM64 device build, and audited unsigned IPA now pass. Hash allowlisting, compressed formats, remove/reimport UI, save import/export UI, complete editor coverage, audio-interruption proof, signing, and physical-device validation remain pending.
+- The iOS/iPadOS real-game bundle, touch UI, native Files import, private data retention, relaunch boot, native name-entry path, iPhone GCI rewrite/reload, bounded background/foreground audio recovery, ARM64 device build, and audited unsigned IPA now pass. Hash allowlisting, compressed formats, remove/reimport UI, save import/export UI, complete editor coverage, route-interruption proof, signing, and physical-device validation remain pending.
 
 ## Research and credits
 
