@@ -1,5 +1,6 @@
 #include "BellpadDiscValidator.h"
 #include "BellpadInput.h"
+#include "BellpadSaveData.h"
 
 #include <algorithm>
 #include <array>
@@ -9,6 +10,7 @@
 #include <filesystem>
 #include <fstream>
 #include <thread>
+#include <vector>
 
 namespace {
 
@@ -186,5 +188,37 @@ int main() {
     const auto containerPath = writeSyntheticHeader(header, ".rvz");
     assert(BellpadValidateDiscImage(containerPath).code == BellpadDiscValidationCode::UnsupportedContainer);
     std::filesystem::remove(containerPath);
+
+    std::vector<std::uint8_t> gci(BellpadExpectedGCISize);
+    std::copy_n(reinterpret_cast<const std::uint8_t*>(supportedId), 6, gci.begin());
+    gci[0x38] = 0;
+    gci[0x39] = 0x39;
+    constexpr std::size_t saveOffset = 0x40 + 0x26000;
+    gci[saveOffset + 3] = 6;
+    gci[saveOffset + 4] = 'G';
+    gci[saveOffset + 5] = 'A';
+    gci[saveOffset + 6] = 'F';
+    gci[saveOffset + 7] = 'E';
+    gci[saveOffset + 8] = 0x30;
+    gci[saveOffset + 9] = 0x01;
+    std::uint32_t gciSum = 0;
+    for (std::size_t index = 0; index < 0x242A0; index += 2) {
+        gciSum += (static_cast<std::uint16_t>(gci[saveOffset + index]) << 8) |
+                  gci[saveOffset + index + 1];
+    }
+    const std::uint16_t gciChecksum = static_cast<std::uint16_t>(0u - gciSum);
+    gci[saveOffset + 0x12] = static_cast<std::uint8_t>(gciChecksum >> 8);
+    gci[saveOffset + 0x13] = static_cast<std::uint8_t>(gciChecksum);
+    assert(BellpadValidateGCI(gci.data(), gci.size()).valid());
+
+    gci[saveOffset + 0x20] ^= 1;
+    assert(BellpadValidateGCI(gci.data(), gci.size()).code == BellpadGCIValidationCode::InvalidChecksum);
+    gci[saveOffset + 0x20] ^= 1;
+    gci[saveOffset + 3] = 7;
+    assert(BellpadValidateGCI(gci.data(), gci.size()).code == BellpadGCIValidationCode::UnsupportedVersion);
+    gci[saveOffset + 3] = 6;
+    gci[saveOffset + 8] = 0;
+    assert(BellpadValidateGCI(gci.data(), gci.size()).code == BellpadGCIValidationCode::InvalidTownId);
+    assert(BellpadValidateGCI(gci.data(), gci.size() - 1).code == BellpadGCIValidationCode::WrongSize);
     return 0;
 }

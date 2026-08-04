@@ -9,6 +9,7 @@ endif()
 add_library(bellpad_platform_core STATIC
     src/platform/BellpadDiscValidator.cpp
     src/platform/BellpadInput.cpp
+    src/platform/BellpadSaveData.cpp
 )
 target_include_directories(bellpad_platform_core PUBLIC src/platform)
 target_compile_features(bellpad_platform_core PUBLIC cxx_std_20)

@@ -43,6 +43,7 @@ SaveData/
 
 # Apple/Xcode build products and local configuration
 build/
+build-*/
 DerivedData/
 settings.ini
 *.xcarchive

@@ -91,6 +91,11 @@ when UIKit actually resigns active and resumes only after
 `UIApplicationDidBecomeActive`; Aurora's earlier window-unpause event can occur
 before iOS finishes the audio interruption, causing CoreAudio to remain paused.
 
+`pc-port/0028-link-native-save-data-validator.patch` links Bellpad's clean,
+shared GCI validator into the native mobile game product. It validates the
+container header, block count, save version/code, town identifier, and town
+checksum without embedding or depending on retail data.
+
 `aurora/0001-complete-acgc-gx-compatibility.patch` applies to Aurora commit
 `5027ed63a73dfba28de9eceed00481fb09a19c35`. It implements the five GX calls
 used by the compiled game core that the pinned Aurora library did not export:

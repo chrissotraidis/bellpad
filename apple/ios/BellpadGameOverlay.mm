@@ -7,15 +7,19 @@
 
 #include "BellpadDiscValidator.h"
 #include "BellpadInput.h"
+#include "BellpadSaveData.h"
 
 #include <algorithm>
 #include <atomic>
+#include <cerrno>
 #include <cmath>
 #include <cstdint>
 #include <cstring>
 #include <deque>
+#include <fcntl.h>
 #include <mutex>
 #include <string>
+#include <unistd.h>
 #include <utility>
 
 @protocol BPStickDelegate <NSObject>
@@ -104,6 +108,135 @@ static std::atomic_int sFrameBufferScaleMode{0};
 static std::atomic_bool sDidBecomeActive{false};
 static std::atomic_bool sWasInactive{false};
 static std::atomic_bool sWillResignActive{false};
+static NSURL *sApplicationSupportURL;
+
+static NSString *const BPChangeGameDataOnNextLaunchKey = @"BellpadChangeGameDataOnNextLaunch";
+static NSString *const BPRemoveGameDataOnNextLaunchKey = @"BellpadRemoveGameDataOnNextLaunch";
+
+static NSURL *BellpadResolvedApplicationSupportURL(void) {
+    if (sApplicationSupportURL) return sApplicationSupportURL;
+    NSString *currentDirectory = NSFileManager.defaultManager.currentDirectoryPath;
+    if ([currentDirectory.lastPathComponent isEqualToString:@"Bellpad"]) {
+        sApplicationSupportURL = [NSURL fileURLWithPath:currentDirectory isDirectory:YES];
+    }
+    return sApplicationSupportURL;
+}
+
+static NSURL *BellpadCanonicalSaveURL(void) {
+    NSURL *supportURL = BellpadResolvedApplicationSupportURL();
+    if (!supportURL) return nil;
+    return [[[supportURL URLByAppendingPathComponent:@"save" isDirectory:YES]
+        URLByAppendingPathComponent:@"card_a" isDirectory:YES]
+        URLByAppendingPathComponent:@"DobutsunomoriP_MURA.gci"];
+}
+
+static NSURL *BellpadPendingSaveURL(void) {
+    NSURL *supportURL = BellpadResolvedApplicationSupportURL();
+    if (!supportURL) return nil;
+    return [[[supportURL URLByAppendingPathComponent:@"save" isDirectory:YES]
+        URLByAppendingPathComponent:@"Import" isDirectory:YES]
+        URLByAppendingPathComponent:@"DobutsunomoriP_MURA.pending.gci"];
+}
+
+static NSString *BellpadValidateGCIData(NSData *data) {
+    const BellpadGCIValidationResult result = BellpadValidateGCI(
+        static_cast<const std::uint8_t *>(data.bytes), data.length);
+    if (result.valid()) return nil;
+    const std::string message = BellpadGCIValidationMessage(result);
+    return [NSString stringWithUTF8String:message.c_str()];
+}
+
+static NSString *BellpadLoadValidatedGCI(NSURL *url, NSData **outputData) {
+    NSError *error = nil;
+    NSData *data = [NSData dataWithContentsOfURL:url options:NSDataReadingUncached error:&error];
+    if (!data) {
+        return [NSString stringWithFormat:@"The GCI could not be read: %@",
+                                          error.localizedDescription ?: @"unknown error"];
+    }
+    NSString *validationError = BellpadValidateGCIData(data);
+    if (validationError) return validationError;
+    if (outputData) *outputData = data;
+    return nil;
+}
+
+static BOOL BellpadSynchronizeFileAndDirectory(NSURL *url, NSError **outputError) {
+    int file = open(url.fileSystemRepresentation, O_RDONLY);
+    if (file < 0) {
+        if (outputError) *outputError = [NSError errorWithDomain:NSPOSIXErrorDomain code:errno userInfo:nil];
+        return NO;
+    }
+    const int fileResult = fsync(file);
+    const int fileError = errno;
+    close(file);
+    if (fileResult != 0) {
+        if (outputError) *outputError = [NSError errorWithDomain:NSPOSIXErrorDomain code:fileError userInfo:nil];
+        return NO;
+    }
+
+    int directory = open(url.URLByDeletingLastPathComponent.fileSystemRepresentation, O_RDONLY);
+    if (directory < 0) {
+        if (outputError) *outputError = [NSError errorWithDomain:NSPOSIXErrorDomain code:errno userInfo:nil];
+        return NO;
+    }
+    const int directoryResult = fsync(directory);
+    const int directoryError = errno;
+    close(directory);
+    if (directoryResult != 0) {
+        if (outputError) *outputError = [NSError errorWithDomain:NSPOSIXErrorDomain code:directoryError userInfo:nil];
+        return NO;
+    }
+    return YES;
+}
+
+static void BellpadApplyPendingSaveImport(void) {
+    NSURL *pending = BellpadPendingSaveURL();
+    NSURL *destination = BellpadCanonicalSaveURL();
+    if (!pending || !destination || ![NSFileManager.defaultManager fileExistsAtPath:pending.path]) return;
+
+    NSData *data = nil;
+    NSString *validationError = BellpadLoadValidatedGCI(pending, &data);
+    NSFileManager *files = NSFileManager.defaultManager;
+    if (validationError) {
+        NSLog(@"[Save] Discarding invalid pending GCI: %@", validationError);
+        [files removeItemAtURL:pending error:nil];
+        return;
+    }
+
+    NSError *error = nil;
+    NSURL *directory = destination.URLByDeletingLastPathComponent;
+    [files createDirectoryAtURL:directory withIntermediateDirectories:YES attributes:nil error:&error];
+    if (!error && [files fileExistsAtPath:destination.path]) {
+        NSURL *backup = [directory URLByAppendingPathComponent:@"DobutsunomoriP_MURA.gci.pre-import"];
+        [files removeItemAtURL:backup error:nil];
+        [files copyItemAtURL:destination toURL:backup error:&error];
+        if (!error) BellpadSynchronizeFileAndDirectory(backup, &error);
+    }
+    if (!error) {
+        NSURL *staging = [directory URLByAppendingPathComponent:@"DobutsunomoriP_MURA.importing.gci"];
+        [files removeItemAtURL:staging error:nil];
+        [data writeToURL:staging options:NSDataWritingAtomic error:&error];
+        if (!error) {
+            if ([files fileExistsAtPath:destination.path]) {
+                [files replaceItemAtURL:destination withItemAtURL:staging backupItemName:nil
+                                options:0 resultingItemURL:nil error:&error];
+            } else {
+                [files moveItemAtURL:staging toURL:destination error:&error];
+            }
+        }
+        if (error) [files removeItemAtURL:staging error:nil];
+    }
+    if (error) {
+        NSLog(@"[Save] Pending GCI import failed and was retained: %@", error.localizedDescription);
+        return;
+    }
+    NSError *syncError = nil;
+    if (!BellpadSynchronizeFileAndDirectory(destination, &syncError)) {
+        NSLog(@"[Save] Imported GCI is visible but metadata synchronization failed: %@",
+              syncError.localizedDescription);
+    }
+    [files removeItemAtURL:pending error:nil];
+    NSLog(@"[Save] Installed validated pending GCI before game startup");
+}
 
 static void BellpadQueueNativeText(NSString *text) {
     const char *utf8 = text.UTF8String;
@@ -341,7 +474,22 @@ static void BellpadQueueNativeTextCommand(int command) {
 
 @end
 
-@interface BPGameOverlay : UIView <BPStickDelegate>
+static UIWindow *BellpadGameWindow(void);
+
+typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
+    BPDocumentPickerModeNone = 0,
+    BPDocumentPickerModeImportSave,
+    BPDocumentPickerModeExportSave,
+};
+
+@interface BPGameOverlay : UIView <BPStickDelegate, UIDocumentPickerDelegate>
+@end
+
+@interface BPGameOverlay ()
+- (void)beginSaveImport;
+- (void)beginSaveExport;
+- (void)scheduleGameDataChange;
+- (void)confirmGameDataRemoval;
 @end
 
 @implementation BPGameOverlay {
@@ -352,6 +500,7 @@ static void BellpadQueueNativeTextCommand(int command) {
     NSMutableArray<UIPanGestureRecognizer *> *_editGestures;
     UIButton *_settingsButton;
     UIView *_settingsPanel;
+    UIScrollView *_settingsScrollView;
     UISlider *_opacitySlider;
     UISlider *_scaleSlider;
     UISegmentedControl *_renderScaleControl;
@@ -363,6 +512,8 @@ static void BellpadQueueNativeTextCommand(int command) {
     BOOL _controllerConnected;
     BOOL _editingLayout;
     NSString *_loadedSettingsProfile;
+    BPDocumentPickerMode _documentPickerMode;
+    NSURL *_exportSnapshotURL;
     id _connectObserver;
     id _disconnectObserver;
 }
@@ -602,6 +753,42 @@ static void BellpadQueueNativeTextCommand(int command) {
     reset.accessibilityLabel = @"Reset touch control layout";
     [reset addTarget:self action:@selector(resetControlSettings) forControlEvents:UIControlEventTouchUpInside];
 
+    UIButton *data = [UIButton buttonWithType:UIButtonTypeSystem];
+    [data setTitle:@"Game Data & Saves…" forState:UIControlStateNormal];
+    [data setTitleColor:UIColor.whiteColor forState:UIControlStateNormal];
+    data.titleLabel.font = [UIFont systemFontOfSize:15.0 weight:UIFontWeightSemibold];
+    data.backgroundColor = [UIColor colorWithRed:0.20 green:0.38 blue:0.58 alpha:0.92];
+    data.layer.cornerRadius = 10.0;
+    data.accessibilityLabel = @"Manage game data and saves";
+    __weak BPGameOverlay *weakSelf = self;
+    data.menu = [UIMenu menuWithTitle:@"Game Data & Saves" children:@[
+        [UIAction actionWithTitle:@"Export Dolphin GCI Save"
+                            image:[UIImage systemImageNamed:@"square.and.arrow.up"]
+                       identifier:nil handler:^(__kindof UIAction *action) {
+            (void)action;
+            [weakSelf beginSaveExport];
+        }],
+        [UIAction actionWithTitle:@"Import Dolphin GCI Save"
+                            image:[UIImage systemImageNamed:@"square.and.arrow.down"]
+                       identifier:nil handler:^(__kindof UIAction *action) {
+            (void)action;
+            [weakSelf beginSaveImport];
+        }],
+        [UIAction actionWithTitle:@"Change or Reimport Game Data"
+                            image:[UIImage systemImageNamed:@"arrow.triangle.2.circlepath"]
+                       identifier:nil handler:^(__kindof UIAction *action) {
+            (void)action;
+            [weakSelf scheduleGameDataChange];
+        }],
+        [UIAction actionWithTitle:@"Remove Stored Game Data"
+                            image:[UIImage systemImageNamed:@"trash"]
+                       identifier:nil handler:^(__kindof UIAction *action) {
+            (void)action;
+            [weakSelf confirmGameDataRemoval];
+        }],
+    ]];
+    data.showsMenuAsPrimaryAction = YES;
+
     UIStackView *stack = [[UIStackView alloc] initWithArrangedSubviews:@[
         title,
         [self settingsRowWithTitle:@"Render" control:_renderScaleControl],
@@ -610,17 +797,30 @@ static void BellpadQueueNativeTextCommand(int command) {
         [self settingsRowWithTitle:@"Hide controls" control:_hideControlsSwitch],
         [self settingsRowWithTitle:@"Move controls" control:_editLayoutSwitch],
         reset,
+        data,
     ]];
     stack.translatesAutoresizingMaskIntoConstraints = NO;
     stack.axis = UILayoutConstraintAxisVertical;
     stack.spacing = 7.0;
-    [_settingsPanel addSubview:stack];
+
+    _settingsScrollView = [UIScrollView new];
+    _settingsScrollView.translatesAutoresizingMaskIntoConstraints = NO;
+    _settingsScrollView.alwaysBounceVertical = NO;
+    _settingsScrollView.showsVerticalScrollIndicator = YES;
+    [_settingsPanel addSubview:_settingsScrollView];
+    [_settingsScrollView addSubview:stack];
     [NSLayoutConstraint activateConstraints:@[
-        [stack.leadingAnchor constraintEqualToAnchor:_settingsPanel.leadingAnchor constant:16.0],
-        [stack.trailingAnchor constraintEqualToAnchor:_settingsPanel.trailingAnchor constant:-16.0],
-        [stack.topAnchor constraintEqualToAnchor:_settingsPanel.topAnchor constant:14.0],
-        [stack.bottomAnchor constraintEqualToAnchor:_settingsPanel.bottomAnchor constant:-14.0],
+        [_settingsScrollView.leadingAnchor constraintEqualToAnchor:_settingsPanel.leadingAnchor],
+        [_settingsScrollView.trailingAnchor constraintEqualToAnchor:_settingsPanel.trailingAnchor],
+        [_settingsScrollView.topAnchor constraintEqualToAnchor:_settingsPanel.topAnchor],
+        [_settingsScrollView.bottomAnchor constraintEqualToAnchor:_settingsPanel.bottomAnchor],
+        [stack.leadingAnchor constraintEqualToAnchor:_settingsScrollView.contentLayoutGuide.leadingAnchor constant:16.0],
+        [stack.trailingAnchor constraintEqualToAnchor:_settingsScrollView.contentLayoutGuide.trailingAnchor constant:-16.0],
+        [stack.topAnchor constraintEqualToAnchor:_settingsScrollView.contentLayoutGuide.topAnchor constant:14.0],
+        [stack.bottomAnchor constraintEqualToAnchor:_settingsScrollView.contentLayoutGuide.bottomAnchor constant:-14.0],
+        [stack.widthAnchor constraintEqualToAnchor:_settingsScrollView.frameLayoutGuide.widthAnchor constant:-32.0],
         [reset.heightAnchor constraintEqualToConstant:40.0],
+        [data.heightAnchor constraintEqualToConstant:40.0],
     ]];
 }
 
@@ -630,6 +830,152 @@ static void BellpadQueueNativeTextCommand(int command) {
         [self bringSubviewToFront:_settingsPanel];
         [self bringSubviewToFront:_settingsButton];
     }
+}
+
+- (UIViewController *)presentationController {
+    UIViewController *controller = BellpadGameWindow().rootViewController;
+    while (controller.presentedViewController) controller = controller.presentedViewController;
+    return controller;
+}
+
+- (void)presentMessageWithTitle:(NSString *)title message:(NSString *)message {
+    UIAlertController *alert = [UIAlertController alertControllerWithTitle:title message:message
+                                                            preferredStyle:UIAlertControllerStyleAlert];
+    [alert addAction:[UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:nil]];
+    [[self presentationController] presentViewController:alert animated:YES completion:nil];
+}
+
+- (void)scheduleGameDataChange {
+    [NSUserDefaults.standardUserDefaults setBool:YES forKey:BPChangeGameDataOnNextLaunchKey];
+    [NSUserDefaults.standardUserDefaults setBool:NO forKey:BPRemoveGameDataOnNextLaunchKey];
+    _settingsPanel.hidden = YES;
+    [self presentMessageWithTitle:@"Reimport on Next Launch"
+                          message:@"Close and reopen Bellpad. Before the game starts, Files will ask for a supported ISO or GCM. Your current retained image remains available until a replacement passes validation."];
+}
+
+- (void)confirmGameDataRemoval {
+    _settingsPanel.hidden = YES;
+    UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"Remove Stored Game Data?"
+        message:@"The private retained ISO/GCM will be removed the next time Bellpad launches, then Files will request replacement game data. Your GCI save and backups are not removed."
+        preferredStyle:UIAlertControllerStyleAlert];
+    [alert addAction:[UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleCancel handler:nil]];
+    [alert addAction:[UIAlertAction actionWithTitle:@"Remove on Relaunch"
+                                              style:UIAlertActionStyleDestructive
+                                            handler:^(__kindof UIAlertAction *action) {
+        (void)action;
+        [NSUserDefaults.standardUserDefaults setBool:YES forKey:BPRemoveGameDataOnNextLaunchKey];
+        [NSUserDefaults.standardUserDefaults setBool:NO forKey:BPChangeGameDataOnNextLaunchKey];
+    }]];
+    [[self presentationController] presentViewController:alert animated:YES completion:nil];
+}
+
+- (void)beginSaveImport {
+    if (!BellpadResolvedApplicationSupportURL()) {
+        [self presentMessageWithTitle:@"Save Import Unavailable"
+                              message:@"Bellpad has not finished preparing Application Support yet."];
+        return;
+    }
+    UTType *gciType = [UTType typeWithFilenameExtension:@"gci"] ?: UTTypeData;
+    UIDocumentPickerViewController *picker =
+        [[UIDocumentPickerViewController alloc] initForOpeningContentTypes:@[ gciType ] asCopy:NO];
+    picker.delegate = self;
+    picker.allowsMultipleSelection = NO;
+    _documentPickerMode = BPDocumentPickerModeImportSave;
+    _settingsPanel.hidden = YES;
+    [[self presentationController] presentViewController:picker animated:YES completion:nil];
+}
+
+- (void)beginSaveExport {
+    NSURL *source = BellpadCanonicalSaveURL();
+    if (!source || ![NSFileManager.defaultManager fileExistsAtPath:source.path]) {
+        [self presentMessageWithTitle:@"No Save to Export"
+                              message:@"Create and save a town before exporting a Dolphin-compatible GCI file."];
+        return;
+    }
+
+    NSData *data = nil;
+    NSString *validationError = BellpadLoadValidatedGCI(source, &data);
+    if (validationError) {
+        [self presentMessageWithTitle:@"Save Export Failed" message:validationError];
+        return;
+    }
+
+    NSURL *snapshot = [NSFileManager.defaultManager.temporaryDirectory
+        URLByAppendingPathComponent:@"Bellpad-Dolphin-Save.gci"];
+    [NSFileManager.defaultManager removeItemAtURL:snapshot error:nil];
+    NSError *error = nil;
+    [data writeToURL:snapshot options:NSDataWritingAtomic error:&error];
+    if (error) {
+        [self presentMessageWithTitle:@"Save Export Failed" message:error.localizedDescription];
+        return;
+    }
+
+    _exportSnapshotURL = snapshot;
+    _documentPickerMode = BPDocumentPickerModeExportSave;
+    _settingsPanel.hidden = YES;
+    UIDocumentPickerViewController *picker =
+        [[UIDocumentPickerViewController alloc] initForExportingURLs:@[ snapshot ] asCopy:YES];
+    picker.delegate = self;
+    [[self presentationController] presentViewController:picker animated:YES completion:nil];
+}
+
+- (void)clearExportSnapshot {
+    if (_exportSnapshotURL) {
+        [NSFileManager.defaultManager removeItemAtURL:_exportSnapshotURL error:nil];
+        _exportSnapshotURL = nil;
+    }
+}
+
+- (void)documentPickerWasCancelled:(UIDocumentPickerViewController *)controller {
+    (void)controller;
+    if (_documentPickerMode == BPDocumentPickerModeExportSave) [self clearExportSnapshot];
+    _documentPickerMode = BPDocumentPickerModeNone;
+}
+
+- (void)documentPicker:(UIDocumentPickerViewController *)controller
+    didPickDocumentsAtURLs:(NSArray<NSURL *> *)urls {
+    (void)controller;
+    BPDocumentPickerMode mode = _documentPickerMode;
+    _documentPickerMode = BPDocumentPickerModeNone;
+    if (mode == BPDocumentPickerModeExportSave) {
+        [self clearExportSnapshot];
+        return;
+    }
+    if (mode != BPDocumentPickerModeImportSave) return;
+
+    NSURL *source = urls.firstObject;
+    if (!source) return;
+    __weak BPGameOverlay *weakSelf = self;
+    dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
+        BOOL accessed = [source startAccessingSecurityScopedResource];
+        NSData *data = nil;
+        NSString *message = BellpadLoadValidatedGCI(source, &data);
+        if (accessed) [source stopAccessingSecurityScopedResource];
+
+        NSURL *pending = BellpadPendingSaveURL();
+        NSError *error = nil;
+        if (!message && !pending) message = @"Bellpad could not resolve its save-import directory.";
+        if (!message) {
+            [NSFileManager.defaultManager createDirectoryAtURL:pending.URLByDeletingLastPathComponent
+                                   withIntermediateDirectories:YES attributes:nil error:&error];
+            if (!error) [data writeToURL:pending options:NSDataWritingAtomic error:&error];
+            if (!error) BellpadSynchronizeFileAndDirectory(pending, &error);
+            if (error) message = [NSString stringWithFormat:@"The GCI could not be staged: %@",
+                                                            error.localizedDescription];
+        }
+        if (!message) message = BellpadLoadValidatedGCI(pending, nullptr);
+
+        dispatch_async(dispatch_get_main_queue(), ^{
+            BPGameOverlay *strongSelf = weakSelf;
+            if (!strongSelf) return;
+            if (message) {
+                [strongSelf presentMessageWithTitle:@"Save Import Failed" message:message];
+            } else {
+                [strongSelf presentMessageWithTitle:@"Save Ready to Import"
+                    message:@"The validated GCI will replace the active town before the next launch, and the current file will be retained as a pre-import backup. Close Bellpad without saving again, then reopen it now."];
+            }
+        });
+    });
 }
 
 - (void)opacityChanged:(UISlider *)slider {
@@ -910,7 +1256,7 @@ static void BellpadQueueNativeTextCommand(int command) {
                                        CGRectGetMinY(safe) + 8.0,
                                        settingsSide, settingsSide);
     CGFloat panelWidth = std::min<CGFloat>(360.0, std::max<CGFloat>(300.0, safe.size.width - 24.0));
-    CGFloat panelHeight = std::min<CGFloat>(331.0, safe.size.height - 62.0);
+    CGFloat panelHeight = std::min<CGFloat>(390.0, safe.size.height - 62.0);
     _settingsPanel.frame = CGRectMake(CGRectGetMaxX(safe) - panelWidth,
                                       CGRectGetMinY(safe) + 54.0,
                                       panelWidth, panelHeight);
@@ -1044,9 +1390,28 @@ int bellpad_prepare_game_data_path(const char* applicationSupportPath,
     NSString *supportPath = [NSString stringWithUTF8String:applicationSupportPath];
     if (!supportPath) return 0;
     NSURL *supportURL = [NSURL fileURLWithPath:supportPath isDirectory:YES];
+    sApplicationSupportURL = supportURL;
+    BellpadApplyPendingSaveImport();
+
+    NSUserDefaults *defaults = NSUserDefaults.standardUserDefaults;
+    BOOL forcePicker = [defaults boolForKey:BPChangeGameDataOnNextLaunchKey];
+    BOOL removeRetainedData = [defaults boolForKey:BPRemoveGameDataOnNextLaunchKey];
+
     NSURL *retainedURL = [[supportURL URLByAppendingPathComponent:@"Game Data" isDirectory:YES]
         URLByAppendingPathComponent:@"Animal Crossing.iso"];
-    if (BellpadValidateDiscImage(retainedURL.fileSystemRepresentation).valid()) {
+    if (removeRetainedData && [NSFileManager.defaultManager fileExistsAtPath:retainedURL.path]) {
+        NSError *error = nil;
+        [NSFileManager.defaultManager removeItemAtURL:retainedURL error:&error];
+        if (error) {
+            NSLog(@"[Storage] Could not remove retained game data: %@", error.localizedDescription);
+            return 0;
+        }
+        NSLog(@"[Storage] Removed retained game data at the user's request");
+    }
+    [defaults removeObjectForKey:BPChangeGameDataOnNextLaunchKey];
+    [defaults removeObjectForKey:BPRemoveGameDataOnNextLaunchKey];
+    if (!forcePicker && !removeRetainedData &&
+        BellpadValidateDiscImage(retainedURL.fileSystemRepresentation).valid()) {
         return BellpadCopyPath(retainedURL.path, outputPath, outputCapacity) ? 1 : 0;
     }
     dispatch_semaphore_t completionSemaphore = dispatch_semaphore_create(0);

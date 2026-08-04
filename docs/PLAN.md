@@ -6,7 +6,7 @@ Bellpad is a native Apple-platform source port. It will not ship an emulator, a 
 
 ## Current completion focus
 
-The Apple wrappers are converged: macOS, iPhone, and iPad builds exist; normalized touch/controller input, the gear menu, persistent per-device layouts, Native/1×/2×/3×/4× rendering, Files import, native setup text, and GCI persistence have representative runtime evidence. Do not spend ongoing implementation time replaying every button across every activity. Finish the product by validating representative mobile Metal gameplay, adding user-facing save/disc management, and closing release/device gates. The exhaustive activity matrix remains a final acceptance pass.
+The Apple wrappers are converged: macOS, iPhone, and iPad builds exist; normalized touch/controller input, the gear menu, persistent per-device layouts, Native/1×/2×/3×/4× rendering, Files import, native setup text, GCI persistence, and native save/disc management have representative runtime evidence. Do not spend ongoing implementation time replaying every button across every activity. Finish the product by validating representative mobile Metal gameplay, proving a real Dolphin save roundtrip, and closing release/device gates. The exhaustive activity matrix remains a final acceptance pass.
 
 ## Evidence-based foundation
 
@@ -31,7 +31,7 @@ This selection is now supported by platform, symbol-surface, ABI, source-boundar
    Apple Clang 21 and GCC 16 now both complete the independent 4,000-unit ARM64 build; Clang is the default reproducible path.
 2. [x] Point it at the local retail image using a symlink; never copy the image into a tracked or packaged tree.
 3. [x] Verify the image identity before launch: `GAFE01`, USA Rev 0, and record its size/hash only in an ignored local validation record.
-4. [x] Run from trademark/title through town creation, save, process exit, relaunch, and persistence. An isolated Bell/Cove run reached its generated town, invoked the real game-facing save routine from initialized state, wrote a canonical GCI, closed normally, and reloaded the saved-player flow in a new process. iPhone Simulator loaded the same GCI through the shared native core, atomically rewrote it with `.bak1` rotation, and loaded the rewrite after app relaunch. The retail save-dialogue interaction and user-facing import/export remain separate product gates.
+4. [x] Run from trademark/title through town creation, save, process exit, relaunch, and persistence. An isolated Bell/Cove run reached its generated town, invoked the real game-facing save routine from initialized state, wrote a canonical GCI, closed normally, and reloaded the saved-player flow in a new process. iPhone Simulator loaded the same GCI through the shared native core, atomically rewrote it with `.bak1` rotation, and loaded the rewrite after app relaunch. The native GCI Files UI and strict validator now build and present on both simulator families; a real Dolphin import/export roundtrip and the retail save-dialogue interaction remain separate product gates.
 5. Record rendering, audio, input, RTC, memory, and sanitizer evidence. Rendering, 32 kHz stereo audio, keyboard buttons, analog movement, and desktop text input have initial evidence; RTC, memory, and sanitizers remain.
    The title cleanup overflow is fixed with a padded host structure-actor pool; repeated teardown/reload is now part of the regression set.
    NPC-house entry and scene reinitialization are now explicit regression gates after reproducing an unreachable host door sample and a null e-Reader payload allocation in `play_init`.
@@ -79,11 +79,11 @@ GX reaches Metal as: game/JSystem/emu64 GX calls → Aurora GX command processor
 - Validate disc header, revision, size, and known supported hashes before retaining data.
 - Prefer direct indexed reads through Aurora/nod because it supports compressed formats and avoids duplicating copyrighted data. If measurements show unacceptable random-read latency, build a local, versioned index or extracted cache under Application Support; that cache remains excluded from packages and backups as appropriate.
 - [x] Store a private Application Support copy selected by the user. Never place the image in the app bundle. A security-scoped bookmark remains an optional future storage-mode alternative.
-- Provide actionable invalid-image errors and an explicit remove/reimport flow.
+- [x] Provide actionable invalid-image errors and explicit change/reimport/remove actions. Actions are deferred to startup so an in-use disc image is never deleted underneath the game.
 
 ## Milestone 4 — platform services
 
-- Saves: [x] Application Support GCI storage, checksums, durable atomic replacement, recovery, rolling backups, desktop creation/relaunch, and iPhone rewrite/relaunch. Add import/export document pickers, exercise the retail save dialogue, and prove Dolphin-compatible GCI in both user-facing directions. Consider raw-card support after GCI is stable.
+- Saves: [x] Application Support GCI storage, checksums, durable atomic replacement, recovery, rolling backups, desktop creation/relaunch, iPhone rewrite/relaunch, and native import/export document pickers. Imports are validated and staged for pre-boot installation with a pre-import backup; exports use immutable validated snapshots. Exercise the retail save dialogue and prove Dolphin-compatible GCI in both user-facing directions. Consider raw-card support after GCI is stable.
 - RTC: wall clock plus monotonic time; observe timezone and significant-time-change notifications; preserve GameCube tick conversion without overflow; test Resetti/time-travel behaviors.
 - Audio: native SDL3/CoreAudio route with AVAudioSession ownership, interruption/route-change recovery, suspension-safe queues, and no busy-loop while inactive.
 - Input: one normalized GameCube state merging touch, GCController/SDL controller, and keyboard sources. Physical-controller connection optionally hides gameplay touch controls.

@@ -119,7 +119,7 @@ To install the simulator bundle, use `xcrun simctl install <device-uuid> build/i
 ./scripts/build-aurora-game-ios-simulator.sh
 ```
 
-This applies the pinned twenty-seven-patch game series and four-patch Aurora series,
+This applies the pinned twenty-eight-patch game series and four-patch Aurora series,
 builds Dawn and SDL3 for ARM64 iOS Simulator, and links the complete game core,
 Aurora GX/Metal renderer, SDL3 audio, normalized input bridge, and UIKit GameCube
 overlay into `Bellpad.app`. The script verifies the Mach-O platform, plist,
@@ -133,6 +133,13 @@ validated, copied to a staging file under private Application Support, validated
 again, atomically installed, and then supplied to the real Aurora disc reader.
 The app reuses that retained copy on subsequent launches.
 
+The top-right gear panel's `Game Data & Saves…` menu can request a replacement
+image or removal on the next launch without deleting saves. It also exports a
+validated immutable GCI snapshot through Files and stages a validated GCI import
+for installation before the next core startup. The previous canonical save is
+retained as `DobutsunomoriP_MURA.gci.pre-import`; do not treat this as proof of a
+real Dolphin roundtrip until that separate test is completed.
+
 Patch 22 connects the core's SDL-independent editor API to Bellpad's native
 UIKit text proxy. The proxy is shown only while the game reports an active
 editor; UTF-8, intercepted paste, Backspace, and explicit Done are queued from
@@ -142,9 +149,9 @@ paste backpressure, and editor-specific keyboard configuration remain.
 
 The shared validator checks `.iso` and `.gcm` for the GameCube header, `GAFE01`,
 disc 0, and revision 0. Invalid input remains on the import screen and cannot
-replace valid retained data. Compressed formats, size/hash allowlisting,
-remove/reimport UI, and nod indexing remain intentionally unavailable until their
-readers and validation rules are linked and tested.
+replace valid retained data. Compressed formats, size/hash allowlisting, nod
+indexing, and compressed-container support remain intentionally unavailable
+until their readers and validation rules are linked and tested.
 
 ### Native iOS device bundle and unsigned IPA
 
@@ -174,7 +181,7 @@ Observed 2026-08-04: the output contains exactly the executable, plist,
 `Assets.car`, `AppIcon60x60@2x.png`, and `AppIcon76x76@2x~ipad.png`; it is 13 MB,
 targets ARM64 iOS 17.0 through Metal, and two independent packaging runs produced
 identical bytes with SHA-256
-`12273ffce1f06214433bd54f64104501e5a78b588ccbce3efd1614ebdc29e55c`.
+`03e362731837c944317d50fafee81ea15aca5632985529c64d46c8bc64dd567b`.
 
 Run the tracked-content safety check before every commit and package build:
 
