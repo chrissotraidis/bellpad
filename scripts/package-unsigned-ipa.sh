@@ -19,6 +19,17 @@ if [ "$platform" != "IOS" ]; then
     echo "Unsigned IPA input must be an iOS device app, not '$platform'." >&2
     exit 1
 fi
+linked_libraries=$(otool -L "$binary")
+unexpected_runtime=$(printf '%s\n' "$linked_libraries" | awk 'NR > 1 { print $1 }' | rg -v '^(/System/Library/|/usr/lib/)' || true)
+if [ -n "$unexpected_runtime" ]; then
+    echo "Unsigned IPA input has unbundled runtime dependencies:" >&2
+    printf '%s\n' "$unexpected_runtime" >&2
+    exit 1
+fi
+if otool -l "$binary" | grep -q 'cmd LC_RPATH'; then
+    echo "Unsigned IPA input contains a build-directory runtime search path." >&2
+    exit 1
+fi
 
 package_dir=$(mktemp -d)
 cleanup_package() {

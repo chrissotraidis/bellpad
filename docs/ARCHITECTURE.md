@@ -55,6 +55,12 @@ N64 GBI display list → emu64 → GX → Aurora → Dawn/WebGPU → Metal
 
 The OpenGL 3.3 renderer remains a temporary reference for Milestone 1. It is unsuitable as the final iOS path because iOS exposes OpenGL ES rather than desktop OpenGL 3.3 and OpenGL ES is deprecated on Apple platforms.
 
+The mobile product links Aurora, Dawn, SDL3, libpng, and the remaining bundled
+third-party implementation code statically. Only Apple system frameworks and
+libraries under `/usr/lib` may remain dynamic. Build and IPA packaging gates
+reject any other install name and every `LC_RPATH`, so a simulator-accessible
+checkout directory cannot accidentally become a device runtime dependency.
+
 Pinned Aurora has now crossed the first platform gate. Its GX example runs on
 macOS ARM64 with Dawn selecting the Apple M2 Metal adapter, and an independently
 linked ARM64 iOS Simulator build renders on both iPhone and iPad simulators.

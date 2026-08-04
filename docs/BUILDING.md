@@ -169,9 +169,11 @@ vendored SDL3, then compiles the same complete game core and Bellpad UIKit
 adapter for iOS 17 or newer. It compiles the original universal icon source with
 Apple `actool`, merges the generated primary-icon metadata, and verifies an
 ARM64 Mach-O with platform `IOS`, Metal linkage, a valid product plist, no SDL2,
-and no disc, save, or provisioning files in `Bellpad.app`. This is an unsigned
-build; installation still requires a user-owned signing identity and
-provisioning profile outside the repository.
+no non-system dynamic libraries or build-directory `LC_RPATH`, and no disc,
+save, or provisioning files in `Bellpad.app`. Mobile third-party libraries are
+linked statically; Apple system frameworks and `/usr/lib` libraries remain
+dynamic. This is an unsigned build; installation still requires a user-owned
+signing identity and provisioning profile outside the repository.
 
 The package script accepts only an iOS device app, removes any incidental code
 signature and provisioning profile from its private staging copy, audits both
@@ -182,10 +184,12 @@ reads or packages the ignored development disc image. Set
 `BELLPAD_SKIP_IOS_DEVICE_BUILD=1` to repackage an already audited device build.
 
 Observed 2026-08-04: the output contains exactly the executable, plist,
-`Assets.car`, `AppIcon60x60@2x.png`, and `AppIcon76x76@2x~ipad.png`; it is 13 MB,
-targets ARM64 iOS 17.0 through Metal, and two independent packaging runs produced
-identical bytes with SHA-256
-`58917d934a54595c45b099f5d5f7e13623059265e95969a847aa9bbe1182423e`.
+`Assets.car`, `AppIcon60x60@2x.png`, and `AppIcon76x76@2x~ipad.png`; it is 13 MiB
+compressed and targets ARM64 iOS 17.0 through Metal. Source-prefix mapping keeps
+the checkout location out of Bellpad-built objects. Two packages from the
+working tree and one from an independent fresh GitHub clone produced identical
+bytes with SHA-256
+`b0a9ff6f405a241a90f9ade71b5c54fd999922533fa3887f29bc736e6baf6e98`.
 
 Run the tracked-content safety check before every commit and package build:
 

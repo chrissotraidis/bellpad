@@ -7,6 +7,13 @@ core_dir="$repo_root/ref/upstream/acgc-64bit"
 aurora_dir="$repo_root/ref/upstream/aurora"
 build_dir=${BELLPAD_AURORA_GAME_IOS_DEVICE_BUILD_DIR:-"$core_dir/pc/build-bellpad-aurora-game-ios-device-package"}
 dependency_dir=${BELLPAD_AURORA_IOS_DEVICE_DEPENDENCY_DIR:-"$aurora_dir/build-bellpad-ios-device-package-ninja/_deps"}
+prefix_map="-ffile-prefix-map=$repo_root=/bellpad -fdebug-prefix-map=$repo_root=/bellpad -fmacro-prefix-map=$repo_root=/bellpad"
+case "$repo_root" in
+    /private/*)
+        repo_root_alias=${repo_root#/private}
+        prefix_map="$prefix_map -ffile-prefix-map=$repo_root_alias=/bellpad -fdebug-prefix-map=$repo_root_alias=/bellpad -fmacro-prefix-map=$repo_root_alias=/bellpad"
+        ;;
+esac
 
 "$script_dir/fetch-desktop-baseline.sh"
 "$script_dir/fetch-aurora.sh"
@@ -17,6 +24,16 @@ cmake -S "$core_dir/pc" -B "$build_dir" -G Ninja \
     -DCMAKE_OSX_ARCHITECTURES=arm64 \
     -DCMAKE_OSX_DEPLOYMENT_TARGET=17.0 \
     -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_C_FLAGS="$prefix_map" \
+    -DCMAKE_CXX_FLAGS="$prefix_map" \
+    -DCMAKE_OBJC_FLAGS="$prefix_map" \
+    -DCMAKE_OBJCXX_FLAGS="$prefix_map" \
+    -DBUILD_SHARED_LIBS=OFF \
+    -DPNG_SHARED=OFF \
+    -DPNG_STATIC=ON \
+    -DPNG_FRAMEWORK=OFF \
+    -DPNG_TESTS=OFF \
+    -DPNG_TOOLS=OFF \
     -DBELLPAD_AURORA_LINK_PROBE=ON \
     -DBELLPAD_AURORA_SOURCE_DIR="$aurora_dir" \
     -DBELLPAD_IOS_INFO_PLIST="$repo_root/apple/ios/Info.plist" \
@@ -43,6 +60,16 @@ linked_libraries=$(otool -L "$binary")
 printf '%s\n' "$linked_libraries" | grep -q 'Metal.framework'
 if printf '%s\n' "$linked_libraries" | grep -q 'SDL2'; then
     echo "iOS device game target unexpectedly links the legacy SDL2 runtime." >&2
+    exit 1
+fi
+unexpected_runtime=$(printf '%s\n' "$linked_libraries" | awk 'NR > 1 { print $1 }' | rg -v '^(/System/Library/|/usr/lib/)' || true)
+if [ -n "$unexpected_runtime" ]; then
+    echo "iOS device game target has unbundled runtime dependencies:" >&2
+    printf '%s\n' "$unexpected_runtime" >&2
+    exit 1
+fi
+if otool -l "$binary" | grep -q 'cmd LC_RPATH'; then
+    echo "iOS device game target contains a build-directory runtime search path." >&2
     exit 1
 fi
 
