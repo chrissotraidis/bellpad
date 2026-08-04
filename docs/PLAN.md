@@ -6,7 +6,7 @@ Bellpad is a native Apple-platform source port. It will not ship an emulator, a 
 
 ## Current completion focus
 
-The Apple wrappers are converged: macOS, iPhone, and iPad builds exist; normalized touch/controller input, the gear menu, persistent per-device layouts, Native/1×/2×/3×/4× rendering, Files import, native setup text, GCI persistence, native save/disc management, a representative iPhone train/station scene, and isolated Dolphin GCI-folder interchange have runtime evidence. Do not spend ongoing implementation time replaying every button across every activity. Finish the product through broader scene/lifecycle hardening, disc-format/release audits, and physical-device validation. The exhaustive activity matrix remains a final acceptance pass.
+The Apple wrappers are converged: macOS, iPhone, and iPad builds exist; normalized touch/controller input, the gear menu, persistent per-device layouts, Native/1×/2×/3×/4× rendering, Files import, native setup text, GCI persistence, native save/disc management, saved-player train/station rendering on both simulator classes, one iPhone outdoor-town entry, and isolated Dolphin GCI-folder interchange have runtime evidence. Do not spend ongoing implementation time replaying every button across every activity. Finish the product through broader scene/lifecycle hardening, disc-format/release audits, and physical-device validation. The exhaustive activity matrix remains a final acceptance pass.
 
 ## Evidence-based foundation
 
@@ -15,7 +15,7 @@ The Apple wrappers are converged: macOS, iPhone, and iPad builds exist; normaliz
 - Final compatibility layer: Aurora (MIT), initially for SDL3/application lifecycle, DVD/nod, PAD, CARD, OS/RTC, VI, MTX, and Metal-backed GX through Dawn/WebGPU.
 - Mobile shell: a thin Objective-C++/UIKit layer around a portable C/C++ game target. HarkinianPad is an architecture and UX reference only unless separately licensed code is explicitly contributed.
 
-This selection is now supported by platform, symbol-surface, ABI, source-boundary, executable-link, rendering, and input evidence. The desktop-compiled core requires 112 GX/GD symbols; Bellpad's pinned Aurora patches supply all 112, and compiled probes verify matching value types plus sufficient opaque texture/palette storage. The complete core links to Aurora without SDL2, initializes Metal and SDL3 audio, reads the supported image, renders the complete title composition, correctly placed multi-line K.K. dialogue, animated title water/choice UI, and a representative saved-player train/station scene at the fixed 60 Hz cadence, and accepts live input. Interiors, inventory, and broader outdoor traversal remain before OpenGL can be retired as the behavior oracle.
+This selection is now supported by platform, symbol-surface, ABI, source-boundary, executable-link, rendering, and input evidence. The desktop-compiled core requires 112 GX/GD symbols; Bellpad's pinned Aurora patches supply all 112, and compiled probes verify matching value types plus sufficient opaque texture/palette storage. The complete core links to Aurora without SDL2, initializes Metal and SDL3 audio, reads the supported image, renders the complete title composition, correctly placed multi-line K.K. dialogue, animated title water/choice UI, saved-player train/station scenes on both simulator classes, and an iPhone outdoor-town entry at the fixed 60 Hz cadence, and accepts live input. Interiors, inventory, and broader outdoor comparison remain before OpenGL can be retired as the behavior oracle.
 
 ## Milestone 0 — safety, research, and provenance
 
@@ -60,9 +60,9 @@ This selection is now supported by platform, symbol-surface, ABI, source-boundar
 4. [x] Feed the title scene's Animal Crossing display lists through Aurora GX. Explicit host EFB clearing removed the accumulated-frame smear; static host-endian palette conversion now matches the dynamic path, cache invalidation is bounded per frame, unsafe draw merging is disabled, and corrected counter-clockwise WebGPU front faces restore the complete scene geometry.
 5. Validate correct title, train, outdoor town, interiors, inventory, dialogue, particles, framebuffer effects, and NES output.
    [x] Title composition and multi-line K.K. dialogue match the OpenGL oracle at the fixed 60 Hz cadence.
-   [x] A saved-player iPhone run visibly completed returning-player dialogue and the train arrival at Cove station through Metal.
+   [x] Saved-player iPhone and iPad runs visibly completed returning-player dialogue and the train arrival at Cove station through Metal; iPhone additionally exited into the outdoor town and triggered Tom Nook's greeting.
    [x] Choice UI and animated title water render through Metal.
-   [ ] Broader outdoor town traversal, interiors, inventory, particles, framebuffer effects, and runtime NES output remain. The NES GX/Metal presenter and deterministic tiled-RGB565 tests now compile in every Apple target.
+   [ ] Broader outdoor town comparison, iPad outdoor traversal, interiors, inventory, particles, framebuffer effects, and runtime NES output remain. The NES GX/Metal presenter and deterministic tiled-RGB565 tests now compile in every Apple target.
 6. Use Aurora GX after the real core link and scene-rendering gates pass. Keep the existing OpenGL renderer only as a temporary desktop oracle.
 
 GX reaches Metal as: game/JSystem/emu64 GX calls → Aurora GX command processor → WebGPU → Dawn Metal backend → `CAMetalLayer`.

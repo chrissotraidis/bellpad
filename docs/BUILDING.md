@@ -88,7 +88,8 @@ M2 Metal adapter, loads 14,495 assets, opens 32 kHz stereo audio, and reaches an
 interactive 60 FPS title menu. Explicit host EFB clearing prevents moving frames
 from accumulating; palette, winding, color-channel, and polygon-font fixes produce
 the complete title and correctly placed multi-line K.K. dialogue. A later iPhone
-product run also rendered a saved-player train/station sequence. The standalone
+product runs also rendered a saved-player train/station sequence on iPhone and
+iPad; iPhone continued into the outdoor town and Tom Nook's greeting. The standalone
 macOS Aurora target remains an integration target until broader scenes and product services pass.
 It also uses the launch working directory rather than the product's Application
 Support policy and requires the explicit `--disc` path.
