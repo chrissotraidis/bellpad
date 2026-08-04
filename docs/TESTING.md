@@ -12,10 +12,10 @@ No gameplay test is marked passed without a dated result, device/OS, build revis
 | Apple toolchain runtime smoke test | Native binary reaches visible game output | Pass — Apple Clang build rendered the title correctly at 60 FPS using the ignored supported image |
 | Validate supported disc | Accept `GAFE01` USA Rev 0 only | Partial pass — local header/revision/magic/hash validated; product hash allowlist pending |
 | Trademark/title | Correct render/audio/input | Partial pass — correct 60 FPS rendering and 32 kHz stereo; A/Start works through a latched native test path; cleanup overflow fixed; repeatable UI automation pending |
-| Character/town creation | Completes with text entry | Partial pass — Bell/Cedar, train, town generation, house selection, mortgage, and early work tutorial completed; first save remains pending |
+| Character/town creation | Completes with text entry | Pass for baseline — Bell/Cove setup, train, generated town, initialized save state, and saved-player relaunch flow completed; later tutorial breadth is covered by the separate Cedar run |
 | Enter town | Stable outdoor rendering and movement | Pass — station exit, outdoor movement, Nook greeting, and housing area observed |
-| Save/exit/relaunch | Same town loads from GCI | Pending |
-| RTC | Time and date match host | Partial pass — fresh setup displayed Monday, August 3, 2026 and the expected host-local time; save/relaunch and clock-change behavior remain pending |
+| Save/exit/relaunch | Same town loads from GCI | Pass for native persistence — live Bell/Cove state wrote a canonical GCI, macOS closed normally and reloaded it; iPhone loaded, rewrote with `.bak1`, terminated, and reloaded the rewrite. Retail save UI and user-facing import/export remain open |
+| RTC | Time and date match host | Partial pass — fresh setup displayed Monday, August 3, 2026 and the expected host-local time; clock-change, timezone-change, and resumed-session behavior remain pending |
 | Memory | No unbounded growth during sustained play | Pending |
 
 ### Baseline defects reproduced on 2026-08-03
@@ -47,7 +47,7 @@ No gameplay test is marked passed without a dated result, device/OS, build revis
 - Selected a house, accepted the mortgage, equipped Nook's work uniform through the inventory, and planted all seven flowers and three saplings. Placement validation rejected paved locations and accepted valid soil.
 - Completed first-time resident conversations with Peaches and Chuck. Live quest inspection reported 2 friend records out of 6 starting villagers; Tortimer's work-introduction flag remained unset.
 - Rendering and audio remained active throughout; no panic occurred on the normal title path.
-- No GCI file was created before the session ended, so save/reload is not marked passed.
+- That historical Cedar session ended before creating a GCI. The later isolated Bell/Cove persistence run below supersedes this specific gap without changing the Cedar gameplay evidence.
 - The current Computer Use wrapper does not consistently deliver synthesized keys to SDL. The linked Homebrew library is `sdl2-compat`, backed by SDL3, so raw SDL2 event-layout injection is also invalid. For desktop QA, `scripts/tap-desktop-button.sh <pid> A` calls the same normalized queue under LLDB; it deliberately supports buttons only and does not bypass game logic.
 - `scripts/type-desktop-text.sh <pid> Bell` validates an explicit game PID, restricts its shell-facing value to ASCII alphanumerics, and calls the same begin/commit/Enter API planned for native keyboard adapters. The underlying API retains the port's existing UTF-8 mapping, including its supported accented characters.
 - Normalized pad merge: requested left stick `(-77,55)`, C-stick `(33,-44)`, and triggers `(120,130)`. `PADRead` returned packed bytes `0x8278d42137b30060`, exactly matching all axes/triggers plus trigger-derived L/R bits `0x0060`. `scripts/set-desktop-stick.sh` also set and cleared the persistent left-stick state.
@@ -119,6 +119,7 @@ scene/orientation/safe-area policy and adaptive touch controls.
 | iPhone control settings | Pass — the native gear opened a correctly laid-out panel over the real Metal game with Native/1×/2×/3×/4× resolution, opacity/size sliders, hide/move switches, and per-device reset; source/build checks cover normalized safe-area position persistence |
 | iPhone render resolution | Pass — Native used 2622×1206, 1× used 1044×480, 2× used 2087×960, 3× used 3131×1440, and 4× used 4174×1920 while the Metal drawable remained 2622×1206; this changes render resolution, not the fixed 60 Hz simulation rate |
 | iPhone retained relaunch | Pass — terminating and launching again with no arguments skipped Files and returned to the animated title from the retained Application Support copy |
+| iPhone GCI persistence | Pass — a desktop-created 467,008-byte Bell/Cove GCI loaded with all four endian round trips passing; the live game-facing save routine returned success, rotated the original to `.bak1`, wrote a changed canonical file, and the canonical file loaded successfully after app termination/relaunch |
 | Sequential stop | Pass — iPhone app terminated, exact simulator test copies were removed, and the simulator shut down before iPad boot |
 | iPad first-run/valid import | Pass — no-data screen presented in iPadOS's managed window; Files-selected GAFE01 data was retained byte-exactly with no staging residue and the native title rendered with iPad control metrics |
 | iPad native player name | Pass with harness limitation — the real editor presented the adaptive UIKit field as first responder, accepted text through the production insertion method, exited on Done, and Rover echoed the entered prefix. Simulator host-focus loss paused consumption during LLDB automation, so this run does not claim an exact full-name value |
@@ -134,7 +135,7 @@ scene/orientation/safe-area policy and adaptive touch controls.
 
 The import runs above used the native Files UI and no `--disc` argument. They
 prove the raw ISO/GCM user flow and relaunch retention, not hash/size allowlisting,
-compressed formats, game-save persistence, letter-editor coverage,
+compressed formats, user-facing save import/export, letter-editor coverage,
 physical-device security scopes/keyboards, or mobile lifecycle completion.
 
 The native keyboard tests used the actual UIKit first-responder and insertion
@@ -158,7 +159,7 @@ test copies were removed or moved to Trash afterward.
 | Overclock rejection | Pass — bundled executable returns status 2 for both `--framelimit 120` and `--no-framelimit` with an acceleration warning |
 | Native picker | Build/runtime path present; the previously proven AppKit sheet covers presentation, but selecting retail data through it remains a manual product test |
 | Application Support path/relaunch | Pass — isolated `BELLPAD_DATA_HOME` became the reported save cwd; a second launch loaded the same settings/keybindings |
-| In-game save/atomic backups | Partial — the build implements checksummed GCI output, durable temp-file flush, atomic replacement, three rolling backups, and recovery; successful game-driven creation/reload and import/export remain pending |
+| Game-facing save/atomic backups | Pass for native persistence — an initialized Bell/Cove town wrote a canonical GCI, normal window close returned from `graph_proc`, and a fresh process passed all four endian round trips, reported `GCI save loaded successfully`, and entered the saved-player Cove station flow. The retail save dialogue and import/export remain pending |
 
 ### Game-core/Aurora convergence evidence — 2026-08-03
 

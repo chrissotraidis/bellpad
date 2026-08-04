@@ -2,7 +2,7 @@
 set -eu
 
 if [ "$#" -ne 2 ]; then
-    echo "Usage: $0 <AnimalCrossing-pid> <A|B|X|Y|Start|Z|L|R|DUp|DDown|DLeft|DRight>" >&2
+    echo "Usage: $0 <Bellpad-pid> <A|B|X|Y|Start|Z|L|R|DUp|DDown|DLeft|DRight>" >&2
     exit 2
 fi
 
@@ -18,9 +18,9 @@ esac
 
 command_line=$(ps -p "$pid" -o command= 2>/dev/null || true)
 case "$command_line" in
-    *AnimalCrossing*) ;;
+    *AnimalCrossing*|*Bellpad.app/Contents/MacOS/Bellpad*) ;;
     *)
-        echo "PID $pid is not a running AnimalCrossing desktop baseline." >&2
+        echo "PID $pid is not a running Bellpad desktop game." >&2
         exit 1
         ;;
 esac
