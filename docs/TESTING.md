@@ -8,7 +8,7 @@ No gameplay test is marked passed without a dated result, device/OS, build revis
 
 | Test | Current evidence |
 |---|---|
-| Clean Apple ARM64 checkout | Pass — GitHub Actions [run 30931076037](https://github.com/chrissotraidis/bellpad/actions/runs/30931076037), 2026-08-04, `macos-15` ARM64 runner |
+| Clean Apple ARM64 checkout | Pass — the live [source-release workflow](https://github.com/chrissotraidis/bellpad/actions/workflows/source-release.yml) verifies current `main` on a `macos-15` ARM64 runner |
 | Retail-data exclusion | Pass — the hosted job receives no disc image, extracted asset, or save and completes the tracked/release-content audits |
 | Pinned core reconstruction | Pass — the exact `915fb86…` upstream commit is fetched and all forty-one tracked patches pass `git apply --check` and replay in an isolated detached worktree |
 | Source checks | Pass — native macOS shell and normalized-input test, deterministic RTC suite, NES/GX frame-conversion suite, shell syntax, and whitespace checks |
@@ -139,6 +139,8 @@ scene/orientation/safe-area policy and adaptive touch controls.
 | iPhone retained relaunch | Pass — terminating and launching again with no arguments skipped Files and returned to the animated title from the retained Application Support copy |
 | iPhone GCI persistence | Pass — a desktop-created 467,008-byte Bell/Cove GCI loaded with all four endian round trips passing; the live game-facing save routine returned success, rotated the original to `.bak1`, wrote a changed canonical file, and the canonical file loaded successfully after app termination/relaunch |
 | iPhone app-update persistence | Pass — a `0.1.0` build-100 Simulator app was replaced in place by `0.1.1` build 101 under the production bundle identifier. CoreSimulator relocated the data-container path but preserved the original save and retained-image filesystem inodes, sizes, and SHA-256 hashes plus opacity `0.55` and render scale `3`; normal launch selected Metal, restored the 3× framebuffer, reused retained game data, passed every GCI endian round trip, logged `GCI save loaded successfully`, and reached the title |
+| iPhone corrupt-save recovery | Pass — with checksum-only corruption in a same-size, correct-header canonical GCI and valid `.bak1`, pre-boot strict validation restored a canonical file byte-identical to the known-good backup, retained the damaged file byte-identically under a unique `.gci.corrupt-…` name, loaded the recovered GCI, and reached the title. The initial live attempt exposed Foundation's default deletion of replacement backups; the final implementation explicitly retains the displaced item and the repeated proof passed |
+| iPhone no-backup quarantine | Pass — with the same checksum-only damaged canonical GCI and no backup candidates, Bellpad atomically moved the exact damaged bytes to a filename that does not end in `.gci`, left no canonical file for the permissive legacy loader, logged `No save file found`, and reached the title. The isolated simulator was then terminated, shut down, and deleted |
 | iPhone saved-player Metal scene | Pass — returning-player dialogue showed the host-local August 4, 2026 date/time, the train sequence advanced, Porter announced Cove, the train departed, and the station environment remained visibly rendered through Metal |
 | iPhone outdoor town entry | Pass — the production UIKit A button advanced the saved-player path, the shared normalized left-stick state moved Bell out of Cove station, the outdoor town rendered through Metal, and the movement triggered Tom Nook's greeting. This bounded proof replaces broader activity-by-activity control replay |
 | Dolphin GCI-folder interchange | Pass with isolated harness — Dolphin 5.0-17995 booted GAFE01 with Bellpad's canonical GCI in a private GCI Folder, read its header/data without invalid-file diagnostics, and left the SHA unchanged; Bellpad then installed and loaded that Dolphin-managed file before startup |
@@ -157,7 +159,7 @@ scene/orientation/safe-area policy and adaptive touch controls.
 | RTC activation rebase | Pass — patches 30/31 rebuilt into the universal product; iPhone Home/foreground logged audio pause, `RTC synchronized after UIApplicationDidBecomeActive (adjustment 0.000 seconds)`, and audio resume. The same bundle then booted the real game on iPad only after iPhone shutdown and returned from one bounded Home/resume cycle |
 | NES GX framebuffer | Partial — deterministic tests prove visible-row cropping, fixNES-to-GX RGB565 field conversion, big-endian bytes, 4×4 tile ordering, invalid-buffer rejection, and final-pixel placement; macOS, iOS Simulator, and iOS device products compile/link the GX presenter. No local `.nes` input was available, so actual NES-furniture video remains a runtime gate |
 | ARM64 device build | Pass (static audit) — complete product links as Mach-O arm64 with `LC_BUILD_VERSION` platform `IOS`, minimum iOS 17.0, Metal, and no SDL2; physical install/runtime remains |
-| Unsigned IPA reproducibility | Pass — two timestamp-normalized save-import/settings release-candidate packages were byte-identical with SHA-256 `5a2150bf0a74a340a5af1260a975f039185b7539ad5517ff3857ff492bdfbd8e`; the preceding post-notice checkpoint also reproduced from an independent fresh clone |
+| Unsigned IPA reproducibility | Pass — two final timestamp-normalized save-recovery packages were byte-identical with SHA-256 `63752da02aeed92f925d2494a49a1537308bdea2a8a0a4af6cd1e4d8a5bffb7a`; the preceding source-release checkpoint also reproduced from an independent fresh clone |
 | Device runtime-link audit | Pass — `otool` reports only Apple system frameworks and `/usr/lib` libraries; no `LC_RPATH` remains, and the package script independently enforces both constraints |
 | Post-static-link simulator smoke | Pass — rebuilt universal bundle installed and launched to the native no-data Files screen on iPhone 17 Pro, then after shutdown on iPad Pro 13-inch; both sessions were terminated and shut down without extended control replay |
 | Dependency/archive pins | Pass — product dependency lock covers every linked non-system library; Abseil, SDL3, source Dawn, iOS Dawn, and macOS Dawn hashes close the formerly version-only downloads, while all remaining fetched archives retain upstream SHA-256 pins |
@@ -170,6 +172,9 @@ runs used ignored GCI data and the production gear-menu actions. They prove real
 export bytes, isolated Dolphin interchange, a fully UI-driven Files import, and
 byte-identical pre-boot installation. The versioned update test additionally
 proves that Simulator bundle replacement preserves that private state and settings.
+The fault-injection tests prove that strict mobile pre-boot validation either
+installs a valid backup while preserving the displaced bytes or quarantines the
+invalid canonical file before the legacy loader can observe it.
 These runs do not prove compressed formats, broad letter-editor coverage,
 physical-device security scopes/keyboards, or mobile lifecycle completion.
 
@@ -218,4 +223,4 @@ correctly laid out the app in landscape. No screenshot is used as game evidence.
 
 - Scan Git index, archive, app bundle, and IPA case-insensitively for ISO/GCM/CISO/RVZ/WIA/WBFS/GCZ, extracted retail files, GCI/raw saves, credentials, certificates, and provisioning profiles.
 - Verify the IPA contains no retail image, extracted retail asset, generated playable archive, user save, or signing secret.
-- Install, create/import a save, update in place, and verify persistence and backup recovery.
+- Install, create/import a save, update in place, verify persistence, inject canonical corruption, and prove both valid-backup restoration and no-backup quarantine.

@@ -12,7 +12,7 @@ brew install cmake ninja ripgrep sdl2
 ./scripts/build-aurora-game-ios-simulator.sh
 ```
 
-The verification command audits tracked/release content, clones the exact pinned game core into ignored local storage, replays all forty-one patches in an isolated detached worktree, builds and runs the clean native platform tests, exercises the deterministic RTC and NES/GX conversion suites, checks every shell script, and rejects whitespace errors. It requires no retail data. The same command runs on GitHub's Apple ARM64 `macos-15` runner through the pinned [source-release workflow](https://github.com/chrissotraidis/bellpad/actions/workflows/source-release.yml); [run 30931076037](https://github.com/chrissotraidis/bellpad/actions/runs/30931076037) passed from a clean checkout on 2026-08-04. The simulator build fetches pinned dependencies and may take several minutes on its first Dawn build.
+The verification command audits tracked/release content, clones the exact pinned game core into ignored local storage, replays all forty-one patches in an isolated detached worktree, builds and runs the clean native platform tests, exercises the deterministic RTC and NES/GX conversion suites, checks every shell script, and rejects whitespace errors. It requires no retail data. The same command runs on GitHub's Apple ARM64 `macos-15` runner through the pinned [source-release workflow](https://github.com/chrissotraidis/bellpad/actions/workflows/source-release.yml); use that live workflow page as the authoritative clean-checkout result for the current `main`. The simulator build fetches pinned dependencies and may take several minutes on its first Dawn build.
 
 ## Host
 
@@ -239,9 +239,9 @@ Observed 2026-08-04: the output contains exactly the executable, plist,
 `Assets.car`, `AppIcon60x60@2x.png`, `AppIcon76x76@2x~ipad.png`, and the tracked
 `ThirdPartyNotices.txt`; it is 13 MiB compressed and targets ARM64 iOS 17.0
 through Metal. Source-prefix mapping keeps the checkout location out of
-Bellpad-built objects. Two post-notice packages produced identical bytes with
+Bellpad-built objects. Two final save-recovery packages produced identical bytes with
 SHA-256
-`5a2150bf0a74a340a5af1260a975f039185b7539ad5517ff3857ff492bdfbd8e`.
+`63752da02aeed92f925d2494a49a1537308bdea2a8a0a4af6cd1e4d8a5bffb7a`.
 
 Run the tracked-content safety check before every commit and package build:
 

@@ -113,6 +113,7 @@ static NSURL *sApplicationSupportURL;
 
 static NSString *const BPChangeGameDataOnNextLaunchKey = @"BellpadChangeGameDataOnNextLaunch";
 static NSString *const BPRemoveGameDataOnNextLaunchKey = @"BellpadRemoveGameDataOnNextLaunch";
+static NSString *const BPSaveRecoveryNoticeKey = @"BellpadSaveRecoveryNotice";
 
 static NSURL *BellpadResolvedApplicationSupportURL(void) {
     if (sApplicationSupportURL) return sApplicationSupportURL;
@@ -237,6 +238,110 @@ static void BellpadApplyPendingSaveImport(void) {
     }
     [files removeItemAtURL:pending error:nil];
     NSLog(@"[Save] Installed validated pending GCI before game startup");
+}
+
+static void BellpadSetSaveRecoveryNotice(NSString *title, NSString *message) {
+    [NSUserDefaults.standardUserDefaults setObject:@{
+        @"title": title,
+        @"message": message,
+    } forKey:BPSaveRecoveryNoticeKey];
+}
+
+static NSURL *BellpadUniqueCorruptSaveURL(NSURL *directory) {
+    const long long timestamp = (long long)(NSDate.date.timeIntervalSince1970 * 1000.0);
+    NSString *name = [NSString stringWithFormat:@"DobutsunomoriP_MURA.gci.corrupt-%lld", timestamp];
+    NSURL *url = [directory URLByAppendingPathComponent:name];
+    if (![NSFileManager.defaultManager fileExistsAtPath:url.path]) return url;
+    name = [NSString stringWithFormat:@"DobutsunomoriP_MURA.gci.corrupt-%@", NSUUID.UUID.UUIDString];
+    return [directory URLByAppendingPathComponent:name];
+}
+
+static BOOL BellpadRecoverCanonicalSaveIfNeeded(void) {
+    NSURL *destination = BellpadCanonicalSaveURL();
+    NSFileManager *files = NSFileManager.defaultManager;
+    if (!destination || ![files fileExistsAtPath:destination.path]) return YES;
+
+    NSString *canonicalError = BellpadLoadValidatedGCI(destination, nil);
+    if (!canonicalError) return YES;
+
+    NSURL *directory = destination.URLByDeletingLastPathComponent;
+    NSArray<NSString *> *backupNames = @[
+        @"DobutsunomoriP_MURA.gci.bak1",
+        @"DobutsunomoriP_MURA.gci.bak2",
+        @"DobutsunomoriP_MURA.gci.bak3",
+        @"DobutsunomoriP_MURA.gci.pre-import",
+    ];
+    NSData *recoveryData = nil;
+    NSString *recoveryName = nil;
+    for (NSString *name in backupNames) {
+        NSURL *candidate = [directory URLByAppendingPathComponent:name];
+        NSData *candidateData = nil;
+        if ([files fileExistsAtPath:candidate.path] &&
+            !BellpadLoadValidatedGCI(candidate, &candidateData)) {
+            recoveryData = candidateData;
+            recoveryName = name;
+            break;
+        }
+    }
+
+    NSURL *quarantine = BellpadUniqueCorruptSaveURL(directory);
+    if (!recoveryData) {
+        NSError *error = nil;
+        [files moveItemAtURL:destination toURL:quarantine error:&error];
+        if (error) {
+            NSLog(@"[Save] Invalid canonical GCI could not be quarantined: %@", error.localizedDescription);
+            BellpadSetSaveRecoveryNotice(@"Save Needs Attention",
+                @"The active GCI is invalid and no valid backup was found. Bellpad could not move it aside, so the game was not started. Export the app container before retrying.");
+            return NO;
+        }
+        NSError *syncError = nil;
+        if (!BellpadSynchronizeFileAndDirectory(quarantine, &syncError)) {
+            NSLog(@"[Save] Quarantined GCI metadata synchronization failed: %@",
+                  syncError.localizedDescription);
+        }
+        NSLog(@"[Save] Quarantined invalid canonical GCI as %@; no valid backup was found",
+              quarantine.lastPathComponent);
+        BellpadSetSaveRecoveryNotice(@"Save Quarantined",
+            [NSString stringWithFormat:
+                @"The active GCI was invalid and no valid backup was found. Bellpad preserved it as %@ and started without loading the damaged file. You can import a valid Dolphin GCI from Settings.",
+                quarantine.lastPathComponent]);
+        return YES;
+    }
+
+    NSError *error = nil;
+    NSURL *staging = [directory URLByAppendingPathComponent:@"DobutsunomoriP_MURA.recovering.gci"];
+    [files removeItemAtURL:staging error:nil];
+    [recoveryData writeToURL:staging options:NSDataWritingAtomic error:&error];
+    if (!error) BellpadSynchronizeFileAndDirectory(staging, &error);
+    if (!error) {
+        [files replaceItemAtURL:destination withItemAtURL:staging
+                 backupItemName:quarantine.lastPathComponent
+                        options:NSFileManagerItemReplacementWithoutDeletingBackupItem
+               resultingItemURL:nil error:&error];
+    }
+    if (error) {
+        [files removeItemAtURL:staging error:nil];
+        NSLog(@"[Save] Could not recover invalid canonical GCI from %@: %@",
+              recoveryName, error.localizedDescription);
+        BellpadSetSaveRecoveryNotice(@"Save Recovery Failed",
+            [NSString stringWithFormat:
+                @"The active GCI is invalid. A valid backup (%@) was found, but Bellpad could not install it: %@",
+                recoveryName, error.localizedDescription]);
+        return NO;
+    }
+
+    NSError *syncError = nil;
+    if (!BellpadSynchronizeFileAndDirectory(destination, &syncError)) {
+        NSLog(@"[Save] Recovered GCI metadata synchronization failed: %@",
+              syncError.localizedDescription);
+    }
+    NSLog(@"[Save] Recovered invalid canonical GCI from %@; preserved damaged file as %@",
+          recoveryName, quarantine.lastPathComponent);
+    BellpadSetSaveRecoveryNotice(@"Save Recovered",
+        [NSString stringWithFormat:
+            @"Bellpad restored the newest valid backup (%@). The damaged GCI was preserved as %@.",
+            recoveryName, quarantine.lastPathComponent]);
+    return YES;
 }
 
 static void BellpadQueueNativeText(NSString *text) {
@@ -492,6 +597,7 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
 - (void)presentDocumentPickerWhileHoldingGameLoop:(UIDocumentPickerViewController *)picker;
 - (void)scheduleGameDataChange;
 - (void)confirmGameDataRemoval;
+- (void)presentMessageWithTitle:(NSString *)title message:(NSString *)message;
 @end
 
 @implementation BPGameOverlay {
@@ -1424,6 +1530,14 @@ void bellpad_install_game_overlay(void) {
         BPGameOverlay *overlay = [[BPGameOverlay alloc] initWithFrame:host.bounds];
         overlay.tag = 0x42454C4C;
         [host addSubview:overlay];
+        NSDictionary *notice = [NSUserDefaults.standardUserDefaults dictionaryForKey:BPSaveRecoveryNoticeKey];
+        if (notice) {
+            [NSUserDefaults.standardUserDefaults removeObjectForKey:BPSaveRecoveryNoticeKey];
+            dispatch_async(dispatch_get_main_queue(), ^{
+                [overlay presentMessageWithTitle:notice[@"title"] ?: @"Save Notice"
+                                          message:notice[@"message"] ?: @""];
+            });
+        }
     };
     if (NSThread.isMainThread) install();
     else dispatch_sync(dispatch_get_main_queue(), install);
@@ -1440,6 +1554,7 @@ int bellpad_prepare_game_data_path(const char* applicationSupportPath,
     NSURL *supportURL = [NSURL fileURLWithPath:supportPath isDirectory:YES];
     sApplicationSupportURL = supportURL;
     BellpadApplyPendingSaveImport();
+    if (!BellpadRecoverCanonicalSaveIfNeeded()) return 0;
 
     NSUserDefaults *defaults = NSUserDefaults.standardUserDefaults;
     BOOL forcePicker = [defaults boolForKey:BPChangeGameDataOnNextLaunchKey];
