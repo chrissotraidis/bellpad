@@ -55,6 +55,24 @@ This opt-in build packages the actual compiled game core as an ARM64 app bundle.
 
 The current bundle is an honest Milestone 1 product baseline, not the final architecture: rendering remains SDL2/OpenGL. On macOS it creates and enters `~/Library/Application Support/Bellpad` before loading settings, keybindings, or `save/card_a`. Set `BELLPAD_DATA_HOME` to an isolated absolute directory for development tests. This proves path stability, not a successful in-game save; atomic replacement/backups and save/relaunch gameplay evidence remain required.
 
+## Aurora game-core compatibility audits
+
+After building the playable app and the macOS Aurora probe, run:
+
+```sh
+./scripts/audit-aurora-gx-coverage.sh
+./scripts/audit-aurora-gx-abi.sh
+```
+
+The coverage audit derives requirements from the compiled game-core objects,
+not from a hand-maintained list, and fails if patched `libaurora_gx.a` lacks any
+GX/GD import. The ABI audit compiles the same probe once against each header
+set; value types must match exactly, while opaque texture/palette storage must
+be at least as large and aligned as Aurora's implementation. Observed result:
+3,905 objects, 112 required symbols, zero missing; all value types match, with
+core/Aurora opaque sizes of 88/64 bytes for `GXTexObj` and 40/40 bytes for
+`GXTlutObj`.
+
 ## Metal/touch integration shells
 
 The current clean shell build contains only Bellpad-authored platform code and Apple frameworks. It creates ROM-free macOS and universal iOS/iPadOS bundles:

@@ -38,3 +38,16 @@ files from bundle resources. It does not add or copy retail data. Build it with
 development-only `BELLPAD_DATA_HOME` override enables isolated persistence
 tests. Disc and shader paths remain absolute/bundle-resolved; no retail data is
 copied into Application Support by this patch.
+
+`pc-port/0013-size-gx-objects-for-aurora.patch` expands the PC-side opaque
+`GXTlutObj` storage to Aurora's required size. The existing `GXTexObj` storage
+was already larger than Aurora's implementation. This makes the compiled core
+safe for an Aurora link without changing the GameCube-target structure sizes.
+
+`aurora/0001-complete-acgc-gx-compatibility.patch` applies to Aurora commit
+`5027ed63a73dfba28de9eceed00481fb09a19c35`. It implements the five GX calls
+used by the compiled game core that the pinned Aurora library did not export:
+software-FIFO frame abort, texture-copy clamping, scissor-box offset, the
+source port's single-thread ownership contract, and hardware-counter fallback
+for the original GP hang diagnostic. `./scripts/fetch-aurora.sh` applies the
+ordered Aurora patch series idempotently.

@@ -1,0 +1,13 @@
+diff --git a/include/dolphin/gx/GXStruct.h b/include/dolphin/gx/GXStruct.h
+index c4aa761..00eaf41 100644
+--- a/include/dolphin/gx/GXStruct.h
++++ b/include/dolphin/gx/GXStruct.h
+@@ -42,7 +42,7 @@ typedef struct _GXTexObj {
+ 
+ typedef struct _GXTlutObj {
+ #ifdef TARGET_PC
+-  u32 dummy[4];
++  u32 dummy[10];
+ #else
+   u32 dummy[3];
+ #endif

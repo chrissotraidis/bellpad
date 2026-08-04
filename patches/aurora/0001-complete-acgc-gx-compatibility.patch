@@ -1,0 +1,113 @@
+diff --git a/lib/dolphin/gx/GXCull.cpp b/lib/dolphin/gx/GXCull.cpp
+index 0611778..527ec8b 100644
+--- a/lib/dolphin/gx/GXCull.cpp
++++ b/lib/dolphin/gx/GXCull.cpp
+@@ -19,7 +19,16 @@ void GXSetScissor(u32 left, u32 top, u32 width, u32 height) {
+   __gx->bpSent = 1;
+ }
+ 
+-// TODO GXSetScissorBoxOffset
++void GXSetScissorBoxOffset(s32 x_off, s32 y_off) {
++  const u32 halfX = static_cast<u32>(x_off + 342) >> 1;
++  const u32 halfY = static_cast<u32>(y_off + 342) >> 1;
++  u32 reg = 0;
++  SET_REG_FIELD(0, reg, 10, 0, halfX);
++  SET_REG_FIELD(0, reg, 10, 10, halfY);
++  SET_REG_FIELD(0, reg, 8, 24, 0x59);
++  GX_WRITE_RAS_REG(reg);
++  __gx->bpSent = 1;
++}
+ 
+ void GXSetCullMode(GXCullMode mode) {
+   // Swap front/back to match hardware convention
+diff --git a/lib/dolphin/gx/GXFifo.cpp b/lib/dolphin/gx/GXFifo.cpp
+index ab86547..d7a5ae0 100644
+--- a/lib/dolphin/gx/GXFifo.cpp
++++ b/lib/dolphin/gx/GXFifo.cpp
+@@ -43,8 +43,13 @@ void GXSaveCPUFifo(GXFifoObj* fifo) {}
+ // TODO GXSaveGPFifo
+ // TODO GXRedirectWriteGatherPipe
+ // TODO GXRestoreWriteGatherPipe
+-// TODO GXSetCurrentGXThread
++OSThread* GXSetCurrentGXThread() {
++  // Aurora records GX commands into its own software FIFO. There is no
++  // hardware FIFO overflow thread to transfer, and clients serialize command
++  // generation through the platform render thread.
++  return nullptr;
++}
+ // TODO GXGetCurrentGXThread
+ // TODO GXGetOverflowCount
+ // TODO GXResetOverflowCount
+-}
+\ No newline at end of file
++}
+diff --git a/lib/dolphin/gx/GXFrameBuffer.cpp b/lib/dolphin/gx/GXFrameBuffer.cpp
+index 536ebf1..90f5a5a 100644
+--- a/lib/dolphin/gx/GXFrameBuffer.cpp
++++ b/lib/dolphin/gx/GXFrameBuffer.cpp
+@@ -176,7 +176,16 @@ void GXSetTexCopyDst(u16 wd, u16 ht, GXTexFmt fmt, GXBool mipmap) {
+ }
+ 
+ // TODO GXSetDispCopyFrame2Field
+-// TODO GXSetCopyClamp
++void GXSetCopyClamp(GXFBClamp clamp) {
++  const bool clampTop = (clamp & GX_CLAMP_TOP) != 0;
++  const bool clampBottom = (clamp & GX_CLAMP_BOTTOM) != 0;
++
++  // Aurora presents the render target directly and therefore has no XFB
++  // display-copy register. Preserve the clamp state for EFB-to-texture copies,
++  // which are the copy operations Aurora executes.
++  SET_REG_FIELD(0, __gx->cpTex, 1, 0, clampTop);
++  SET_REG_FIELD(0, __gx->cpTex, 1, 1, clampBottom);
++}
+ 
+ u32 GXSetDispCopyYScale(f32 vscale) { return 0; }
+ 
+diff --git a/lib/dolphin/gx/GXManage.cpp b/lib/dolphin/gx/GXManage.cpp
+index 659c88d..53a767f 100644
+--- a/lib/dolphin/gx/GXManage.cpp
++++ b/lib/dolphin/gx/GXManage.cpp
+@@ -284,6 +284,13 @@ void GXFlush() {
+   }
+ }
+ 
++void GXAbortFrame() {
++  // Discard commands that have not yet reached Aurora's command processor.
++  // This is the software-FIFO equivalent of aborting and cleaning the
++  // GameCube GP FIFO after the watchdog detects a stalled frame.
++  aurora::gx::fifo::clear_buffer();
++}
++
+ void GXPixModeSync() {
+   GX_WRITE_RAS_REG(__gx->peCtrl);
+   __gx->bpSent = 1;
+diff --git a/lib/dolphin/gx/GXPerf.cpp b/lib/dolphin/gx/GXPerf.cpp
+index 54bf6af..5a2e272 100644
+--- a/lib/dolphin/gx/GXPerf.cpp
++++ b/lib/dolphin/gx/GXPerf.cpp
+@@ -14,7 +14,22 @@ extern "C" {
+ // TODO GXSetVCacheMetric
+ // TODO GXReadVCacheMetric
+ // TODO GXClearVCacheMetric
+-// TODO GXReadXfRasMetric
++void GXReadXfRasMetric(u32* xf_wait_in, u32* xf_wait_out, u32* ras_busy, u32* clocks) {
++  // Aurora has no hardware XF/RAS counters. These values are only used by the
++  // original hang diagnostic, so report an idle software pipeline.
++  if (xf_wait_in != nullptr) {
++    *xf_wait_in = 0;
++  }
++  if (xf_wait_out != nullptr) {
++    *xf_wait_out = 0;
++  }
++  if (ras_busy != nullptr) {
++    *ras_busy = 0;
++  }
++  if (clocks != nullptr) {
++    *clocks = 0;
++  }
++}
+ // TODO GXInitXfRasMetric
+ // TODO GXReadClksPerVtx
+-}
+\ No newline at end of file
++}

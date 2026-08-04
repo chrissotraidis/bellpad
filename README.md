@@ -17,7 +17,7 @@ As of 2026-08-03:
 - A trimmed-image aligned-read bug was identified and corrected locally.
 - Player and town naming work through the port's native SDL text-input path; a test player entered and moved around a newly generated town.
 - Save creation/relaunch and app-window lifecycle remain under investigation. The title cleanup invalid-free was traced to an undersized static structure-actor pool and repaired with an upstream-derived host slot layout.
-- Aurora is the selected production compatibility-layer candidate, subject to an Animal Crossing GX coverage proof.
+- Aurora is the selected production compatibility layer. A compiled-object audit now proves that its patched GX/GD library exports all 112 symbols required by the game core, and a compiled ABI probe proves compatible value types and sufficient opaque texture/palette storage.
 - Aurora's pinned GX example now builds and visibly renders through Metal on macOS ARM64 and sequential iPhone/iPad simulators. This proves the compatibility-layer platform path, not Animal Crossing rendering.
 - Bellpad-owned macOS and universal iOS/iPadOS bundles now build as native ARM64 applications. They render with MetalKit at a fixed 60 Hz and expose a shared normalized GameCube input boundary.
 - The mobile shell includes left/C sticks, A/B/X/Y, Z/L/R/Start, D-pad, adaptive compact/expanded layouts, safe-area handling, a touch visibility override, GameController merging, and physical-controller auto-hide on devices.
@@ -63,7 +63,7 @@ The native shells now present Apple file choosers and validate a selected raw im
 
 ## Build instructions
 
-Run `./scripts/build-playable-macos-app.sh` for the real-game ARM64 macOS bundle. Run `./scripts/build-apple-shell.sh macos` or `./scripts/build-apple-shell.sh ios-simulator` for the clean Metal/touch integration harnesses. The Aurora Metal probes are separately reproducible through [BUILDING.md](docs/BUILDING.md). Apple Clang is the product compiler; GCC 16 remains an optional desktop-core compatibility cross-check.
+Run `./scripts/build-playable-macos-app.sh` for the real-game ARM64 macOS bundle. Run `./scripts/build-apple-shell.sh macos` or `./scripts/build-apple-shell.sh ios-simulator` for the clean Metal/touch integration harnesses. The Aurora Metal probes and game-core GX coverage/ABI audits are separately reproducible through [BUILDING.md](docs/BUILDING.md). Apple Clang is the product compiler; GCC 16 remains an optional desktop-core compatibility cross-check.
 
 Before committing or packaging anything, run:
 
@@ -132,7 +132,7 @@ See [TESTING.md](docs/TESTING.md).
 - Save creation and relaunch persistence have not yet been completed in the local baseline.
 - The playable macOS bundle now uses Application Support, but atomic save replacement, rotating backups, import/export, and a successful in-game save/relaunch proof remain required.
 - App-window close and lifecycle teardown still need a clean retest; `SIGTERM` exits the clean scripted build.
-- Aurora's Apple Metal/GX example path is proven, but Aurora GX coverage for this game has not yet been demonstrated.
+- Aurora now covers the compiled game's complete GX/GD symbol surface and passes the host-structure ABI gate. The real Animal Crossing target still must be linked and rendered through Aurora; representative display-list and full-scene correctness remain open.
 - The iOS/iPadOS shell, first touch UI, native Files chooser, and raw-header validator exist; durable import/indexing, the game core, native game keyboard, audio/lifecycle integration, and unsigned IPA remain pending.
 
 ## Research and credits

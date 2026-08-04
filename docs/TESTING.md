@@ -116,6 +116,16 @@ scene/orientation/safe-area policy and adaptive touch controls.
 | Application Support path/relaunch | Pass — isolated `BELLPAD_DATA_HOME` became the reported save cwd; a second launch loaded the same settings/keybindings |
 | In-game save/atomic backups | Pending — no successful GCI creation/reload yet; atomic replacement, rotating backups, and import/export are not implemented |
 
+### Game-core/Aurora convergence evidence — 2026-08-03
+
+| Test | Result |
+|---|---|
+| Compiled GX/GD coverage | Pass — 3,905 game-core objects require 112 symbols; patched Aurora provides all 112 |
+| GX value ABI | Pass — sizes and alignments match for render mode, colors, lights, fog, and vertex descriptors |
+| Opaque GX object storage | Pass — core/Aurora `GXTexObj` is 88/64 bytes and `GXTlutObj` is 40/40 bytes |
+| Baseline regression rebuild | Pass — all 3,361 affected build steps completed and the ARM64 `Bellpad.app` linked after palette-storage expansion |
+| Animal Crossing through Aurora/Metal | Pending — real executable/platform link and scene rendering are the next gate |
+
 The iPhone simulator screenshot required rotation for human inspection because
 `simctl io screenshot` retained the physical portrait buffer while UIKit
 correctly laid out the app in landscape. No screenshot is used as game evidence.

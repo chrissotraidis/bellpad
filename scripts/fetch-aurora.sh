@@ -20,9 +20,63 @@ if [ "$actual_commit" != "$aurora_commit" ]; then
     exit 1
 fi
 
-if ! git -C "$aurora_dir" diff --quiet || ! git -C "$aurora_dir" diff --cached --quiet; then
-    echo "Aurora has local tracked changes; the platform probe requires the pinned clean tree." >&2
-    exit 1
+patch_state="$aurora_dir/.git/bellpad-applied-patches"
+applied_count=0
+
+set -- "$repo_root"/patches/aurora/*.patch
+
+# Upgrade an older checkout where the complete patch series was applied before
+# Bellpad started recording ordered patch hashes.
+if [ ! -f "$patch_state" ]; then
+    last_patch=""
+    for patch_path in "$@"; do
+        last_patch="$patch_path"
+    done
+    if [ -n "$last_patch" ] &&
+       git -C "$aurora_dir" apply --reverse --check "$last_patch" 2>/dev/null; then
+        for patch_path in "$@"; do
+            git hash-object "$patch_path"
+        done > "$patch_state"
+    fi
 fi
+
+if [ -f "$patch_state" ]; then
+    applied_count=$(wc -l < "$patch_state" | tr -d ' ')
+    patch_index=0
+    for patch_path in "$@"; do
+        patch_index=$((patch_index + 1))
+        if [ "$patch_index" -le "$applied_count" ]; then
+            expected_hash=$(sed -n "${patch_index}p" "$patch_state")
+            actual_hash=$(git hash-object "$patch_path")
+            if [ "$expected_hash" != "$actual_hash" ]; then
+                echo "Previously applied Aurora patch changed: $patch_path" >&2
+                echo "Move or clean $aurora_dir, then retry." >&2
+                exit 1
+            fi
+        fi
+    done
+    if [ "$applied_count" -gt "$patch_index" ]; then
+        echo "Recorded Aurora patch series is longer than the current series." >&2
+        echo "Move or clean $aurora_dir, then retry." >&2
+        exit 1
+    fi
+fi
+
+patch_index=0
+for patch_path in "$@"; do
+    patch_index=$((patch_index + 1))
+    if [ "$patch_index" -le "$applied_count" ]; then
+        continue
+    fi
+    if git -C "$aurora_dir" apply --check "$patch_path" 2>/dev/null; then
+        git -C "$aurora_dir" apply "$patch_path"
+        git hash-object "$patch_path" >> "$patch_state"
+    elif git -C "$aurora_dir" apply --reverse --check "$patch_path" 2>/dev/null; then
+        git hash-object "$patch_path" >> "$patch_state"
+    else
+        echo "Aurora patch does not apply cleanly: $patch_path" >&2
+        exit 1
+    fi
+done
 
 echo "Aurora ready at $aurora_dir"

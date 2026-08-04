@@ -59,8 +59,19 @@ Pinned Aurora has now crossed the first platform gate. Its GX example runs on
 macOS ARM64 with Dawn selecting the Apple M2 Metal adapter, and an independently
 linked ARM64 iOS Simulator build renders on both iPhone and iPad simulators.
 This proves `GX → Dawn/WebGPU → Metal` is available on every intended Apple
-platform family; it does not yet prove Animal Crossing's complete GX/GD call
-surface or retained `emu64` display lists.
+platform family. A separate compiled-object audit now inventories 112 GX/GD
+symbols required by 3,905 game-core objects; the pinned Bellpad Aurora patch
+provides all 112. The five additions preserve software-FIFO abort behavior,
+texture-copy clamp state, scissor-box offset commands, single-render-thread
+ownership semantics, and a zeroed fallback for unavailable hardware-only hang
+counters.
+
+The structure boundary is compiled and checked as well. GX value types match
+size/alignment exactly. The core's opaque `GXTexObj` storage is 88 bytes versus
+Aurora's 64-byte implementation, and its PC-only `GXTlutObj` storage is expanded
+to Aurora's required 40 bytes. This closes symbol and object-storage gates, but
+does not substitute for linking the real target or validating retained `emu64`
+display lists and complete scenes through Metal.
 
 Aurora's released Dawn archive for iOS is device-platform only. Simulator builds
 therefore compile Dawn from source with Ninja, vendored SDL3, protobuf disabled,
