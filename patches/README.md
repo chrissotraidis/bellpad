@@ -117,6 +117,12 @@ crops the same visible rows as the OpenGL oracle, draws with nearest filtering,
 and preserves the configured stretch/4:3 policy. A retail-data-free unit test
 checks conversion, ordering, bounds, and crop behavior.
 
+`pc-port/0042-handle-ios-audio-session-events.patch` consumes Bellpad's
+one-shot UIKit audio interruption and route-change flags on the game thread.
+It pauses SDL3 while iOS changes the session and resumes only when the Apple
+adapter reports that the app is active, the interruption has ended, and an
+output route is available. Device builds contain no synthetic test path.
+
 `aurora/0001-complete-acgc-gx-compatibility.patch` applies to Aurora commit
 `5027ed63a73dfba28de9eceed00481fb09a19c35`. It implements the five GX calls
 used by the compiled game core that the pinned Aurora library did not export:

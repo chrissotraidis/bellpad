@@ -1,0 +1,49 @@
+--- a/pc/src/pc_aurora_main.c
++++ b/pc/src/pc_aurora_main.c
+@@ -223,9 +223,21 @@
+         ++event;
+     }
+ #ifdef BELLPAD_IOS
+-    if (bellpad_consume_will_resign_active()) {
++    int will_resign_active = bellpad_consume_will_resign_active();
++    int audio_interruption_began = bellpad_consume_audio_interruption_began();
++    int audio_interruption_ended = bellpad_consume_audio_interruption_ended();
++    int audio_route_changed = bellpad_consume_audio_route_changed();
++    if (will_resign_active || audio_interruption_began || audio_route_changed) {
+         pc_audio_set_paused(1);
+-        printf("[Lifecycle] Audio paused after UIApplicationWillResignActive\n");
++        if (will_resign_active) {
++            printf("[Lifecycle] Audio paused after UIApplicationWillResignActive\n");
++        }
++        if (audio_interruption_began) {
++            printf("[Lifecycle] Audio paused after AVAudioSession interruption\n");
++        }
++        if (audio_route_changed) {
++            printf("[Lifecycle] Audio paused while applying AVAudioSession route change\n");
++        }
+     }
+     int did_become_active = bellpad_consume_did_become_active();
+     int host_clock_changed = bellpad_consume_host_clock_changed();
+@@ -235,9 +247,19 @@
+                did_become_active ? "UIApplicationDidBecomeActive" : "host clock/time-zone change",
+                (double)adjustment / (double)GC_TIMER_CLOCK);
+     }
+-    if (did_become_active) {
+-        pc_audio_set_paused(0);
+-        printf("[Lifecycle] Audio resumed after UIApplicationDidBecomeActive\n");
++    if (did_become_active || audio_interruption_ended || audio_route_changed) {
++        if (!bellpad_audio_session_ready()) {
++            printf("[Lifecycle] Audio resume deferred until AVAudioSession is ready\n");
++        } else {
++            pc_audio_set_paused(0);
++            if (did_become_active) {
++                printf("[Lifecycle] Audio resumed after UIApplicationDidBecomeActive\n");
++            } else if (audio_interruption_ended) {
++                printf("[Lifecycle] Audio resumed after AVAudioSession interruption\n");
++            } else {
++                printf("[Lifecycle] Audio resumed after AVAudioSession route change\n");
++            }
++        }
+     }
+ #endif
+     return g_pc_running;

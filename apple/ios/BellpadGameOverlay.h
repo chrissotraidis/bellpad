@@ -41,6 +41,13 @@ int bellpad_consume_will_resign_active(void);
 int bellpad_consume_did_become_active(void);
 int bellpad_consume_host_clock_changed(void);
 
+/* Audio-session notifications are latched on Apple's notification threads and
+ * consumed by the game thread before it calls the SDL3 audio backend. */
+int bellpad_consume_audio_interruption_began(void);
+int bellpad_consume_audio_interruption_ended(void);
+int bellpad_consume_audio_route_changed(void);
+int bellpad_audio_session_ready(void);
+
 #ifdef __cplusplus
 }
 #endif

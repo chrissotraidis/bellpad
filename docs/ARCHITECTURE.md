@@ -120,7 +120,13 @@ rendering is marked passed.
 
 The convergence target deliberately uses SDL3 only. Its audio adapter exposes
 the game's 32 kHz stereo DMA stream through an SDL3/CoreAudio stream and producer
-thread. Aurora owns window creation, event acquisition, frame begin/end, Dawn,
+thread. UIKit configures an ambient, mix-with-others `AVAudioSession`, requests
+the same 32 kHz rate, and atomically latches interruption, route, and media-service
+events. Patch 42 consumes those edges on the game thread, pauses SDL3 before a
+route/interruption transition, and resumes only after UIKit reports the session
+ready. Simulator-only opt-in synthetic notifications exercise this boundary;
+they are compiled out of device products and do not replace real hardware route
+tests. Aurora owns window creation, event acquisition, frame begin/end, Dawn,
 and Metal. JSystem's GameCube VI-message wait is bypassed on this synchronous
 host path because it otherwise deadlocks before the first draw. The Aurora executable installs keyboard defaults
 only when no user mapping exists. Touch and GameController callbacks write one
@@ -191,4 +197,4 @@ The same Bell/Cove GCI has completed desktop creation/relaunch, iPhone rewrite/r
 - One opaque, original 1024×1024 icon is the branding source of truth. Apple's `actool` compiles it into `Assets.car` plus iPhone/iPad primary-icon renditions and plist metadata; the macOS build deterministically resizes the same source into the standard 16–1024 px iconset before producing `Bellpad.icns`.
 - Rendering uses the SDL/CAMetalLayer surface supplied to Dawn.
 - The GameCube RTC is local civil time in 40.5 MHz ticks. A subsecond host wall-clock sample establishes the local epoch while an absolute SDL performance counter advances it without overflow-prone multiplication. The game thread refreshes the offset every minute and immediately after iOS activation, `UIApplicationSignificantTimeChangeNotification`, or `NSSystemTimeZoneDidChangeNotification`; UIKit only latches those edges and never mutates game time directly.
-- Backgrounding pauses presentation/audio and clears transient input. Aurora restores the Metal presentation path; a UIKit activation edge is consumed on the game thread to resume CoreAudio only after `UIApplicationDidBecomeActive`, avoiding an early resume that iOS immediately re-pauses. Bellpad deliberately does not manufacture an out-of-band Animal Crossing save because the game's save routine has gameplay-visible side effects.
+- Backgrounding pauses presentation/audio and clears transient input. Aurora restores the Metal presentation path; UIKit activation and `AVAudioSession` edges are consumed on the game thread so CoreAudio resumes only when the app is active and the session is ready, avoiding an early resume that iOS immediately re-pauses. Bellpad deliberately does not manufacture an out-of-band Animal Crossing save because the game's save routine has gameplay-visible side effects.

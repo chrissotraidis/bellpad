@@ -10,7 +10,7 @@ No gameplay test is marked passed without a dated result, device/OS, build revis
 |---|---|
 | Clean Apple ARM64 checkout | Pass — the live [source-release workflow](https://github.com/chrissotraidis/bellpad/actions/workflows/source-release.yml) verifies current `main` on a `macos-15` ARM64 runner |
 | Retail-data exclusion | Pass — the hosted job receives no disc image, extracted asset, or save and completes the tracked/release-content audits |
-| Pinned core reconstruction | Pass — the exact `915fb86…` upstream commit is fetched and all forty-one tracked patches pass `git apply --check` and replay in an isolated detached worktree |
+| Pinned core reconstruction | Pass — the exact `915fb86…` upstream commit is fetched and all forty-two tracked patches pass `git apply --check` and replay in an isolated detached worktree |
 | Source checks | Pass — native macOS shell and normalized-input test, deterministic RTC suite, NES/GX frame-conversion suite, shell syntax, and whitespace checks |
 
 ## Desktop baseline matrix
@@ -86,7 +86,7 @@ For every meaningful milestone:
 4. Capture the same observations and stop it.
 5. Compare, fix device-specific behavior, and repeat.
 
-Simulator sessions must never overlap. Physical hardware is required for final Metal performance, Files security scopes, audio interruption/route changes, haptics, controller reconnect, memory pressure, suspension, and thermal validation.
+Simulator sessions must never overlap. Synthetic interruption and route notifications can prove Bellpad's in-process audio wiring, but physical hardware is required for final Metal performance, Files security scopes, real audio devices/calls/routes, haptics, controller reconnect, memory pressure, suspension, and thermal validation.
 
 ### Compatibility-layer probe evidence — 2026-08-03
 
@@ -155,11 +155,11 @@ scene/orientation/safe-area policy and adaptive touch controls.
 | Original app icon | Pass — opaque full-bleed 1024×1024 source has no alpha or baked rounded corners; `actool` emitted iPhone/iPad renditions and plist metadata, the installed iPhone home screen displayed the Bellpad icon, and macOS `iconutil` round-tripped all ten 16–1024 px iconset files |
 | iPad retained startup/relaunch | Pass — earlier terminate/relaunch returned to the animated Metal title, and a fresh no-argument strict-validator launch accepted the retained image's exact size/SHA-256 and stayed live on the Metal product |
 | Cleanup | Pass — each recorded sequential run terminated the active app and shut down its simulator before the next device class; no simulator remained booted. Retail data and saves remained outside Git and every app/package artifact |
-| Lifecycle/audio wiring | Pass for three bounded iPhone Simulator cycles after fixing a reproduced second-cycle `EXC_BAD_ACCESS`: when Aurora declines a background frame, patch 29 discards queued GX data and never calls `aurora_end_frame` without a frame packet. All three Home/foreground cycles logged matched pause/resume edges and restored Metal rendering; RSS remained bounded in the short run and no new crash report appeared. Three sequential iPad Home/resume cycles also restored visible rendering and survived without a crash, although this managed-window Simulator configuration did not emit Bellpad's iPhone lifecycle log edges. Route interruptions, physical hardware, long-session memory, and two SDL UIKit startup warnings remain |
+| Lifecycle/audio wiring | Pass for three bounded iPhone Simulator cycles after fixing a reproduced second-cycle `EXC_BAD_ACCESS`: when Aurora declines a background frame, patch 29 discards queued GX data and never calls `aurora_end_frame` without a frame packet. All three Home/foreground cycles logged matched pause/resume edges and restored Metal rendering; RSS remained bounded in the short run and no new crash report appeared. Three sequential iPad Home/resume cycles also restored visible rendering. On 2026-08-04, isolated iPhone and then iPad Simulator runs opened the real SDL3 stream at 32 kHz; opt-in spaced `AVAudioSession` interruption begin/end and old-device-unavailable route notifications caused matching game-thread pause/resume logs, and both apps continued through the title. Real hardware routes/calls, long-session memory, and two SDL UIKit startup warnings remain |
 | RTC activation rebase | Pass — patches 30/31 rebuilt into the universal product; iPhone Home/foreground logged audio pause, `RTC synchronized after UIApplicationDidBecomeActive (adjustment 0.000 seconds)`, and audio resume. The same bundle then booted the real game on iPad only after iPhone shutdown and returned from one bounded Home/resume cycle |
 | NES GX framebuffer | Partial — deterministic tests prove visible-row cropping, fixNES-to-GX RGB565 field conversion, big-endian bytes, 4×4 tile ordering, invalid-buffer rejection, and final-pixel placement; macOS, iOS Simulator, and iOS device products compile/link the GX presenter. No local `.nes` input was available, so actual NES-furniture video remains a runtime gate |
 | ARM64 device build | Pass (static audit) — complete product links as Mach-O arm64 with `LC_BUILD_VERSION` platform `IOS`, minimum iOS 17.0, Metal, and no SDL2; physical install/runtime remains |
-| Unsigned IPA reproducibility | Pass — two final timestamp-normalized save-recovery packages were byte-identical with SHA-256 `63752da02aeed92f925d2494a49a1537308bdea2a8a0a4af6cd1e4d8a5bffb7a`; the preceding source-release checkpoint also reproduced from an independent fresh clone |
+| Unsigned IPA reproducibility | Pass — two final timestamp-normalized audio-session packages were byte-identical with SHA-256 `9d367505b11e67888294a2ea915181f8ecf8039a502527c8e13a9a7113fab125`; the preceding source-release checkpoint also reproduced from an independent fresh clone |
 | Device runtime-link audit | Pass — `otool` reports only Apple system frameworks and `/usr/lib` libraries; no `LC_RPATH` remains, and the package script independently enforces both constraints |
 | Post-static-link simulator smoke | Pass — rebuilt universal bundle installed and launched to the native no-data Files screen on iPhone 17 Pro, then after shutdown on iPad Pro 13-inch; both sessions were terminated and shut down without extended control replay |
 | Dependency/archive pins | Pass — product dependency lock covers every linked non-system library; Abseil, SDL3, source Dawn, iOS Dawn, and macOS Dawn hashes close the formerly version-only downloads, while all remaining fetched archives retain upstream SHA-256 pins |
@@ -176,7 +176,8 @@ The fault-injection tests prove that strict mobile pre-boot validation either
 installs a valid backup while preserving the displaced bytes or quarantines the
 invalid canonical file before the legacy loader can observe it.
 These runs do not prove compressed formats, broad letter-editor coverage,
-physical-device security scopes/keyboards, or mobile lifecycle completion.
+physical-device security scopes/keyboards, real hardware audio routes/calls, or
+long-session mobile lifecycle behavior.
 
 The native keyboard tests used the actual UIKit first-responder and insertion
 methods, then inspected the bounded product queue and existing game editor under

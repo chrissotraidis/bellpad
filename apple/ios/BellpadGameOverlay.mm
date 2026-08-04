@@ -1,5 +1,6 @@
 #import "BellpadGameOverlay.h"
 
+#import <AVFAudio/AVAudioSession.h>
 #import <GameController/GameController.h>
 #import <TargetConditionals.h>
 #import <UIKit/UIKit.h>
@@ -109,11 +110,87 @@ static std::atomic_bool sDidBecomeActive{false};
 static std::atomic_bool sWasInactive{false};
 static std::atomic_bool sWillResignActive{false};
 static std::atomic_bool sHostClockChanged{false};
+static std::atomic_bool sAudioAppActive{true};
+static std::atomic_bool sAudioInterrupted{false};
+static std::atomic_bool sAudioSessionReady{false};
+static std::atomic_bool sAudioInterruptionBegan{false};
+static std::atomic_bool sAudioInterruptionEnded{false};
+static std::atomic_bool sAudioRouteChanged{false};
 static NSURL *sApplicationSupportURL;
 
 static NSString *const BPChangeGameDataOnNextLaunchKey = @"BellpadChangeGameDataOnNextLaunch";
 static NSString *const BPRemoveGameDataOnNextLaunchKey = @"BellpadRemoveGameDataOnNextLaunch";
 static NSString *const BPSaveRecoveryNoticeKey = @"BellpadSaveRecoveryNotice";
+
+static BOOL BellpadConfigureAudioSession(NSString *reason) {
+    AVAudioSession *session = AVAudioSession.sharedInstance;
+    NSError *categoryError = nil;
+    BOOL categorySet = [session setCategory:AVAudioSessionCategoryAmbient
+                                       mode:AVAudioSessionModeDefault
+                                    options:AVAudioSessionCategoryOptionMixWithOthers
+                                      error:&categoryError];
+    if (!categorySet) {
+        NSLog(@"[AudioSession] Could not set category after %@: %@", reason,
+              categoryError.localizedDescription);
+        return NO;
+    }
+
+    NSError *rateError = nil;
+    if (![session setPreferredSampleRate:32000.0 error:&rateError]) {
+        NSLog(@"[AudioSession] Could not request 32 kHz after %@: %@", reason,
+              rateError.localizedDescription);
+    }
+
+    NSError *activeError = nil;
+    BOOL active = [session setActive:YES error:&activeError];
+    if (!active) {
+        NSLog(@"[AudioSession] Could not activate after %@: %@", reason,
+              activeError.localizedDescription);
+        return NO;
+    }
+    NSLog(@"[AudioSession] Active after %@ (sample rate %.0f Hz, outputs %lu)",
+          reason, session.sampleRate, (unsigned long)session.currentRoute.outputs.count);
+    return YES;
+}
+
+#if TARGET_OS_SIMULATOR
+static void BellpadScheduleAudioSessionSelfTest(void) {
+    NSString *requested = NSProcessInfo.processInfo.environment[@"BELLPAD_TEST_AUDIO_SESSION_EVENTS"];
+    if (!requested.boolValue) return;
+
+    AVAudioSession *session = AVAudioSession.sharedInstance;
+    NSNotificationCenter *center = NSNotificationCenter.defaultCenter;
+    NSLog(@"[AudioSessionTest] Scheduling interruption and route-change notifications");
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(6.0 * NSEC_PER_SEC)),
+                   dispatch_get_main_queue(), ^{
+        NSLog(@"[AudioSessionTest] Posting interruption began");
+        [center postNotificationName:AVAudioSessionInterruptionNotification
+                              object:session
+                            userInfo:@{AVAudioSessionInterruptionTypeKey:
+                                           @(AVAudioSessionInterruptionTypeBegan)}];
+    });
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(8.0 * NSEC_PER_SEC)),
+                   dispatch_get_main_queue(), ^{
+        NSLog(@"[AudioSessionTest] Posting interruption ended");
+        [center postNotificationName:AVAudioSessionInterruptionNotification
+                              object:session
+                            userInfo:@{
+                                AVAudioSessionInterruptionTypeKey:
+                                    @(AVAudioSessionInterruptionTypeEnded),
+                                AVAudioSessionInterruptionOptionKey:
+                                    @(AVAudioSessionInterruptionOptionShouldResume),
+                            }];
+    });
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(10.0 * NSEC_PER_SEC)),
+                   dispatch_get_main_queue(), ^{
+        NSLog(@"[AudioSessionTest] Posting old-device-unavailable route change");
+        [center postNotificationName:AVAudioSessionRouteChangeNotification
+                              object:session
+                            userInfo:@{AVAudioSessionRouteChangeReasonKey:
+                                           @(AVAudioSessionRouteChangeReasonOldDeviceUnavailable)}];
+    });
+}
+#endif
 
 static NSURL *BellpadResolvedApplicationSupportURL(void) {
     if (sApplicationSupportURL) return sApplicationSupportURL;
@@ -652,6 +729,11 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
         [self addButton:@"▶" mask:BellpadButtonDPadRight color:[UIColor colorWithWhite:0.26 alpha:0.64]];
         [self buildSettingsPanel];
 
+        sAudioAppActive.store(true, std::memory_order_release);
+        sAudioInterrupted.store(false, std::memory_order_release);
+        sAudioSessionReady.store(BellpadConfigureAudioSession(@"overlay installation"),
+                                 std::memory_order_release);
+
         NSNotificationCenter *center = NSNotificationCenter.defaultCenter;
         __weak BPGameOverlay *weakSelf = self;
         _connectObserver = [center addObserverForName:GCControllerDidConnectNotification object:nil
@@ -675,6 +757,21 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
                        name:UIApplicationSignificantTimeChangeNotification object:nil];
         [center addObserver:self selector:@selector(hostClockChanged:)
                        name:NSSystemTimeZoneDidChangeNotification object:nil];
+        [center addObserver:self selector:@selector(audioSessionInterrupted:)
+                       name:AVAudioSessionInterruptionNotification
+                     object:AVAudioSession.sharedInstance];
+        [center addObserver:self selector:@selector(audioRouteChanged:)
+                       name:AVAudioSessionRouteChangeNotification
+                     object:AVAudioSession.sharedInstance];
+        [center addObserver:self selector:@selector(audioMediaServicesLost:)
+                       name:AVAudioSessionMediaServicesWereLostNotification
+                     object:AVAudioSession.sharedInstance];
+        [center addObserver:self selector:@selector(audioMediaServicesReset:)
+                       name:AVAudioSessionMediaServicesWereResetNotification
+                     object:AVAudioSession.sharedInstance];
+#if TARGET_OS_SIMULATOR
+        BellpadScheduleAudioSessionSelfTest();
+#endif
         for (GCController *controller in GCController.controllers) [self configureController:controller];
         [self refreshControllerVisibility];
     }
@@ -1305,6 +1402,10 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
 
 - (void)didBecomeActive:(NSNotification *)notification {
     (void)notification;
+    sAudioAppActive.store(true, std::memory_order_release);
+    BOOL ready = !sAudioInterrupted.load(std::memory_order_acquire) &&
+        BellpadConfigureAudioSession(@"UIApplicationDidBecomeActive");
+    sAudioSessionReady.store(ready, std::memory_order_release);
     if (sWasInactive.exchange(false, std::memory_order_acq_rel)) {
         sDidBecomeActive.store(true, std::memory_order_release);
     }
@@ -1313,6 +1414,8 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
 - (void)willResignActive:(NSNotification *)notification {
     (void)notification;
     [self clearInput];
+    sAudioAppActive.store(false, std::memory_order_release);
+    sAudioSessionReady.store(false, std::memory_order_release);
     sWasInactive.store(true, std::memory_order_release);
     sWillResignActive.store(true, std::memory_order_release);
 }
@@ -1320,6 +1423,61 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
 - (void)hostClockChanged:(NSNotification *)notification {
     (void)notification;
     sHostClockChanged.store(true, std::memory_order_release);
+}
+
+- (void)audioSessionInterrupted:(NSNotification *)notification {
+    AVAudioSessionInterruptionType type = (AVAudioSessionInterruptionType)
+        [notification.userInfo[AVAudioSessionInterruptionTypeKey] unsignedIntegerValue];
+    if (type == AVAudioSessionInterruptionTypeBegan) {
+        sAudioInterrupted.store(true, std::memory_order_release);
+        sAudioSessionReady.store(false, std::memory_order_release);
+        sAudioInterruptionBegan.store(true, std::memory_order_release);
+        NSLog(@"[AudioSession] Interruption began");
+        return;
+    }
+
+    AVAudioSessionInterruptionOptions options = (AVAudioSessionInterruptionOptions)
+        [notification.userInfo[AVAudioSessionInterruptionOptionKey] unsignedIntegerValue];
+    const BOOL shouldResume = (options & AVAudioSessionInterruptionOptionShouldResume) != 0;
+    sAudioInterrupted.store(false, std::memory_order_release);
+    BOOL ready = shouldResume && sAudioAppActive.load(std::memory_order_acquire) &&
+        BellpadConfigureAudioSession(@"interruption end");
+    sAudioSessionReady.store(ready, std::memory_order_release);
+    sAudioInterruptionEnded.store(true, std::memory_order_release);
+    NSLog(@"[AudioSession] Interruption ended (resume %@)", shouldResume ? @"allowed" : @"deferred");
+}
+
+- (void)audioRouteChanged:(NSNotification *)notification {
+    AVAudioSessionRouteChangeReason reason = (AVAudioSessionRouteChangeReason)
+        [notification.userInfo[AVAudioSessionRouteChangeReasonKey] unsignedIntegerValue];
+    if (reason == AVAudioSessionRouteChangeReasonCategoryChange) return;
+
+    AVAudioSession *session = AVAudioSession.sharedInstance;
+    const BOOL ready = sAudioAppActive.load(std::memory_order_acquire) &&
+        !sAudioInterrupted.load(std::memory_order_acquire) && session.currentRoute.outputs.count > 0;
+    sAudioSessionReady.store(ready, std::memory_order_release);
+    sAudioRouteChanged.store(true, std::memory_order_release);
+    NSLog(@"[AudioSession] Route changed (reason %lu, outputs %lu)",
+          (unsigned long)reason, (unsigned long)session.currentRoute.outputs.count);
+}
+
+- (void)audioMediaServicesLost:(NSNotification *)notification {
+    (void)notification;
+    sAudioInterrupted.store(true, std::memory_order_release);
+    sAudioSessionReady.store(false, std::memory_order_release);
+    sAudioInterruptionBegan.store(true, std::memory_order_release);
+    NSLog(@"[AudioSession] Media services lost");
+}
+
+- (void)audioMediaServicesReset:(NSNotification *)notification {
+    (void)notification;
+    sAudioInterrupted.store(false, std::memory_order_release);
+    BOOL ready = sAudioAppActive.load(std::memory_order_acquire) &&
+        BellpadConfigureAudioSession(@"media-services reset");
+    sAudioSessionReady.store(ready, std::memory_order_release);
+    sAudioInterruptionEnded.store(true, std::memory_order_release);
+    sAudioRouteChanged.store(true, std::memory_order_release);
+    NSLog(@"[AudioSession] Media services reset");
 }
 
 - (void)configureController:(GCController *)controller {
@@ -1670,4 +1828,20 @@ int bellpad_consume_will_resign_active(void) {
 
 int bellpad_consume_host_clock_changed(void) {
     return sHostClockChanged.exchange(false, std::memory_order_acq_rel) ? 1 : 0;
+}
+
+int bellpad_consume_audio_interruption_began(void) {
+    return sAudioInterruptionBegan.exchange(false, std::memory_order_acq_rel) ? 1 : 0;
+}
+
+int bellpad_consume_audio_interruption_ended(void) {
+    return sAudioInterruptionEnded.exchange(false, std::memory_order_acq_rel) ? 1 : 0;
+}
+
+int bellpad_consume_audio_route_changed(void) {
+    return sAudioRouteChanged.exchange(false, std::memory_order_acq_rel) ? 1 : 0;
+}
+
+int bellpad_audio_session_ready(void) {
+    return sAudioSessionReady.load(std::memory_order_acquire) ? 1 : 0;
 }
