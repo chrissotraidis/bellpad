@@ -77,8 +77,9 @@ Observed 2026-08-03: a clean target completes 4,258 build actions, selects the A
 M2 Metal adapter, loads 14,495 assets, opens 32 kHz stereo audio, and reaches an
 interactive 60 FPS title menu. Explicit host EFB clearing prevents moving frames
 from accumulating; palette, winding, color-channel, and polygon-font fixes produce
-the complete title and correctly placed multi-line K.K. dialogue. This remains an
-integration target until representative train/town rendering and product services pass.
+the complete title and correctly placed multi-line K.K. dialogue. A later iPhone
+product run also rendered a saved-player train/station sequence. The standalone
+macOS Aurora target remains an integration target until broader scenes and product services pass.
 It also uses the launch working directory rather than the product's Application
 Support policy and requires the explicit `--disc` path.
 
@@ -137,8 +138,10 @@ The top-right gear panel's `Game Data & Saves…` menu can request a replacement
 image or removal on the next launch without deleting saves. It also exports a
 validated immutable GCI snapshot through Files and stages a validated GCI import
 for installation before the next core startup. The previous canonical save is
-retained as `DobutsunomoriP_MURA.gci.pre-import`; do not treat this as proof of a
-real Dolphin roundtrip until that separate test is completed.
+retained as `DobutsunomoriP_MURA.gci.pre-import`. Dolphin 5.0-17995 has read the
+same canonical GCI through an isolated GCI Folder, and Bellpad has installed and
+loaded that Dolphin-managed file before startup. Real Files exports pass on both
+simulator families; a fully UI-driven import selection remains separate.
 
 Patch 22 connects the core's SDL-independent editor API to Bellpad's native
 UIKit text proxy. The proxy is shown only while the game reports an active
@@ -181,7 +184,7 @@ Observed 2026-08-04: the output contains exactly the executable, plist,
 `Assets.car`, `AppIcon60x60@2x.png`, and `AppIcon76x76@2x~ipad.png`; it is 13 MB,
 targets ARM64 iOS 17.0 through Metal, and two independent packaging runs produced
 identical bytes with SHA-256
-`03e362731837c944317d50fafee81ea15aca5632985529c64d46c8bc64dd567b`.
+`39af9b94fb929314c07adc4095c074517984fd0d934bd7cef7fec058d2d44742`.
 
 Run the tracked-content safety check before every commit and package build:
 

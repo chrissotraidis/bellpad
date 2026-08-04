@@ -14,7 +14,7 @@ No gameplay test is marked passed without a dated result, device/OS, build revis
 | Trademark/title | Correct render/audio/input | Partial pass — correct 60 FPS rendering and 32 kHz stereo; A/Start works through a latched native test path; cleanup overflow fixed; repeatable UI automation pending |
 | Character/town creation | Completes with text entry | Pass for baseline — Bell/Cove setup, train, generated town, initialized save state, and saved-player relaunch flow completed; later tutorial breadth is covered by the separate Cedar run |
 | Enter town | Stable outdoor rendering and movement | Pass — station exit, outdoor movement, Nook greeting, and housing area observed |
-| Save/exit/relaunch | Same town loads from GCI | Pass for native persistence — live Bell/Cove state wrote a canonical GCI, macOS closed normally and reloaded it; iPhone loaded, rewrote with `.bak1`, terminated, and reloaded the rewrite. Native import/export UI and validation pass their current gate; retail save UI and a real Dolphin roundtrip remain open |
+| Save/exit/relaunch | Same town loads from GCI | Pass for native persistence and isolated interchange — live Bell/Cove state wrote a canonical GCI, macOS closed normally and reloaded it; iPhone loaded, rewrote with `.bak1`, terminated, and reloaded the rewrite. Dolphin 5.0-17995 read the file from an isolated GCI Folder, Bellpad installed and loaded the Dolphin-managed copy, and real iPhone/iPad Files exports matched it byte-for-byte. Retail save UI and fully UI-driven save import remain open |
 | RTC | Time and date match host | Partial pass — fresh setup displayed Monday, August 3, 2026 and the expected host-local time; clock-change, timezone-change, and resumed-session behavior remain pending |
 | Memory | No unbounded growth during sustained play | Pending |
 
@@ -117,29 +117,35 @@ scene/orientation/safe-area policy and adaptive touch controls.
 | iPhone native town name | Pass — native paste interception queued exact `Cove`, the explicit UIKit Done control committed it on the game thread, and the game advanced without debugger input injection |
 | iPhone layout | Pass — landscape controls are upright after rotating the simulated hardware and avoid the Dynamic Island/safe areas |
 | iPhone control settings | Pass — the native gear opened a correctly laid-out panel over the real Metal game with Native/1×/2×/3×/4× resolution, opacity/size sliders, hide/move switches, and per-device reset; source/build checks cover normalized safe-area position persistence |
-| iPhone data-management UI | Pass for bounded UI smoke — the compact panel scrolls to `Game Data & Saves…`; export with no canonical save showed the native no-save alert, and import presented the native Files picker. No real GCI was exchanged in this smoke |
+| iPhone data-management UI | Pass — the compact panel scrolls to `Game Data & Saves…`; no-save error and import picker routing pass, and a real validated 467,008-byte GCI export completed through Files and returned to live Metal rendering |
 | iPhone render resolution | Pass — Native used 2622×1206, 1× used 1044×480, 2× used 2087×960, 3× used 3131×1440, and 4× used 4174×1920 while the Metal drawable remained 2622×1206; this changes render resolution, not the fixed 60 Hz simulation rate |
 | iPhone retained relaunch | Pass — terminating and launching again with no arguments skipped Files and returned to the animated title from the retained Application Support copy |
 | iPhone GCI persistence | Pass — a desktop-created 467,008-byte Bell/Cove GCI loaded with all four endian round trips passing; the live game-facing save routine returned success, rotated the original to `.bak1`, wrote a changed canonical file, and the canonical file loaded successfully after app termination/relaunch |
+| iPhone saved-player Metal scene | Pass — returning-player dialogue showed the host-local August 4, 2026 date/time, the train sequence advanced, Porter announced Cove, the train departed, and the station environment remained visibly rendered through Metal |
+| Dolphin GCI-folder interchange | Pass with isolated harness — Dolphin 5.0-17995 booted GAFE01 with Bellpad's canonical GCI in a private GCI Folder, read its header/data without invalid-file diagnostics, and left the SHA unchanged; Bellpad then installed and loaded that Dolphin-managed file before startup |
+| iPhone real GCI export | Pass — the production gear-menu action opened Files while holding the game render loop, saved `Bellpad-Dolphin-Save.gci`, dismissed, resumed live rendering, removed its temporary snapshot, and produced the same 467,008-byte SHA-256 as the canonical file |
 | Sequential stop | Pass — iPhone app terminated, exact simulator test copies were removed, and the simulator shut down before iPad boot |
 | iPad first-run/valid import | Pass — no-data screen presented in iPadOS's managed window; Files-selected GAFE01 data was retained byte-exactly with no staging residue and the native title rendered with iPad control metrics |
 | iPad native player name | Pass with harness limitation — the real editor presented the adaptive UIKit field as first responder, accepted text through the production insertion method, exited on Done, and Rover echoed the entered prefix. Simulator host-focus loss paused consumption during LLDB automation, so this run does not claim an exact full-name value |
 | iPad control settings | Pass — after the iPhone session was stopped, the universal app rendered expanded iPad controls in the managed window and opened the complete top-right gear panel; Render, Native/1×/2×/3×/4×, sliders, switches, and reset remained readable at the iPad window scale |
-| iPad data-management UI | Pass for bounded UI smoke — after iPhone shutdown, the full settings panel exposed `Game Data & Saves…` and the native import picker presented correctly in the managed iPad window |
+| iPad data-management UI | Pass — after iPhone shutdown, the full settings panel exposed `Game Data & Saves…`; a real validated GCI export presented in the managed Files sheet, saved, dismissed, and returned to the live game |
 | iPad render resolution | Pass — the 4× choice produced a 2560×1920 internal framebuffer against the 2752×2064 iPad drawable, preserving the fixed 60 Hz simulation path |
 | Original app icon | Pass — opaque full-bleed 1024×1024 source has no alpha or baked rounded corners; `actool` emitted iPhone/iPad renditions and plist metadata, the installed iPhone home screen displayed the Bellpad icon, and macOS `iconutil` round-tripped all ten 16–1024 px iconset files |
 | iPad retained relaunch | Pass — terminate/relaunch with no arguments returned directly to the animated Metal title using the retained private copy |
 | Cleanup | Pass — the iPad app terminated, exact simulator test copies were moved to Trash, the simulator shut down, and no simulator remained booted |
 | Lifecycle/audio wiring | Pass for one bounded iPhone Simulator cycle — Home cleared input, paused presentation, and changed the SDL3 stream to paused; foreground restored live Metal output and the post-`DidBecomeActive` game-thread edge changed the stream back to unpaused. Repeated cycles, route interruptions, physical hardware, and two SDL UIKit startup warnings remain |
 | ARM64 device build | Pass (static audit) — complete product links as Mach-O arm64 with `LC_BUILD_VERSION` platform `IOS`, minimum iOS 17.0, Metal, and no SDL2; physical install/runtime remains |
-| Unsigned IPA reproducibility | Pass — two timestamp-normalized save-management packages were byte-identical with SHA-256 `03e362731837c944317d50fafee81ea15aca5632985529c64d46c8bc64dd567b` |
+| Unsigned IPA reproducibility | Pass — two timestamp-normalized post-picker-fix packages were byte-identical with SHA-256 `39af9b94fb929314c07adc4095c074517984fd0d934bd7cef7fec058d2d44742` |
 | Unsigned IPA contents | Pass — 13 MB archive contains only the executable, plist, `Assets.car`, and two compiled icon PNGs; no signature, provisioning profile, retail data, save, key, or certificate |
 
 The disc-import runs above used the native Files UI and no `--disc` argument. They
 prove the raw ISO/GCM user flow and relaunch retention. The later save-management
-smoke proves UI presentation and validation/error routing, not a real GCI exchange.
-Hash/size allowlisting, compressed formats, a Dolphin save roundtrip, letter-editor coverage,
-physical-device security scopes/keyboards, or mobile lifecycle completion.
+run used ignored GCI data and the production gear-menu export on both simulator
+families. It proves real export bytes and isolated Dolphin interchange; selecting
+the import through Files remains a separate UI gate.
+These runs do not prove hash/size allowlisting, compressed formats, broad
+letter-editor coverage, physical-device security scopes/keyboards, or mobile
+lifecycle completion.
 
 The native keyboard tests used the actual UIKit first-responder and insertion
 methods, then inspected the bounded product queue and existing game editor under
@@ -162,7 +168,7 @@ test copies were removed or moved to Trash afterward.
 | Overclock rejection | Pass — bundled executable returns status 2 for both `--framelimit 120` and `--no-framelimit` with an acceleration warning |
 | Native picker | Build/runtime path present; the previously proven AppKit sheet covers presentation, but selecting retail data through it remains a manual product test |
 | Application Support path/relaunch | Pass — isolated `BELLPAD_DATA_HOME` became the reported save cwd; a second launch loaded the same settings/keybindings |
-| Game-facing save/atomic backups | Pass for native persistence — an initialized Bell/Cove town wrote a canonical GCI, normal window close returned from `graph_proc`, and a fresh process passed all four endian round trips, reported `GCI save loaded successfully`, and entered the saved-player Cove station flow. Native import/export UI is implemented; the retail save dialogue and real Dolphin roundtrip remain pending |
+| Game-facing save/atomic backups | Pass for native persistence/interchange — an initialized Bell/Cove town wrote a canonical GCI, normal window close returned from `graph_proc`, and a fresh process passed all four endian round trips, reported `GCI save loaded successfully`, and entered the saved-player Cove station flow. Dolphin GCI-folder read, Bellpad pre-boot install/load, and real Files exports pass; the retail save dialogue and fully UI-driven import remain pending |
 
 ### Game-core/Aurora convergence evidence — 2026-08-03
 
@@ -175,7 +181,7 @@ test copies were removed or moved to Trash afterward.
 | Aurora-defined full-core compile | Pass — 3,904 game objects compile with `AURORA`; 111 GX/GD imports all resolve |
 | Legacy renderer-hook isolation | Pass — zero `pc_gx_*`, `pc_emu64_frame_*`, or `s_tlut_*` imports; host TLUT byte order resolves through the explicit Aurora bridge |
 | OpenGL baseline regression rebuild | Pass — ARM64 `Bellpad.app` relinked after the conditional split, proving the temporary playable backend still compiles |
-| Animal Crossing through Aurora/Metal | Partial — native ARM64 executable selects Metal, loads disc/assets/audio, and reaches an interactive title menu at 60 FPS; EFB clearing prevents accumulation, palette/cache fixes hold, counter-clockwise WebGPU front faces restore complete title geometry, and keyboard A advances correctly rendered multi-line K.K. dialogue. Water, choices, train/town scenes, and long-session memory still need direct evidence |
+| Animal Crossing through Aurora/Metal | Partial — native ARM64 executable selects Metal, loads disc/assets/audio, and reaches an interactive title menu at 60 FPS; EFB clearing prevents accumulation, palette/cache fixes hold, counter-clockwise WebGPU front faces restore complete title geometry, keyboard A advances correctly rendered multi-line K.K. dialogue, and iPhone renders a saved-player train/station sequence. Water, choice UI, interiors, broader outdoor traversal, and long-session memory still need direct evidence |
 | Aurora normalized input boundary | Pass for the implementation gate — default keyboard mapping remains, patch 19 pulls on the game thread, the mobile executable links the strong snapshot, UIKit A advances the real game, and normalized stick movement is proven on desktop. Exhaustive activity-by-activity replay is deferred to release acceptance |
 
 The iPhone simulator screenshot required rotation for human inspection because

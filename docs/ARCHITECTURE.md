@@ -150,11 +150,13 @@ UIKit's main thread. While the core waits for first-run import, Bellpad pumps th
 default and UI-tracking run-loop modes so the document picker, security-scoped
 copy progress, and modal dismissal remain responsive. Once import completes,
 normal SDL3/Aurora event ownership resumes; no second application delegate or
-renderer is created.
+renderer is created. Mid-game save import/export uses the same ownership rule:
+UIKit keeps pumping while the Aurora render loop is intentionally held, and Metal
+submission resumes only after the system document picker has left the window.
 
 ## Saves
 
-GCI-folder mode is the initial canonical store because it gives one file per save and aligns with Dolphin import/export. Writes go to a temporary sibling, are flushed and synchronized, then atomically replace the canonical file after three previous generations rotate; the parent directory is synchronized on Apple/POSIX hosts. Load-time checksums and orphan-temp/backup recovery reject or repair interrupted saves. The same Bell/Cove GCI has now completed desktop creation/relaunch and iPhone rewrite/relaunch through the shared core. Mobile export creates a validated immutable snapshot for Files. Import accepts only exact-size GAFE01 version 5/6 GCI data with the expected block count, town-ID mask, and zero-sum town checksum; it durably stages the file, installs it before the next game startup, and retains the previous canonical file as a pre-import backup so live game state is never swapped underneath the core. A real Dolphin roundtrip, the retail save dialogue, update persistence, and recovery UI remain validation gates.
+GCI-folder mode is the initial canonical store because it gives one file per save and aligns with Dolphin import/export. Writes go to a temporary sibling, are flushed and synchronized, then atomically replace the canonical file after three previous generations rotate; the parent directory is synchronized on Apple/POSIX hosts. Load-time checksums and orphan-temp/backup recovery reject or repair interrupted saves. The same Bell/Cove GCI has completed desktop creation/relaunch, iPhone rewrite/relaunch, an isolated Dolphin 5.0-17995 GCI-folder read, and Bellpad pre-boot installation/loading of the Dolphin-managed copy. Mobile export creates a validated immutable snapshot for Files; real iPhone/iPad exports matched the canonical bytes. Import accepts only exact-size GAFE01 version 5/6 GCI data with the expected block count, town-ID mask, and zero-sum town checksum; it durably stages the file, installs it before the next game startup, and retains the previous canonical file as a pre-import backup so live game state is never swapped underneath the core. A fully UI-driven import selection, the retail save dialogue, update persistence, and recovery UI remain validation gates.
 
 ## Platform integration
 

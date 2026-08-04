@@ -488,6 +488,7 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
 @interface BPGameOverlay ()
 - (void)beginSaveImport;
 - (void)beginSaveExport;
+- (void)presentDocumentPickerWhileHoldingGameLoop:(UIDocumentPickerViewController *)picker;
 - (void)scheduleGameDataChange;
 - (void)confirmGameDataRemoval;
 @end
@@ -513,6 +514,7 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
     BOOL _editingLayout;
     NSString *_loadedSettingsProfile;
     BPDocumentPickerMode _documentPickerMode;
+    BOOL _documentPickerFinished;
     NSURL *_exportSnapshotURL;
     id _connectObserver;
     id _disconnectObserver;
@@ -882,7 +884,7 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
     picker.allowsMultipleSelection = NO;
     _documentPickerMode = BPDocumentPickerModeImportSave;
     _settingsPanel.hidden = YES;
-    [[self presentationController] presentViewController:picker animated:YES completion:nil];
+    [self presentDocumentPickerWhileHoldingGameLoop:picker];
 }
 
 - (void)beginSaveExport {
@@ -916,7 +918,41 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
     UIDocumentPickerViewController *picker =
         [[UIDocumentPickerViewController alloc] initForExportingURLs:@[ snapshot ] asCopy:YES];
     picker.delegate = self;
-    [[self presentationController] presentViewController:picker animated:YES completion:nil];
+    [self presentDocumentPickerWhileHoldingGameLoop:picker];
+}
+
+- (void)presentDocumentPickerWhileHoldingGameLoop:(UIDocumentPickerViewController *)picker {
+    UIViewController *presenter = [self presentationController];
+    if (!presenter) {
+        if (_documentPickerMode == BPDocumentPickerModeExportSave) [self clearExportSnapshot];
+        _documentPickerMode = BPDocumentPickerModeNone;
+        [self presentMessageWithTitle:@"Files Unavailable"
+                              message:@"Bellpad could not present the system Files browser."];
+        return;
+    }
+
+    // Aurora's SDL entry point runs on UIKit's main thread. Returning from this
+    // action would let the Metal game loop keep submitting frames while the
+    // system document picker temporarily owns the scene. Pumping UIKit here
+    // keeps Files fully interactive while deliberately holding game rendering.
+    _documentPickerFinished = NO;
+    [presenter presentViewController:picker animated:YES completion:nil];
+    while (!_documentPickerFinished) {
+        @autoreleasepool {
+            CFRunLoopRunInMode(kCFRunLoopDefaultMode, 0.01, true);
+            CFRunLoopRunInMode((CFStringRef)UITrackingRunLoopMode, 0.01, true);
+        }
+    }
+
+    // The delegate callback can arrive just before UIKit finishes the picker's
+    // automatic dismissal. Do not resume Metal until its presentation surface
+    // has actually left the window.
+    while (picker.presentingViewController && picker.viewIfLoaded.window) {
+        @autoreleasepool {
+            CFRunLoopRunInMode(kCFRunLoopDefaultMode, 0.01, true);
+            CFRunLoopRunInMode((CFStringRef)UITrackingRunLoopMode, 0.01, true);
+        }
+    }
 }
 
 - (void)clearExportSnapshot {
@@ -930,6 +966,7 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
     (void)controller;
     if (_documentPickerMode == BPDocumentPickerModeExportSave) [self clearExportSnapshot];
     _documentPickerMode = BPDocumentPickerModeNone;
+    _documentPickerFinished = YES;
 }
 
 - (void)documentPicker:(UIDocumentPickerViewController *)controller
@@ -937,6 +974,7 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
     (void)controller;
     BPDocumentPickerMode mode = _documentPickerMode;
     _documentPickerMode = BPDocumentPickerModeNone;
+    _documentPickerFinished = YES;
     if (mode == BPDocumentPickerModeExportSave) {
         [self clearExportSnapshot];
         return;

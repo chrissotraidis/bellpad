@@ -6,7 +6,7 @@ Bellpad is a native Apple-platform source port. It will not ship an emulator, a 
 
 ## Current completion focus
 
-The Apple wrappers are converged: macOS, iPhone, and iPad builds exist; normalized touch/controller input, the gear menu, persistent per-device layouts, Native/1×/2×/3×/4× rendering, Files import, native setup text, GCI persistence, and native save/disc management have representative runtime evidence. Do not spend ongoing implementation time replaying every button across every activity. Finish the product by validating representative mobile Metal gameplay, proving a real Dolphin save roundtrip, and closing release/device gates. The exhaustive activity matrix remains a final acceptance pass.
+The Apple wrappers are converged: macOS, iPhone, and iPad builds exist; normalized touch/controller input, the gear menu, persistent per-device layouts, Native/1×/2×/3×/4× rendering, Files import, native setup text, GCI persistence, native save/disc management, a representative iPhone train/station scene, and isolated Dolphin GCI-folder interchange have runtime evidence. Do not spend ongoing implementation time replaying every button across every activity. Finish the product through broader scene/lifecycle hardening, disc-format/release audits, and physical-device validation. The exhaustive activity matrix remains a final acceptance pass.
 
 ## Evidence-based foundation
 
@@ -15,7 +15,7 @@ The Apple wrappers are converged: macOS, iPhone, and iPad builds exist; normaliz
 - Final compatibility layer: Aurora (MIT), initially for SDL3/application lifecycle, DVD/nod, PAD, CARD, OS/RTC, VI, MTX, and Metal-backed GX through Dawn/WebGPU.
 - Mobile shell: a thin Objective-C++/UIKit layer around a portable C/C++ game target. HarkinianPad is an architecture and UX reference only unless separately licensed code is explicitly contributed.
 
-This selection is now supported by platform, symbol-surface, ABI, source-boundary, executable-link, rendering, and input evidence. The desktop-compiled core requires 112 GX/GD symbols; Bellpad's pinned Aurora patches supply all 112, and compiled probes verify matching value types plus sufficient opaque texture/palette storage. The complete core links to Aurora without SDL2, initializes Metal and SDL3 audio, reads the supported image, renders the complete title composition and correctly placed multi-line K.K. dialogue at 60 Hz, and accepts live input. Water, choices, and representative train/town scenes must still pass before OpenGL is retired.
+This selection is now supported by platform, symbol-surface, ABI, source-boundary, executable-link, rendering, and input evidence. The desktop-compiled core requires 112 GX/GD symbols; Bellpad's pinned Aurora patches supply all 112, and compiled probes verify matching value types plus sufficient opaque texture/palette storage. The complete core links to Aurora without SDL2, initializes Metal and SDL3 audio, reads the supported image, renders the complete title composition, correctly placed multi-line K.K. dialogue, and a representative saved-player train/station scene at the fixed 60 Hz cadence, and accepts live input. Water, choice UI, interiors, inventory, and broader outdoor traversal remain before OpenGL can be retired as the behavior oracle.
 
 ## Milestone 0 — safety, research, and provenance
 
@@ -31,7 +31,7 @@ This selection is now supported by platform, symbol-surface, ABI, source-boundar
    Apple Clang 21 and GCC 16 now both complete the independent 4,000-unit ARM64 build; Clang is the default reproducible path.
 2. [x] Point it at the local retail image using a symlink; never copy the image into a tracked or packaged tree.
 3. [x] Verify the image identity before launch: `GAFE01`, USA Rev 0, and record its size/hash only in an ignored local validation record.
-4. [x] Run from trademark/title through town creation, save, process exit, relaunch, and persistence. An isolated Bell/Cove run reached its generated town, invoked the real game-facing save routine from initialized state, wrote a canonical GCI, closed normally, and reloaded the saved-player flow in a new process. iPhone Simulator loaded the same GCI through the shared native core, atomically rewrote it with `.bak1` rotation, and loaded the rewrite after app relaunch. The native GCI Files UI and strict validator now build and present on both simulator families; a real Dolphin import/export roundtrip and the retail save-dialogue interaction remain separate product gates.
+4. [x] Run from trademark/title through town creation, save, process exit, relaunch, and persistence. An isolated Bell/Cove run reached its generated town, invoked the real game-facing save routine from initialized state, wrote a canonical GCI, closed normally, and reloaded the saved-player flow in a new process. iPhone Simulator loaded the same GCI through the shared native core, atomically rewrote it with `.bak1` rotation, and loaded the rewrite after app relaunch. Dolphin 5.0-17995 loaded that canonical file from an isolated GCI Folder, and Bellpad installed and loaded the Dolphin-managed copy before startup. Real Files exports on iPhone and iPad matched it byte-for-byte. Fully UI-driven import selection and the retail save-dialogue interaction remain separate product gates.
 5. Record rendering, audio, input, RTC, memory, and sanitizer evidence. Rendering, 32 kHz stereo audio, keyboard buttons, analog movement, and desktop text input have initial evidence; RTC, memory, and sanitizers remain.
    The title cleanup overflow is fixed with a padded host structure-actor pool; repeated teardown/reload is now part of the regression set.
    NPC-house entry and scene reinitialization are now explicit regression gates after reproducing an unreachable host door sample and a null e-Reader payload allocation in `play_init`.
@@ -60,7 +60,8 @@ This selection is now supported by platform, symbol-surface, ABI, source-boundar
 4. [x] Feed the title scene's Animal Crossing display lists through Aurora GX. Explicit host EFB clearing removed the accumulated-frame smear; static host-endian palette conversion now matches the dynamic path, cache invalidation is bounded per frame, unsafe draw merging is disabled, and corrected counter-clockwise WebGPU front faces restore the complete scene geometry.
 5. Validate correct title, train, outdoor town, interiors, inventory, dialogue, particles, framebuffer effects, and NES output.
    [x] Title composition and multi-line K.K. dialogue match the OpenGL oracle at the fixed 60 Hz cadence.
-   [ ] Choice UI, water, train, town, interiors, inventory, particles, framebuffer effects, and NES output remain.
+   [x] A saved-player iPhone run visibly completed returning-player dialogue and the train arrival at Cove station through Metal.
+   [ ] Choice UI, water, broader outdoor town traversal, interiors, inventory, particles, framebuffer effects, and NES output remain.
 6. Use Aurora GX after the real core link and scene-rendering gates pass. Keep the existing OpenGL renderer only as a temporary desktop oracle.
 
 GX reaches Metal as: game/JSystem/emu64 GX calls → Aurora GX command processor → WebGPU → Dawn Metal backend → `CAMetalLayer`.
@@ -83,7 +84,7 @@ GX reaches Metal as: game/JSystem/emu64 GX calls → Aurora GX command processor
 
 ## Milestone 4 — platform services
 
-- Saves: [x] Application Support GCI storage, checksums, durable atomic replacement, recovery, rolling backups, desktop creation/relaunch, iPhone rewrite/relaunch, and native import/export document pickers. Imports are validated and staged for pre-boot installation with a pre-import backup; exports use immutable validated snapshots. Exercise the retail save dialogue and prove Dolphin-compatible GCI in both user-facing directions. Consider raw-card support after GCI is stable.
+- Saves: [x] Application Support GCI storage, checksums, durable atomic replacement, recovery, rolling backups, desktop creation/relaunch, iPhone rewrite/relaunch, native import/export document pickers, isolated Dolphin GCI-folder interchange, and real iPhone/iPad Files exports. Imports are validated and staged for pre-boot installation with a pre-import backup; exports use immutable validated snapshots. Exercise the retail save dialogue and complete a fully UI-driven import selection. Consider raw-card support after GCI is stable.
 - RTC: wall clock plus monotonic time; observe timezone and significant-time-change notifications; preserve GameCube tick conversion without overflow; test Resetti/time-travel behaviors.
 - Audio: native SDL3/CoreAudio route with AVAudioSession ownership, interruption/route-change recovery, suspension-safe queues, and no busy-loop while inactive.
 - Input: one normalized GameCube state merging touch, GCController/SDL controller, and keyboard sources. Physical-controller connection optionally hides gameplay touch controls.
