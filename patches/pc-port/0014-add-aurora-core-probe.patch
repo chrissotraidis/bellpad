@@ -1,0 +1,149 @@
+diff --git a/pc/CMakeLists.txt b/pc/CMakeLists.txt
+--- a/pc/CMakeLists.txt
++++ b/pc/CMakeLists.txt
+@@ -1,7 +1,8 @@
+ cmake_minimum_required(VERSION 3.16)
+ project(ac_pc C CXX)
+ 
+ option(BELLPAD_MACOS_BUNDLE "Build the playable Apple Silicon baseline as Bellpad.app" OFF)
++option(BELLPAD_AURORA_CORE_PROBE "Compile the game core with Aurora integration enabled" OFF)
+ if(APPLE)
+     enable_language(OBJC)
+ endif()
+@@ -444,6 +445,14 @@ if(APPLE AND BELLPAD_MACOS_BUNDLE)
+     )
+ endif()
+ 
++if(BELLPAD_AURORA_CORE_PROBE)
++    add_library(ac_aurora_core_probe OBJECT
++        ${GAME_C_SOURCES}
++        ${GAME_CXX_SOURCES}
++    )
++    target_compile_definitions(ac_aurora_core_probe PRIVATE AURORA)
++endif()
++
+ add_executable(ac_pc ${AC_PC_EXECUTABLE_TYPE}
+     ${PC_SOURCES}
+     ${FIXNES_SOURCES}
+diff --git a/src/static/jsyswrap.cpp b/src/static/jsyswrap.cpp
+--- a/src/static/jsyswrap.cpp
++++ b/src/static/jsyswrap.cpp
+@@ -317,12 +317,12 @@ extern s16 JW_JUTGamepad_getSubStickAngle() {
+ 
+ static bool FrameDrawing = false;
+ 
+-#ifdef TARGET_PC
++#if defined(TARGET_PC) && !defined(AURORA)
+ extern "C" void pc_gx_begin_frame(void);
+ #endif
+ 
+ extern void JW_BeginFrame() {
+-#ifdef TARGET_PC
++#if defined(TARGET_PC) && !defined(AURORA)
+     /* Clear framebuffer at frame start so we don't see undefined data */
+     pc_gx_begin_frame();
+     FrameDrawing = true;
+@@ -343,7 +343,7 @@ extern void JW_BeginFrame() {
+ 
+ extern void JW_EndFrame() {
+     void* mgr = JC_JFWDisplay_getManager();
+-#ifdef TARGET_PC
++#if defined(TARGET_PC) && !defined(AURORA)
+     /* On PC: pump events, swap buffers, vsync via VIWaitForRetrace */
+     VIWaitForRetrace();
+     FrameDrawing = false;
+diff --git a/src/static/libforest/emu64/emu64.c b/src/static/libforest/emu64/emu64.c
+--- a/src/static/libforest/emu64/emu64.c
++++ b/src/static/libforest/emu64/emu64.c
+@@ -15,7 +15,9 @@
+ 
+ #ifdef TARGET_PC
+ #include "pc_platform.h"
++#if !defined(AURORA)
+ extern "C" void pc_gx_flush_if_begin_complete(void);
++#endif
+ 
+ static jmp_buf pc_dl_crash_jmpbuf;
+ 
+@@ -3211,7 +3213,7 @@ void emu64::dirty_check(int tile, int n_tiles, int do_texture_matrix) {
+     EMU64_TIMED_SEGMENT_BEGIN();
+     EMU64_ASSERTLINE_DEBUG(this, 4826);
+ 
+-#ifdef TARGET_PC
++#if defined(TARGET_PC) && !defined(AURORA)
+     /* Flush any pending GX batch BEFORE changing state.
+      * Without this, a pending batch (from the previous draw) gets flushed
+      * mid-dirty_check when the first GX state call triggers
+@@ -3902,9 +3904,14 @@ void emu64::dl_G_SETTILESIZE() {
+ }
+ 
+ #ifdef TARGET_PC
++#ifdef AURORA
++extern "C" void AuroraInitTlutObjHost(GXTlutObj* obj, const void* data, GXTlutFmt format, u16 entries);
++static u16 s_tlut_first_word[16];
++#else
+ extern "C" void pc_gx_tlut_set_native_le(unsigned int idx);
+ extern "C" u16 s_tlut_first_word[16];
+ #endif
++#endif
+ 
+ void emu64::dl_G_LOADTLUT() {
+     Gloadtlut_dolphin* loadtlut_dol = (Gloadtlut_dolphin*)EMU64_GFX_COMPACT_PTR;
+@@ -3959,10 +3966,16 @@ void emu64::dl_G_LOADTLUT() {
+ #endif
+                     }
+ 
++#ifdef AURORA
++                    AuroraInitTlutObjHost(&this->tlut_objs[tlut_name], aligned_addr, GX_TL_RGB5A3, count);
++#else
+                     GXInitTlutObj(&this->tlut_objs[tlut_name], aligned_addr, GX_TL_RGB5A3, count);
++#endif
+                     GXLoadTlut(&this->tlut_objs[tlut_name], tlut_name);
+-#ifdef TARGET_PC
++#if defined(TARGET_PC) && !defined(AURORA)
+                     pc_gx_tlut_set_native_le(tlut_name);
++#endif
++#ifdef TARGET_PC
+                     s_tlut_first_word[tlut_name] = *(u16*)aligned_addr;
+ #endif
+ 
+@@ -4014,9 +4027,13 @@ void emu64::dl_G_LOADTLUT() {
+                 if (tlut != nullptr) {
+                     while (count != 0) {
+                         tlut_addresses[tlut_name] = (void*)addr;
++#ifdef AURORA
++                        AuroraInitTlutObjHost(&this->tlut_objs[tlut_name], tlut, GX_TL_RGB5A3, count);
++#else
+                         GXInitTlutObj(&this->tlut_objs[tlut_name], tlut, GX_TL_RGB5A3, count);
++#endif
+                         GXLoadTlut(&this->tlut_objs[tlut_name], tlut_name);
+-#ifdef TARGET_PC
++#if defined(TARGET_PC) && !defined(AURORA)
+                         pc_gx_tlut_set_native_le(tlut_name);
+ #endif
+ 
+@@ -5471,13 +5488,13 @@ void emu64::dl_G_CULLDL() {
+         }
+ 
+         this->cullDL_outside_obj_count++;
+-#ifdef TARGET_PC
++#if defined(TARGET_PC) && !defined(AURORA)
+         pc_emu64_frame_cull_rejected++;
+ #endif
+     } else {
+         EMU64_LOG("カリングされませんでした\n"); /* Translation: Wasn't culled */
+         this->cullDL_visible_obj_count++;
+-#ifdef TARGET_PC
++#if defined(TARGET_PC) && !defined(AURORA)
+         pc_emu64_frame_cull_visible++;
+ #endif
+     }
+@@ -5973,7 +5990,7 @@ u32 emu64::emu64_taskstart_r(Gfx* dl_p) {
+         }
+ 
+         u8 cmd_index = this->gfx_cmd - G_FIRST_CMD;
+-#ifdef TARGET_PC
++#if defined(TARGET_PC) && !defined(AURORA)
+         {
+             pc_emu64_frame_cmds++;
+             /* Track specific command types by opcode */

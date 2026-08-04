@@ -124,6 +124,9 @@ scene/orientation/safe-area policy and adaptive touch controls.
 | GX value ABI | Pass — sizes and alignments match for render mode, colors, lights, fog, and vertex descriptors |
 | Opaque GX object storage | Pass — core/Aurora `GXTexObj` is 88/64 bytes and `GXTlutObj` is 40/40 bytes |
 | Baseline regression rebuild | Pass — all 3,361 affected build steps completed and the ARM64 `Bellpad.app` linked after palette-storage expansion |
+| Aurora-defined full-core compile | Pass — 3,904 game objects compile with `AURORA`; 111 GX/GD imports all resolve |
+| Legacy renderer-hook isolation | Pass — zero `pc_gx_*`, `pc_emu64_frame_*`, or `s_tlut_*` imports; host TLUT byte order resolves through the explicit Aurora bridge |
+| OpenGL baseline regression rebuild | Pass — ARM64 `Bellpad.app` relinked after the conditional split, proving the temporary playable backend still compiles |
 | Animal Crossing through Aurora/Metal | Pending — real executable/platform link and scene rendering are the next gate |
 
 The iPhone simulator screenshot required rotation for human inspection because

@@ -1,0 +1,120 @@
+diff --git a/include/dolphin/gx/GXAurora.h b/include/dolphin/gx/GXAurora.h
+index 3ee2cd4..dcbd7f9 100644
+--- a/include/dolphin/gx/GXAurora.h
++++ b/include/dolphin/gx/GXAurora.h
+@@ -2,6 +2,8 @@
+ #define DOLPHIN_GXAURORA_H
+ 
+ #include <dolphin/types.h>
++#include <dolphin/gx/GXEnum.h>
++#include <dolphin/gx/GXStruct.h>
+ 
+ #if __cplusplus
+ extern "C" {
+@@ -136,6 +138,13 @@ void AuroraSetViewportPolicy(AuroraViewportPolicy policy);
+  */
+ void AuroraGetRenderSize(u32* width, u32* height);
+ 
++/**
++ * Initializes a TLUT whose 16-bit entries are in native host byte order.
++ * Source ports may use this for palettes generated in host memory; retail
++ * GameCube TLUT data should continue to use GXInitTlutObj.
++ */
++void AuroraInitTlutObjHost(GXTlutObj* obj, const void* data, GXTlutFmt format, u16 entries);
++
+ /**
+  * Sets the actual render viewport in native framebuffer coordinates.
+  * Overrides the automatically scaled values set by the logical GXSetViewport.
+diff --git a/lib/dolphin/gx/GXTexture.cpp b/lib/dolphin/gx/GXTexture.cpp
+index 04f97f5..e2f19f6 100644
+--- a/lib/dolphin/gx/GXTexture.cpp
++++ b/lib/dolphin/gx/GXTexture.cpp
+@@ -98,6 +98,7 @@ void emit_loaded_tlut_metadata(const GXTlutObj_& obj, u32 idx) {
+   GX_WRITE_U16(obj.numEntries);
+   GX_WRITE_U32(obj.tlutObjId);
+   GX_WRITE_U32(obj.tlutDataVersion);
++  GX_WRITE_U8(static_cast<u8>(obj.host_endian()));
+ }
+ } // namespace
+ 
+@@ -318,6 +319,11 @@ void GXInitTlutObj(GXTlutObj* obj_, const void* data, GXTlutFmt format, u16 entr
+   SET_REG_FIELD(0, obj->loadTlut0, 8, 24, 0x64);
+ }
+ 
++void AuroraInitTlutObjHost(GXTlutObj* obj_, const void* data, GXTlutFmt format, u16 entries) {
++  GXInitTlutObj(obj_, data, format, entries);
++  reinterpret_cast<GXTlutObj_*>(obj_)->set_host_endian(true);
++}
++
+ void GXInitTlutObjData(GXTlutObj* obj_, const void* data) {
+   auto* obj = reinterpret_cast<GXTlutObj_*>(obj_);
+   obj->data = data;
+diff --git a/lib/gfx/texture.hpp b/lib/gfx/texture.hpp
+index 18c2813..c6abb4d 100644
+--- a/lib/gfx/texture.hpp
++++ b/lib/gfx/texture.hpp
+@@ -125,6 +125,8 @@ struct GXTlutObj_ {
+   // Custom flag for texture caching
+   bool no_cache() const noexcept { return (flags & 0x80) != 0; }
+   void set_no_cache(bool value) noexcept { flags = value ? flags | 0x80 : flags & ~0x80; }
++  bool host_endian() const noexcept { return (flags & 0x40) != 0; }
++  void set_host_endian(bool value) noexcept { flags = value ? flags | 0x40 : flags & ~0x40; }
+ };
+ static_assert(sizeof(GXTlutObj_) <= sizeof(GXTlutObj), "GXTlutObj too small!");
+ 
+diff --git a/lib/gx/command_processor.cpp b/lib/gx/command_processor.cpp
+index 30bc462..63fd9a5 100644
+--- a/lib/gx/command_processor.cpp
++++ b/lib/gx/command_processor.cpp
+@@ -1809,7 +1809,7 @@ void handle_aurora(const u8* data, u32& pos, u32 size, bool bigEndian) {
+     slot.set_no_cache(false); // Reset no-cache flag
+     g_gxState.stateDirty = true;
+   } else if (subCmd == GX_AURORA_LOAD_TLUT) {
+-    CHECK(pos + 23 <= size, "GX_AURORA_LOAD_TLUT read overrun");
++    CHECK(pos + 24 <= size, "GX_AURORA_LOAD_TLUT read overrun");
+     const auto idx = data[pos];
+     pos += 1;
+     CHECK(idx < MaxTluts, "invalid tlut slot {}", idx);
+@@ -1824,6 +1824,8 @@ void handle_aurora(const u8* data, u32& pos, u32 size, bool bigEndian) {
+     pos += 4;
+     slot.tlutDataVersion = read_u32(data + pos, bigEndian);
+     pos += 4;
++    slot.set_host_endian(data[pos] != 0);
++    pos += 1;
+     slot.set_no_cache(false); // Reset no-cache flag
+     g_gxState.stateDirty = true;
+   } else if (subCmd == GX2_SET_POLYGON_OFFSET) {
+diff --git a/lib/gx/gx.cpp b/lib/gx/gx.cpp
+index 1cf3ecf..2b40fdb 100644
+--- a/lib/gx/gx.cpp
++++ b/lib/gx/gx.cpp
+@@ -22,6 +22,7 @@
+ #include <mutex>
+ #include <optional>
+ #include <utility>
++#include <vector>
+ 
+ static aurora::Module Log("aurora::gx");
+ 
+@@ -146,9 +147,20 @@ gfx::TextureHandle get_tlut_texture(const GXTlutObj_& tlut) {
+     cache.staticTextureUsers.clear();
+   }
+ 
++  std::vector<u16> bigEndianData;
++  const u8* paletteData = static_cast<const u8*>(tlut.data);
++  if (tlut.host_endian()) {
++    const auto* nativeData = static_cast<const u16*>(tlut.data);
++    bigEndianData.reserve(tlut.numEntries);
++    for (u16 i = 0; i < tlut.numEntries; ++i) {
++      bigEndianData.push_back(bswap(nativeData[i]));
++    }
++    paletteData = reinterpret_cast<const u8*>(bigEndianData.data());
++  }
++
+   const auto handle = gfx::new_static_texture_2d(
+       tlut.numEntries, 1, 1, gfx::tlut_texture_format(tlut.format),
+-      {static_cast<const u8*>(tlut.data), static_cast<size_t>(tlut.numEntries) * sizeof(u16)}, true, "Loaded TLUT");
++      {paletteData, static_cast<size_t>(tlut.numEntries) * sizeof(u16)}, true, "Loaded TLUT");
+   if (tlut.tlutObjId != 0) {
+     auto& cache = s_tlutObjectCaches[tlut.tlutObjId];
+     cache.tlutTexture.handle = handle;

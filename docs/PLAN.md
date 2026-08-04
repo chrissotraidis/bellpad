@@ -11,7 +11,7 @@ Bellpad is a native Apple-platform source port. It will not ship an emulator, a 
 - Final compatibility layer: Aurora (MIT), initially for SDL3/application lifecycle, DVD/nod, PAD, CARD, OS/RTC, VI, MTX, and Metal-backed GX through Dawn/WebGPU.
 - Mobile shell: a thin Objective-C++/UIKit layer around a portable C/C++ game target. HarkinianPad is an architecture and UX reference only unless separately licensed code is explicitly contributed.
 
-This selection is now supported by platform, symbol-surface, and ABI evidence. The compiled core requires 112 GX/GD symbols; Bellpad's pinned Aurora patch supplies all 112, and compiled probes verify matching value types plus sufficient opaque texture/palette storage. Actual Animal Crossing display-list rendering and scene correctness must still pass before OpenGL is retired.
+This selection is now supported by platform, symbol-surface, ABI, and source-boundary evidence. The desktop-compiled core requires 112 GX/GD symbols; Bellpad's pinned Aurora patch supplies all 112, and compiled probes verify matching value types plus sufficient opaque texture/palette storage. The complete 3,904-object core also compiles with `AURORA` enabled, requires 111 GX/GD symbols with zero gaps, and imports no legacy OpenGL renderer hooks. Actual executable linking and Animal Crossing scene correctness must still pass before OpenGL is retired.
 
 ## Milestone 0 — safety, research, and provenance
 
@@ -52,6 +52,7 @@ This selection is now supported by platform, symbol-surface, and ABI evidence. T
 2. [ ] Create a minimal Animal Crossing target using Aurora core/VI/MTX/OS/PAD/DVD/CARD. GX symbol and ABI prerequisites now pass; executable/platform convergence remains.
 3. [x] Inventory every GX/GD function called by the game and compare it to Aurora exports. The 3,905 compiled game-core objects require 112 symbols; patched Aurora provides all of them.
    [x] Compile-check the GX host ABI. Value types match exactly; the core's 88-byte `GXTexObj` holds Aurora's 64-byte implementation, and patch 13 expands `GXTlutObj` from 16 to the required 40 bytes.
+   [x] Compile the complete game source with the Aurora path enabled and audit undefined symbols. All 3,904 core objects compile, all 111 resulting GX/GD imports resolve, and no `pc_gx_*` or renderer diagnostic globals remain. Host-generated palettes use one explicit `AuroraInitTlutObjHost` extension so byte order is not hidden inside the old OpenGL backend.
 4. Feed representative Animal Crossing display lists through Aurora GX.
 5. Validate title, train, outdoor town, interiors, inventory, dialogue, particles, framebuffer effects, and NES output.
 6. Use Aurora GX after the real core link and scene-rendering gates pass. Keep the existing OpenGL renderer only as a temporary desktop oracle.
