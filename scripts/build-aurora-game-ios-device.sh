@@ -28,6 +28,8 @@ app="$build_dir/bin/Bellpad.app"
 binary="$app/Bellpad"
 plist="$app/Info.plist"
 
+"$script_dir/install-ios-app-icon.sh" "$app" iphoneos
+
 test -x "$binary"
 file "$binary" | grep -q 'Mach-O 64-bit executable arm64'
 platform=$(xcrun vtool -show-build "$binary" | awk '$1 == "platform" { print $2; exit }')

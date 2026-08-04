@@ -107,7 +107,7 @@ scene/orientation/safe-area policy and adaptive touch controls.
 | Test | Result |
 |---|---|
 | Product build | Pass — complete game core links as an ARM64 `IOSSIMULATOR` `Bellpad.app` with SDL3, Aurora, Dawn/Metal, UIKit overlay, and strong normalized-input snapshot |
-| Package contents | Pass — bundle contains only the executable and plist; no ISO/GCM/CISO/RVZ, extracted retail asset, GCI, or raw card |
+| Package contents | Pass — bundle contains the executable, plist, two compiled icon PNGs, and `Assets.car`; no ISO/GCM/CISO/RVZ, extracted retail asset, GCI, or raw card |
 | iPhone first-run/cancel | Pass — no retained data presents Bellpad's native legal import screen; Files opens and cancellation returns to that screen without starting the core |
 | iPhone invalid image | Pass — a synthetic invalid `.iso` reports an invalid GameCube header, remains on the import screen, and creates no retained image |
 | iPhone valid Files import | Pass — a private ignored GAFE01 revision 0 image selected through Files was security-scoped, source/staged validated, copied byte-for-byte into private Application Support, and booted without `--disc`; no staging file remained |
@@ -124,12 +124,13 @@ scene/orientation/safe-area policy and adaptive touch controls.
 | iPad native player name | Pass with harness limitation — the real editor presented the adaptive UIKit field as first responder, accepted text through the production insertion method, exited on Done, and Rover echoed the entered prefix. Simulator host-focus loss paused consumption during LLDB automation, so this run does not claim an exact full-name value |
 | iPad control settings | Pass — after the iPhone session was stopped, the universal app rendered expanded iPad controls in the managed window and opened the complete top-right gear panel; Render, Native/1×/2×/3×/4×, sliders, switches, and reset remained readable at the iPad window scale |
 | iPad render resolution | Pass — the 4× choice produced a 2560×1920 internal framebuffer against the 2752×2064 iPad drawable, preserving the fixed 60 Hz simulation path |
+| Original app icon | Pass — opaque full-bleed 1024×1024 source has no alpha or baked rounded corners; `actool` emitted iPhone/iPad renditions and plist metadata, the installed iPhone home screen displayed the Bellpad icon, and macOS `iconutil` round-tripped all ten 16–1024 px iconset files |
 | iPad retained relaunch | Pass — terminate/relaunch with no arguments returned directly to the animated Metal title using the retained private copy |
 | Cleanup | Pass — the iPad app terminated, exact simulator test copies were moved to Trash, the simulator shut down, and no simulator remained booted |
 | Lifecycle/audio wiring | Partial — UIKit resign-active clears product input and Aurora pause/unpause now pauses/resumes SDL3 audio; a bounded background/foreground runtime pass remains |
 | ARM64 device build | Pass (static audit) — complete product links as Mach-O arm64 with `LC_BUILD_VERSION` platform `IOS`, minimum iOS 17.0, Metal, and no SDL2; physical install/runtime remains |
-| Unsigned IPA reproducibility | Pass — two timestamp-normalized packages were byte-identical with SHA-256 `aebad5e8ec87de3049d8044449679a03faa3a13d7513c76c9b385b744d868d7b` |
-| Unsigned IPA contents | Pass — 7.9 MB archive contains only `Payload/Bellpad.app/Bellpad` and `Payload/Bellpad.app/Info.plist`; no signature, provisioning profile, retail data, save, key, or certificate |
+| Unsigned IPA reproducibility | Pass — two timestamp-normalized packages were byte-identical with SHA-256 `3599d9cb757bcccfb706e2225b506f06472adf436963497587d28d68796e6064` |
+| Unsigned IPA contents | Pass — 13 MB archive contains only the executable, plist, `Assets.car`, and two compiled icon PNGs; no signature, provisioning profile, retail data, save, key, or certificate |
 
 The import runs above used the native Files UI and no `--disc` argument. They
 prove the raw ISO/GCM user flow and relaunch retention, not hash/size allowlisting,

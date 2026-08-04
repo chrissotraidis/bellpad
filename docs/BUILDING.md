@@ -155,10 +155,12 @@ readers and validation rules are linked and tested.
 
 The device build uses Aurora's pinned prebuilt `dawn-ios-arm64` package and
 vendored SDL3, then compiles the same complete game core and Bellpad UIKit
-adapter for iOS 17 or newer. It verifies an ARM64 Mach-O with platform `IOS`,
-Metal linkage, a valid product plist, no SDL2, and no disc, save, or provisioning
-files in `Bellpad.app`. This is an unsigned build; installation still requires a
-user-owned signing identity and provisioning profile outside the repository.
+adapter for iOS 17 or newer. It compiles the original universal icon source with
+Apple `actool`, merges the generated primary-icon metadata, and verifies an
+ARM64 Mach-O with platform `IOS`, Metal linkage, a valid product plist, no SDL2,
+and no disc, save, or provisioning files in `Bellpad.app`. This is an unsigned
+build; installation still requires a user-owned signing identity and
+provisioning profile outside the repository.
 
 The package script accepts only an iOS device app, removes any incidental code
 signature and provisioning profile from its private staging copy, audits both
@@ -168,10 +170,11 @@ saves, credentials, certificates, keys, and provisioning material. It never
 reads or packages the ignored development disc image. Set
 `BELLPAD_SKIP_IOS_DEVICE_BUILD=1` to repackage an already audited device build.
 
-Observed 2026-08-04: the output contains exactly `Payload/Bellpad.app/Bellpad`
-and `Payload/Bellpad.app/Info.plist`, is 7.9 MB, targets ARM64 iOS 17.0 through
-Metal, and two independent packaging runs produced identical bytes with SHA-256
-`aebad5e8ec87de3049d8044449679a03faa3a13d7513c76c9b385b744d868d7b`.
+Observed 2026-08-04: the output contains exactly the executable, plist,
+`Assets.car`, `AppIcon60x60@2x.png`, and `AppIcon76x76@2x~ipad.png`; it is 13 MB,
+targets ARM64 iOS 17.0 through Metal, and two independent packaging runs produced
+identical bytes with SHA-256
+`3599d9cb757bcccfb706e2225b506f06472adf436963497587d28d68796e6064`.
 
 Run the tracked-content safety check before every commit and package build:
 
@@ -200,8 +203,9 @@ can take several minutes; subsequent builds are incremental. Set
 The generated upstream example has only probe metadata. Install it with
 `xcrun simctl install` and launch `dev.bellpad.aurora-probe`; always terminate
 and shut down the iPhone simulator before booting the iPad simulator. The
-eventual Bellpad product will own its Info.plist, scenes, safe areas, windowing,
-icons, signing, and packaging rather than post-processing an upstream example.
+Bellpad product now owns its Info.plist, safe-area/window policy, original icon
+source, asset compilation, and unsigned packaging rather than post-processing
+this upstream example. Distribution signing remains intentionally user-owned.
 
 Observed 2026-08-03: macOS selected the Apple M2 Metal adapter and rendered the
 GX example. The ARM64 `IOSSIMULATOR` executable selected the Apple iOS simulator

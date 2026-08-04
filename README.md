@@ -2,7 +2,7 @@
 
 Bellpad is an experimental, native Apple ARM64 source port project for the original US revision of Animal Crossing for Nintendo GameCube. The intended application compiles legally clean reverse-engineered game code for macOS, iOS, and iPadOS. It is not a GameCube emulator and will not embed a WebAssembly/browser port.
 
-The repository is in active product hardening. The proven ARM64 game core packages as a playable macOS `Bellpad.app`, and the same complete core now links through Aurora, SDL3, and Metal as native ARM64 iOS/iPadOS simulator and device apps with Bellpad's UIKit controls. The mobile build imports user-owned raw game data through Files, retains it privately, reaches the title and setup sequence, accepts touch input, connects the real game editor to the native iOS keyboard, and persists per-device control settings. A reproducible audited unsigned IPA now builds without retail data. Save/relaunch proof, broader lifecycle proof, original branding, and physical-device runtime evidence remain incomplete.
+The repository is in active product hardening. The proven ARM64 game core packages as a playable macOS `Bellpad.app`, and the same complete core now links through Aurora, SDL3, and Metal as native ARM64 iOS/iPadOS simulator and device apps with Bellpad's UIKit controls. The mobile build imports user-owned raw game data through Files, retains it privately, reaches the title and setup sequence, accepts touch input, connects the real game editor to the native iOS keyboard, and persists per-device control settings. Original bell-centered branding and a reproducible audited unsigned IPA now build without retail data. Save/relaunch proof, broader lifecycle proof, and physical-device runtime evidence remain incomplete.
 
 ## Current status
 
@@ -24,7 +24,7 @@ As of 2026-08-04:
 - The mobile game includes left/C sticks, A/B/X/Y, Z/L/R/Start, D-pad, adaptive compact/expanded layouts, safe-area handling, GameController merging, physical-controller auto-hide on devices, persistent opacity/size/visibility/positions, drag editing/reset, Native/1×/2×/3×/4× render-resolution choices, and the thread-safe game-input snapshot consumed by the Aurora core.
 - Native macOS and iOS/iPadOS choosers accept a user-selected file through a shared header validator. The current slice recognizes raw ISO/GCM and requires GameCube magic plus `GAFE01` revision 0. On mobile, a valid selection is copied through a staging file to private Application Support, validated again, atomically installed, and used by the real core; the retained copy is reused on relaunch.
 - When the real game opens a text editor, the mobile adapter presents a native UIKit first responder and drains UTF-8, Backspace, paste, and Done events on the game thread. The iPhone flow committed exact player name `Bell` and town name `Cove`; iPad also presented and committed through the same native field. Letter writing, dictation/accessibility breadth, and physical-device keyboard behavior remain to be tested.
-- The playable macOS bundle still uses the proven SDL2/OpenGL renderer and Application Support. The mobile Aurora game bundle now runs the real core, renderer, audio, touch, persistent control settings, user-facing import, and native-text path on simulator and ARM64 device targets. The audited unsigned IPA contains only `Bellpad` and `Info.plist`. Hash allowlisting, nod indexing/compressed formats, remove/reimport UI, save import/export and relaunch proof, broader lifecycle/scene validation, signing, and physical-device runtime remain.
+- The playable macOS bundle still uses the proven SDL2/OpenGL renderer and Application Support. The mobile Aurora game bundle now runs the real core, renderer, audio, touch, persistent control settings, user-facing import, native-text path, and compiled original icon on simulator and ARM64 device targets. The audited unsigned IPA contains only the executable, plist, compiled icon renditions, and asset catalog. Hash allowlisting, nod indexing/compressed formats, remove/reimport UI, save import/export and relaunch proof, broader lifecycle/scene validation, signing, and physical-device runtime remain.
 
 See [STATUS.md](docs/STATUS.md), [PLAN.md](docs/PLAN.md), and [WORKLOG.md](docs/WORKLOG.md) for evidence and current blockers.
 
@@ -90,6 +90,10 @@ The desktop reference uses:
 | D-pad | I / J / K / L |
 
 The native mobile layout has a left analog stick, large A/B buttons, smaller X/Y buttons, Z/L/R/Start, D-pad, and C-stick/camera region. It scales from compact iPhone and resizable-iPad windows to an expanded iPad layout and respects safe areas. The top-right gear opens a native settings panel that stores separate iPhone/iPad opacity, size, visibility, normalized control positions, and render resolution; Move mode supports drag editing and Reset restores that device-class preset. Resolution choices are Native (full drawable resolution) plus 1×, 2×, 3×, and 4× EFB scales. Higher fixed scales may supersample on a device whose drawable is smaller. Physical controllers auto-hide gameplay controls on device while leaving settings available. Touch and GameController states merge through one thread-safe normalized GameCube state using ORed buttons, strongest axes, and maximum analog triggers.
+
+## Branding
+
+Bellpad's original icon uses a brass handbell, teal woven handle, and warm folk-art sunburst. It deliberately avoids official characters, leaves, houses, currency bags, logos, typography, and other recognizable game assets. The opaque full-bleed 1024×1024 source and generation provenance live in `apple/ios/Assets.xcassets/AppIcon.appiconset/`; Apple tooling compiles the iPhone/iPad renditions and derives the complete macOS `.icns` size set during tracked builds.
 
 ## Native keyboard
 

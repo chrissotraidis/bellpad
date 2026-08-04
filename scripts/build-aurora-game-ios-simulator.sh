@@ -28,6 +28,8 @@ app="$build_dir/bin/Bellpad.app"
 binary="$app/Bellpad"
 plist="$app/Info.plist"
 
+"$script_dir/install-ios-app-icon.sh" "$app" iphonesimulator
+
 test -x "$binary"
 file "$binary" | grep -q 'Mach-O 64-bit executable arm64'
 xcrun vtool -show-build "$binary" | grep -q 'platform IOSSIMULATOR'

@@ -17,6 +17,7 @@ cmake -S "$core_dir/pc" -B "$build_dir" -G Ninja \
 cmake --build "$build_dir" --parallel
 
 app_path="$build_dir/bin/Bellpad.app"
+"$script_dir/install-macos-app-icon.sh" "$app_path"
 test -x "$app_path/Contents/MacOS/Bellpad"
 file "$app_path/Contents/MacOS/Bellpad"
 plutil -lint "$app_path/Contents/Info.plist"

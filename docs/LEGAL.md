@@ -1,6 +1,6 @@
 # Legal and clean-room boundary
 
-Last updated: 2026-08-03
+Last updated: 2026-08-04
 
 Bellpad is an unofficial compatibility project. It is not affiliated with or endorsed by Nintendo. “Animal Crossing,” Nintendo, and GameCube names are used only to describe compatibility; their trademarks and copyrighted works remain their owners' property.
 
@@ -23,6 +23,15 @@ HarkinianPad-owned integration code is all-rights-reserved by default and is the
 ## Distribution model
 
 The application is ROM-free. A user selects their own supported image after installation. Validation and any indexing/extraction occur inside that user's app container. Release audits must reject original or derived copyrighted game data.
+
+## Original branding
+
+The Bellpad app icon was generated from a text-only brief with no retail image,
+official artwork, character, logo, typography, or third-party icon supplied as
+input. It uses an original brass handbell and abstract folk-art sunburst and
+deliberately excludes official leaves, houses, currency bags, characters, and
+platform marks. The source constraints and generation provenance are recorded
+beside the tracked 1024×1024 icon.
 
 ## License handling
 
