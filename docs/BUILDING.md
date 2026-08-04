@@ -12,7 +12,7 @@ brew install cmake ninja ripgrep sdl2
 ./scripts/build-aurora-game-ios-simulator.sh
 ```
 
-The verification command audits tracked/release content, clones the exact pinned game core into ignored local storage, replays all forty-two patches in an isolated detached worktree, builds and runs the clean native platform tests, exercises the deterministic RTC and NES/GX conversion suites, checks every shell script, and rejects whitespace errors. It requires no retail data. The same command runs on GitHub's Apple ARM64 `macos-15` runner through the pinned [source-release workflow](https://github.com/chrissotraidis/bellpad/actions/workflows/source-release.yml); use that live workflow page as the authoritative clean-checkout result for the current `main`. The simulator build fetches pinned dependencies and may take several minutes on its first Dawn build.
+The verification command audits tracked/release content, clones the exact pinned game core into ignored local storage, replays all forty-three patches in an isolated detached worktree, builds and runs the clean native platform tests, exercises the deterministic RTC and NES/GX conversion suites, checks every shell script, and rejects whitespace errors. It requires no retail data. The same command runs on GitHub's Apple ARM64 `macos-15` runner through the pinned [source-release workflow](https://github.com/chrissotraidis/bellpad/actions/workflows/source-release.yml); use that live workflow page as the authoritative clean-checkout result for the current `main`. The simulator build fetches pinned dependencies and may take several minutes on its first Dawn build.
 
 ## Host
 
@@ -160,7 +160,7 @@ To install the simulator bundle, use `xcrun simctl install <device-uuid> build/i
 ./scripts/build-aurora-game-ios-simulator.sh
 ```
 
-This applies the pinned forty-two-patch game series and five-patch Aurora series,
+This applies the pinned forty-three-patch game series and five-patch Aurora series,
 builds Dawn and SDL3 for ARM64 iOS Simulator, and links the complete game core,
 Aurora GX/Metal renderer, SDL3 audio, normalized input bridge, and UIKit GameCube
 overlay into `Bellpad.app`. The script verifies the Mach-O platform, plist,
@@ -176,10 +176,13 @@ The app reuses that retained copy on subsequent launches.
 
 Simulator builds contain an opt-in audio-session test that is compiled out of
 device products. Launch with
-`SIMCTL_CHILD_BELLPAD_TEST_AUDIO_SESSION_EVENTS=1` to post spaced interruption
-begin/end and route-change notifications after startup. The expected log pairs
+`SIMCTL_CHILD_BELLPAD_TEST_AUDIO_SESSION_EVENTS=1` to post an eight-second
+interruption followed by a route-change notification after startup. The expected log pairs
 show `[AudioSession]` receipt on UIKit's thread and `[Lifecycle] Audio
-paused/resumed` consumption on the game thread. This proves event wiring; it
+paused/resumed` consumption on the game thread. While paused, `[AUDIO] Output
+paused; producer remains clocked` confirms that game audio commands still drain
+at the native DAC sample rate; `SendStart::Mesg Full Queue` must not appear.
+This proves event wiring and interruption queue behavior; it
 does not substitute for headset, Bluetooth, phone-call, or route tests on real
 hardware.
 

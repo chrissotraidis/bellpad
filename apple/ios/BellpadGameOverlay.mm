@@ -169,7 +169,7 @@ static void BellpadScheduleAudioSessionSelfTest(void) {
                             userInfo:@{AVAudioSessionInterruptionTypeKey:
                                            @(AVAudioSessionInterruptionTypeBegan)}];
     });
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(8.0 * NSEC_PER_SEC)),
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(14.0 * NSEC_PER_SEC)),
                    dispatch_get_main_queue(), ^{
         NSLog(@"[AudioSessionTest] Posting interruption ended");
         [center postNotificationName:AVAudioSessionInterruptionNotification
@@ -181,7 +181,7 @@ static void BellpadScheduleAudioSessionSelfTest(void) {
                                     @(AVAudioSessionInterruptionOptionShouldResume),
                             }];
     });
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(10.0 * NSEC_PER_SEC)),
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(17.0 * NSEC_PER_SEC)),
                    dispatch_get_main_queue(), ^{
         NSLog(@"[AudioSessionTest] Posting old-device-unavailable route change");
         [center postNotificationName:AVAudioSessionRouteChangeNotification

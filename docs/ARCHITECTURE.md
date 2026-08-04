@@ -124,7 +124,11 @@ thread. UIKit configures an ambient, mix-with-others `AVAudioSession`, requests
 the same 32 kHz rate, and atomically latches interruption, route, and media-service
 events. Patch 42 consumes those edges on the game thread, pauses SDL3 before a
 route/interruption transition, and resumes only after UIKit reports the session
-ready. Simulator-only opt-in synthetic notifications exercise this boundary;
+ready. Patch 43 keeps the game audio engine advancing at its native DAC sample
+clock while CoreAudio output is stopped, discards those inaudible samples, and
+clears stale stream/ring data before resume; this prevents the audio command
+queue from saturating during longer interruptions. Simulator-only opt-in
+synthetic notifications exercise this boundary;
 they are compiled out of device products and do not replace real hardware route
 tests. Aurora owns window creation, event acquisition, frame begin/end, Dawn,
 and Metal. JSystem's GameCube VI-message wait is bypassed on this synchronous

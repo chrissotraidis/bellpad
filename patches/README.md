@@ -123,6 +123,13 @@ It pauses SDL3 while iOS changes the session and resumes only when the Apple
 adapter reports that the app is active, the interruption has ended, and an
 output route is available. Device builds contain no synthetic test path.
 
+`pc-port/0043-keep-audio-producer-clocked-while-paused.patch` prevents a
+stopped CoreAudio consumer from starving the game's audio command processor.
+While output is interrupted, it generates and discards one native DAC frame at
+sample-clock pace. Resume clears stale stream and ring data before producing
+fresh samples. This avoids command-queue saturation without a busy loop or an
+audible backlog.
+
 `aurora/0001-complete-acgc-gx-compatibility.patch` applies to Aurora commit
 `5027ed63a73dfba28de9eceed00481fb09a19c35`. It implements the five GX calls
 used by the compiled game core that the pinned Aurora library did not export:
