@@ -4,6 +4,16 @@ Last updated: 2026-08-04
 
 The repository now builds a playable macOS game-core bundle, native Aurora/Metal game targets for macOS, iOS Simulator, and ARM64 iOS devices, an audited unsigned IPA, Bellpad-owned Metal/touch integration shells, and pinned compatibility probes.
 
+For a new checkout, start with:
+
+```sh
+brew install cmake ninja sdl2
+./scripts/verify-release-candidate.sh
+./scripts/build-aurora-game-ios-simulator.sh
+```
+
+The verification command audits tracked/release content, builds and runs the clean native platform tests, exercises the deterministic RTC conversion suite against the fully patched pinned core, checks every shell script, and rejects whitespace errors. It requires no retail data. The simulator build fetches pinned dependencies and may take several minutes on its first Dawn build.
+
 ## Host
 
 - Apple Silicon Mac
@@ -120,7 +130,7 @@ To install the simulator bundle, use `xcrun simctl install <device-uuid> build/i
 ./scripts/build-aurora-game-ios-simulator.sh
 ```
 
-This applies the pinned twenty-nine-patch game series and five-patch Aurora series,
+This applies the pinned thirty-one-patch game series and five-patch Aurora series,
 builds Dawn and SDL3 for ARM64 iOS Simulator, and links the complete game core,
 Aurora GX/Metal renderer, SDL3 audio, normalized input bridge, and UIKit GameCube
 overlay into `Bellpad.app`. The script verifies the Mach-O platform, plist,
@@ -133,6 +143,8 @@ Files import screen. A supported raw ISO/GCM is security-scoped while it is read
 validated, copied to a staging file under private Application Support, validated
 again, atomically installed, and then supplied to the real Aurora disc reader.
 The app reuses that retained copy on subsequent launches.
+
+Patches 30 and 31 keep Animal Crossing's local-time clock synchronized after long sessions and mobile suspension. The game clock combines a subsecond host wall clock with an overflow-safe monotonic performance counter, checks drift periodically, and rebases on iOS activation, significant-time-change, and timezone-change notifications. `./scripts/test-pc-rtc-clock.sh` covers epoch conversion, timezone offsets, development time overrides, large counters, zero-frequency defense, and nanosecond conversion without using retail data.
 
 The top-right gear panel's `Game Data & Saves…` menu can request a replacement
 image or removal on the next launch without deleting saves. It also exports a
@@ -196,7 +208,7 @@ Observed 2026-08-04: the output contains exactly the executable, plist,
 through Metal. Source-prefix mapping keeps the checkout location out of
 Bellpad-built objects. Two post-notice packages produced identical bytes with
 SHA-256
-`f71b02a2890b3695e35673f5070270a2ef04490c8bd6d829092ed5bf5c83d864`.
+`a9e85a86a9cc2956ab0d161080b418bb9d358b692551e9cba21d9fb167914075`.
 
 Run the tracked-content safety check before every commit and package build:
 

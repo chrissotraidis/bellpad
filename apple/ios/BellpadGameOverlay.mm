@@ -108,6 +108,7 @@ static std::atomic_int sFrameBufferScaleMode{0};
 static std::atomic_bool sDidBecomeActive{false};
 static std::atomic_bool sWasInactive{false};
 static std::atomic_bool sWillResignActive{false};
+static std::atomic_bool sHostClockChanged{false};
 static NSURL *sApplicationSupportURL;
 
 static NSString *const BPChangeGameDataOnNextLaunchKey = @"BellpadChangeGameDataOnNextLaunch";
@@ -564,6 +565,10 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
                        name:UIApplicationWillTerminateNotification object:nil];
         [center addObserver:self selector:@selector(didBecomeActive:)
                        name:UIApplicationDidBecomeActiveNotification object:nil];
+        [center addObserver:self selector:@selector(hostClockChanged:)
+                       name:UIApplicationSignificantTimeChangeNotification object:nil];
+        [center addObserver:self selector:@selector(hostClockChanged:)
+                       name:NSSystemTimeZoneDidChangeNotification object:nil];
         for (GCController *controller in GCController.controllers) [self configureController:controller];
         [self refreshControllerVisibility];
     }
@@ -1206,6 +1211,11 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
     sWillResignActive.store(true, std::memory_order_release);
 }
 
+- (void)hostClockChanged:(NSNotification *)notification {
+    (void)notification;
+    sHostClockChanged.store(true, std::memory_order_release);
+}
+
 - (void)configureController:(GCController *)controller {
     GCExtendedGamepad *gamepad = controller.extendedGamepad;
     if (!gamepad) return;
@@ -1541,4 +1551,8 @@ int bellpad_consume_did_become_active(void) {
 
 int bellpad_consume_will_resign_active(void) {
     return sWillResignActive.exchange(false, std::memory_order_acq_rel) ? 1 : 0;
+}
+
+int bellpad_consume_host_clock_changed(void) {
+    return sHostClockChanged.exchange(false, std::memory_order_acq_rel) ? 1 : 0;
 }

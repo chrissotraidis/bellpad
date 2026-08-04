@@ -2,7 +2,9 @@
 
 Bellpad is an experimental, native Apple ARM64 source port project for the original US revision of Animal Crossing for Nintendo GameCube. The intended application compiles legally clean reverse-engineered game code for macOS, iOS, and iPadOS. It is not a GameCube emulator and will not embed a WebAssembly/browser port.
 
-The repository is in active product hardening. The proven ARM64 game core packages as a playable macOS `Bellpad.app`, and the same complete core now links through Aurora, SDL3, and Metal as native ARM64 iOS/iPadOS simulator and device apps with Bellpad's UIKit controls. The mobile build imports user-owned raw game data through Files, retains it privately, reaches the title and setup sequence, accepts touch input, connects the real game editor to the native iOS keyboard, and persists per-device control settings. Original bell-centered branding and a reproducible audited unsigned IPA now build without retail data. Native GCI creation/reload, isolated Dolphin GCI-folder interoperability, representative iPhone train/station rendering, and real Files exports now pass. Remaining work is concentrated in broader scene/lifecycle hardening, additional image formats, and physical-device evidence.
+<p align="center"><img src="apple/ios/Assets.xcassets/AppIcon.appiconset/AppIcon.png" width="160" alt="Bellpad brass handbell app icon"></p>
+
+This repository is ready as a public source release candidate and cross-machine test handoff. The proven ARM64 game core packages as a playable macOS `Bellpad.app`, and the same complete core links through Aurora, SDL3, and Metal as native ARM64 iOS/iPadOS simulator and device apps with Bellpad's UIKit controls. The mobile build imports user-owned raw game data through Files, retains it privately, reaches the title and setup sequence, accepts touch input, connects the real game editor to the native iOS keyboard, persists per-device control and render-resolution settings, and reads/writes Dolphin-compatible GCI saves. The unsigned device IPA is reproducible and audited to contain no retail data. Physical-device runtime, signing, compressed disc formats, broader scene coverage, and multi-hour mobile soak testing remain explicit follow-up work; this is not an App Store release.
 
 ## Current status
 
@@ -11,7 +13,7 @@ As of 2026-08-04:
 - A pinned 64-bit source-port fork builds locally as a native macOS ARM64 executable.
 - The same complete game core now builds as an opt-in ARM64 `Bellpad.app`. It accepts `--disc`, presents a native picker when needed, validates GAFE01 disc 0 revision 0, packages only clean shader resources, and reaches the title loop from an arbitrary working directory.
 - The same patched source now builds with both Apple Clang 21 and GCC 16; the Apple Clang binary reaches the correctly rendered 60 FPS title screen.
-- The pinned checkout, twenty-nine local game-core patches, five Aurora patches, simulator/device builds, and unsigned IPA packaging are reproducible with tracked scripts. Direct product archives are content-hash pinned, and the exact shipped dependency inventory is machine-readable.
+- The pinned checkout, thirty-one local game-core patches, five Aurora patches, simulator/device builds, and unsigned IPA packaging are reproducible with tracked scripts. Direct product archives are content-hash pinned, and the exact shipped dependency inventory is machine-readable.
 - A user-supplied `GAFE01` revision 0 image is validated and read directly without extracting or bundling its assets.
 - The desktop baseline renders the title, setup, train, and generated town at 60 FPS and starts 32 kHz stereo audio.
 - A trimmed-image aligned-read bug was identified and corrected locally.
@@ -25,6 +27,7 @@ As of 2026-08-04:
 - Native macOS and iOS/iPadOS choosers accept a user-selected file through one shared streamed validator. The current slice recognizes raw ISO/GCM, requires GameCube magic plus `GAFE01` revision 0, accepts only the verified full or exact trimmed size, and SHA-256 checks the complete meaningful payload. On mobile, a valid selection is copied through a staging file to private Application Support, validated again, atomically installed, and used by the real core; the retained copy is reused on relaunch.
 - When the real game opens a text editor, the mobile adapter presents a native UIKit first responder and drains UTF-8, Backspace, paste, and Done events on the game thread. The iPhone flow committed exact player name `Bell` and town name `Cove`; iPad also presented and committed through the same native field. Letter writing, dictation/accessibility breadth, and physical-device keyboard behavior remain to be tested.
 - The playable macOS bundle still uses the proven SDL2/OpenGL renderer and Application Support. The mobile Aurora game bundle now runs the real core, renderer, audio, touch, persistent control settings, user-facing disc import/change/removal, native-text path, validated GCI import/export, GCI persistence, and compiled original icon on simulator and ARM64 device targets. The audited unsigned IPA contains only the executable, plist, compiled icon renditions, asset catalog, and exact third-party notices. Three-cycle iPhone/iPad Home/resume simulator checks now survive a fixed missing-frame lifecycle race; nod indexing/compressed formats, signing, physical-device runtime, and broader scene/long-session evidence remain.
+- The GameCube RTC now derives local time from a subsecond host wall clock plus an overflow-safe monotonic counter, polls for host-clock drift, and rebases on iOS activation, significant-time-change, and timezone-change notifications. Deterministic conversion tests pass and a rebuilt iPhone Home/resume smoke logged a `0.000`-second correction.
 
 See [STATUS.md](docs/STATUS.md), [PLAN.md](docs/PLAN.md), and [WORKLOG.md](docs/WORKLOG.md) for evidence and current blockers.
 
@@ -65,7 +68,19 @@ This flow is runtime-proven on both iPhone and iPad simulators for raw ISO/GCM. 
 
 ## Build instructions
 
-Run `./scripts/build-playable-macos-app.sh` for the real-game ARM64 macOS baseline, `./scripts/build-aurora-game-ios-simulator.sh` for the native simulator bundle, and `./scripts/build-aurora-game-ios-device.sh` for the unsigned ARM64 device bundle. `./scripts/package-unsigned-ipa.sh` builds, strips, audits, and packages `dist/Bellpad-unsigned.ipa`. The clean harnesses, Aurora probes, and game-core GX coverage/ABI audits are separately reproducible through [BUILDING.md](docs/BUILDING.md). Apple Clang is the product compiler; GCC 16 remains an optional desktop-core compatibility cross-check.
+On an Apple Silicon Mac with Xcode 26.6, CMake, Ninja, SDL2, Git, and Homebrew available:
+
+```sh
+git clone https://github.com/chrissotraidis/bellpad.git
+cd bellpad
+brew install cmake ninja sdl2
+./scripts/verify-release-candidate.sh
+./scripts/build-aurora-game-ios-simulator.sh
+```
+
+The first Aurora/Dawn build is large and requires network access. It fetches only pinned upstream source/archive revisions into ignored `ref/upstream/`; no game data is downloaded. Install the resulting universal simulator bundle from `ref/upstream/acgc-64bit/pc/build-bellpad-aurora-game-ios-simulator/bin/Bellpad.app`, launch `dev.bellpad.app`, then select your own supported raw ISO/GCM through Files. Test iPhone first, stop and shut it down, then test iPad.
+
+Run `./scripts/build-playable-macos-app.sh` for the real-game ARM64 macOS baseline, `./scripts/build-aurora-game-ios-device.sh` for the unsigned ARM64 device bundle, or `./scripts/package-unsigned-ipa.sh` to build, strip, audit, and package `dist/Bellpad-unsigned.ipa`. The clean harnesses, Aurora probes, and game-core GX coverage/ABI audits are separately reproducible through [BUILDING.md](docs/BUILDING.md). Apple Clang is the product compiler; GCC 16 remains an optional desktop-core compatibility cross-check.
 
 Before committing or packaging anything, run:
 
@@ -79,7 +94,7 @@ and cryptographic archive pins. Binary bundles carry the tracked
 [THIRD_PARTY_NOTICES.txt](THIRD_PARTY_NOTICES.txt), and
 [product-dependencies.lock.json](product-dependencies.lock.json).
 
-The final build must use Apple Clang for iOS. The compiler, native save/reload, isolated Dolphin GCI-folder interchange, and save-file UI gates now pass; the remaining address-model audit, sanitizers, lifecycle hardening, and physical-device validation are still required.
+The product build uses Apple Clang for iOS. Native save/reload, isolated Dolphin GCI-folder interchange, save-file UI, sequential simulator, dependency, and package-content gates pass. Physical-device validation, sanitizers, broader gameplay rendering, and long-session memory evidence remain before calling the project production-complete.
 
 ## Controls
 
@@ -100,6 +115,10 @@ The native mobile layout has a left analog stick, large A/B buttons, smaller X/Y
 ## Branding
 
 Bellpad's original icon uses a brass handbell, teal woven handle, and warm folk-art sunburst. It deliberately avoids official characters, leaves, houses, currency bags, logos, typography, and other recognizable game assets. The opaque full-bleed 1024×1024 source and generation provenance live in `apple/ios/Assets.xcassets/AppIcon.appiconset/`; Apple tooling compiles the iPhone/iPad renditions and derives the complete macOS `.icns` size set during tracked builds.
+
+## Screenshots and video
+
+The tracked repository deliberately does not include retail-derived gameplay screenshots or video. Dated visual/runtime evidence is described in [TESTING.md](docs/TESTING.md); public gameplay media should be captured from a contributor's own legally obtained copy and published separately only after a rights review. The original Bellpad icon above is the repository's release-safe visual preview.
 
 ## Native keyboard
 
@@ -131,7 +150,7 @@ More detail is in [ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Testing
 
-Bellpad does not consider compilation or a blank drawable sufficient. Representative iPhone/iPad button, stick, menu, text, import, and render checks establish the native wrapper; exhaustive activity-by-activity control replay is retained as release acceptance work rather than a blocker for each wrapper change. The broader acceptance matrix still covers town creation, saving/relaunch, RTC, lifecycle transitions, invalid images, long-session memory behavior, and package contents.
+Bellpad does not consider compilation or a blank drawable sufficient. Representative iPhone/iPad button, stick, menu, text, import, and render checks establish the native wrapper; the controls are considered wired after unit coverage and bounded live checks rather than repeated activity-by-activity replay. The broader acceptance matrix still covers town creation, saving/relaunch, RTC, lifecycle transitions, invalid images, long-session memory behavior, and package contents.
 
 iPhone and iPad Simulator sessions will run sequentially, never concurrently. Device-only behavior such as audio routes, Files security scopes, haptics, memory pressure, thermal behavior, and physical controllers requires hardware evidence.
 
@@ -143,6 +162,7 @@ See [TESTING.md](docs/TESTING.md).
 - Automated window-key delivery is harness-dependent. Guarded LLDB QA helpers can feed button taps, persistent left-stick values, and alphanumeric text through the same normalized APIs planned for Apple platform adapters.
 - Native save creation, atomic replacement, backup rotation, process relaunch, reload, isolated Dolphin GCI-folder interchange, and real Files export now pass. A fully UI-driven GCI import selection, the retail save dialogue, recovery UI, and update persistence remain required.
 - A normal macOS window close returned cleanly from the game process. Three bounded iPhone Simulator cycles paused presentation/audio on Home and restored both after activation, and three sequential iPad Home/resume cycles survived with rendering restored. The pinned SDL UIKit startup still reports two unbalanced appearance-transition warnings; real audio-route/interruption, physical-device, and long-session lifecycle testing remain open.
+- Host time and timezone rebasing are implemented and deterministic conversion tests pass; Resetti/time-travel behavior and physical-device clock-change notification coverage remain open.
 - The real Animal Crossing target now links, renders the complete title composition including animated title water/choice UI, correctly displays and advances multi-line K.K. dialogue, and renders a returning-player train/station scene through Aurora/Metal. Interiors and broader outdoor-town comparison remain open.
 - The embedded NES emulator and audio path compile under Aurora, but its legacy OpenGL framebuffer presenter is intentionally disabled; a GX/Metal upload path is still required before NES games can display.
 - The iOS/iPadOS real-game bundle, touch UI, native Files import/change/removal, private data retention, relaunch boot, native name-entry path, iPhone GCI rewrite/reload, Dolphin GCI-folder interchange, real save export, bounded background/foreground audio recovery, ARM64 device build, and audited unsigned IPA now pass their current gates. Compressed formats, complete editor coverage, route-interruption proof, signing, and physical-device validation remain pending.
@@ -178,3 +198,5 @@ Before opening a change:
 3. Build the affected target from a clean configuration.
 4. Record the device/OS, exact source revision, image revision (never the image), command, and observable result.
 5. Keep dependency pins and license notices exact.
+
+For a source-only release check, run `./scripts/verify-release-candidate.sh`. Before publishing an IPA checkpoint, also run `./scripts/package-unsigned-ipa.sh` twice and compare SHA-256 values.

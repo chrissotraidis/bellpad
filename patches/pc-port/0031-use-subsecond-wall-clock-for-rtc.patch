@@ -1,0 +1,53 @@
+--- a/pc/include/pc_rtc_clock.h
++++ b/pc/include/pc_rtc_clock.h
+@@ -19,6 +19,7 @@
+                           int local_minute,
+                           int local_second);
+ int64_t pc_rtc_counter_ticks(uint64_t counter, uint64_t frequency);
++int64_t pc_rtc_subsecond_ticks(int64_t nanoseconds);
+ 
+ #ifdef __cplusplus
+ }
+--- a/pc/src/pc_rtc_clock.c
++++ b/pc/src/pc_rtc_clock.c
+@@ -28,3 +28,7 @@
+     return (int64_t)(counter / frequency) * PC_RTC_TIMER_CLOCK +
+            (int64_t)((counter % frequency) * PC_RTC_TIMER_CLOCK / frequency);
+ }
++
++int64_t pc_rtc_subsecond_ticks(int64_t nanoseconds) {
++    return nanoseconds * PC_RTC_TIMER_CLOCK / 1000000000LL;
++}
+--- a/pc/src/pc_os.c
++++ b/pc/src/pc_os.c
+@@ -63,11 +63,19 @@
+     const s64 counter_ticks = pc_rtc_counter_ticks(counter, frequency);
+     const s64 previous_ticks = osGetTime();
+     const int was_initialized = host_clock_initialized;
+-    time_t unix_now = time(NULL);
++    struct timespec wall_time = {0};
++    time_t unix_now;
+     struct tm utc_tm;
+     struct tm local_tm;
+     s64 utc_offset_seconds = 0;
+
++    if (timespec_get(&wall_time, TIME_UTC) == TIME_UTC) {
++        unix_now = wall_time.tv_sec;
++    } else {
++        unix_now = time(NULL);
++        wall_time.tv_nsec = 0;
++    }
++
+ #ifdef _WIN32
+     _tzset();
+ #else
+@@ -88,7 +96,8 @@
+     const s64 host_ticks = pc_rtc_host_ticks(
+         (s64)unix_now, utc_offset_seconds,
+         g_pc_time_override, g_pc_min_override, g_pc_sec_override,
+-        local_tm.tm_hour, local_tm.tm_min, local_tm.tm_sec);
++        local_tm.tm_hour, local_tm.tm_min, local_tm.tm_sec) +
++        pc_rtc_subsecond_ticks(wall_time.tv_nsec);
+     atomic_store_explicit(&host_clock_offset_ticks,
+                           (int_fast64_t)(host_ticks - counter_ticks),
+                           memory_order_release);

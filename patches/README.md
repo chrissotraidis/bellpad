@@ -96,6 +96,20 @@ shared GCI validator into the native mobile game product. It validates the
 container header, block count, save version/code, town identifier, and town
 checksum without embedding or depending on retail data.
 
+`pc-port/0029-skip-aurora-end-frame-without-drawable.patch` records whether
+Aurora actually began a frame. When iOS has no drawable during backgrounding,
+the wrapper discards that frame's queued GX commands and keeps pumping events
+without ending a nonexistent frame packet.
+
+`pc-port/0030-sync-rtc-with-host-clock.patch` replaces the launch-only RTC
+anchor with an atomic host-clock offset against the absolute SDL performance
+counter. It polls for host changes and lets the iOS game thread rebase after
+activation, significant-time-change, and timezone-change notifications.
+
+`pc-port/0031-use-subsecond-wall-clock-for-rtc.patch` adds nanosecond wall-clock
+precision to that rebase, avoiding a visible fractional-second correction on
+normal resume while retaining overflow-safe GameCube tick conversion.
+
 `aurora/0001-complete-acgc-gx-compatibility.patch` applies to Aurora commit
 `5027ed63a73dfba28de9eceed00481fb09a19c35`. It implements the five GX calls
 used by the compiled game core that the pinned Aurora library did not export:

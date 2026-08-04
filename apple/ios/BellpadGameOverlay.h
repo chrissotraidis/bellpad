@@ -39,6 +39,7 @@ float bellpad_get_framebuffer_scale(void);
  * the CoreAudio interruption has ended. */
 int bellpad_consume_will_resign_active(void);
 int bellpad_consume_did_become_active(void);
+int bellpad_consume_host_clock_changed(void);
 
 #ifdef __cplusplus
 }
