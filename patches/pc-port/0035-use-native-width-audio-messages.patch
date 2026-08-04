@@ -1,0 +1,70 @@
+diff --git a/src/static/jaudio_NES/internal/system.c b/src/static/jaudio_NES/internal/system.c
+--- a/src/static/jaudio_NES/internal/system.c
++++ b/src/static/jaudio_NES/internal/system.c
+@@ -2432,5 +2432,6 @@ static Bgload* Nas_BgCopyReq(u8* src, u8* dst, u32 size, s32 medium, s32 n_chunk
+ }
+ 
+ void Nas_BgCopyMain(s32 reset_status) {
+     Bgload* bgload;
++    OSMesg bgload_msg;
+     s32 i;
+@@ -2442,14 +2442,14 @@ void Nas_BgCopyMain(s32 reset_status) {
+     if (AG.current_bgload == NULL) {
+         if (reset_status != 0) {
+             while (TRUE) {
+-                if (Z_osRecvMesg(&AG.bgload_mq, (OSMesg*)&bgload, OS_MESG_NOBLOCK) == -1) {
++                if (Z_osRecvMesg(&AG.bgload_mq, NULL, OS_MESG_NOBLOCK) == -1) {
+                     break;
+                 }
+             }
+-        } else if (Z_osRecvMesg(&AG.bgload_mq, (OSMesg*)&bgload, OS_MESG_NOBLOCK) == -1) {
++        } else if (Z_osRecvMesg(&AG.bgload_mq, &bgload_msg, OS_MESG_NOBLOCK) == -1) {
+             AG.current_bgload = NULL;
+         } else {
+-            AG.current_bgload = bgload;
++            AG.current_bgload = (Bgload*)bgload_msg;
+         }
+     }
+ 
+@@ -2833,22 +2833,23 @@ s32 Nas_BankOfsToAddr(s32 bank_id, u8* ctrl_p, WaveMedia* wave_media, s32 async)
+ s32 Nas_CheckBgWave(s32 reset_status) {
+     smzwavetable* wavetable;
+     Bgloadreq* preload;
++    OSMesg preload_msg;
+     u32 preload_idx;
+     s32 key;
+     s32 n_chunks;
+ 
+     if (AG.num_requested_samples > 0) {
+         if (reset_status != 0) {
+-            Z_osRecvMesg(&AG.preload_sample_queue, (OSMesg*)&preload_idx, OS_MESG_NOBLOCK);
++            Z_osRecvMesg(&AG.preload_sample_queue, NULL, OS_MESG_NOBLOCK);
+             AG.num_requested_samples = 0;
+             return FALSE;
+         }
+ 
+-        if (Z_osRecvMesg(&AG.preload_sample_queue, (OSMesg*)&preload_idx, OS_MESG_NOBLOCK) == -1) {
++        if (Z_osRecvMesg(&AG.preload_sample_queue, &preload_msg, OS_MESG_NOBLOCK) == -1) {
+             return FALSE;
+         }
+ 
+-        preload_idx >>= 24;
++        preload_idx = (uintptr_t)preload_msg >> 24;
+         preload = &AG.requested_samples[preload_idx];
+ 
+         if (!preload->is_free) {
+@@ -3103,11 +3104,11 @@ void MK_load(s32 table_type, s32 id, u8* done_p) {
+ 
+ void MK_FrameWork(void) {
+     s32 idx;
+-    u32 ret;
++    OSMesg ret;
+     u8* rmes;
+ 
+-    if (Z_osRecvMesg(&MK_QUEUE, (OSMesg*)&ret, OS_MESG_NOBLOCK) != -1) {
+-        idx = ret >> 24;
++    if (Z_osRecvMesg(&MK_QUEUE, &ret, OS_MESG_NOBLOCK) != -1) {
++        idx = (uintptr_t)ret >> 24;
+         rmes = MK_RMES[idx];
+         if (rmes != NULL) {
+             *rmes = 0;

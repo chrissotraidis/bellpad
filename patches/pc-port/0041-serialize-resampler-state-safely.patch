@@ -1,0 +1,18 @@
+diff --git a/src/static/jaudio_NES/internal/rspsim.c b/src/static/jaudio_NES/internal/rspsim.c
+--- a/src/static/jaudio_NES/internal/rspsim.c
++++ b/src/static/jaudio_NES/internal/rspsim.c
+@@ -296,7 +296,14 @@ void RspStart(Acmd* cmdp, u32* param_2) {
+                     }
+                     *var_r6++ = var_r15;
+                 }
++#ifdef TARGET_PC
++                s16 state[8] = { 0 };
++                Jac_bcopy(&spC[var_r8 - 4], state, 4 * sizeof(s16));
++                state[4] = var_r7 & 0x7FFF;
++                Jac_bcopy(state, CMD_PTR(cmd), 8 * sizeof(s16));
++#else
+                 spC[var_r8] = var_r7 & 0x7FFF;
+                 Jac_bcopy(&spC[var_r8 - 4], CMD_PTR(cmd), 8 * sizeof(s16));
++#endif
+                 break;
+             }

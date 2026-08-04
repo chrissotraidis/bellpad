@@ -13,7 +13,7 @@ As of 2026-08-04:
 - A pinned 64-bit source-port fork builds locally as a native macOS ARM64 executable.
 - The same complete game core now builds as an opt-in ARM64 `Bellpad.app`. It accepts `--disc`, presents a native picker when needed, validates GAFE01 disc 0 revision 0, packages only clean shader resources, and reaches the title loop from an arbitrary working directory.
 - The same patched source now builds with both Apple Clang 21 and GCC 16; the Apple Clang binary reaches the correctly rendered 60 FPS title screen.
-- The pinned checkout, thirty-two local game-core patches, five Aurora patches, simulator/device builds, and unsigned IPA packaging are reproducible with tracked scripts. Direct product archives are content-hash pinned, and the exact shipped dependency inventory is machine-readable.
+- The pinned checkout, forty-one local game-core patches, five Aurora patches, simulator/device builds, and unsigned IPA packaging are reproducible with tracked scripts. Direct product archives are content-hash pinned, and the exact shipped dependency inventory is machine-readable.
 - A user-supplied `GAFE01` revision 0 image is validated and read directly without extracting or bundling its assets.
 - The desktop baseline renders the title, setup, train, and generated town at 60 FPS and starts 32 kHz stereo audio.
 - A trimmed-image aligned-read bug was identified and corrected locally.
@@ -28,6 +28,7 @@ As of 2026-08-04:
 - When the real game opens a text editor, the mobile adapter presents a native UIKit first responder and drains UTF-8, Backspace, paste, and Done events on the game thread. The iPhone flow committed exact player name `Bell` and town name `Cove`; iPad also presented and committed through the same native field. Letter writing, dictation/accessibility breadth, and physical-device keyboard behavior remain to be tested.
 - The playable macOS bundle still uses the proven SDL2/OpenGL renderer and Application Support. The mobile Aurora game bundle now runs the real core, renderer, audio, touch, persistent control settings, user-facing disc import/change/removal, native-text path, validated GCI import/export, GCI persistence, and compiled original icon on simulator and ARM64 device targets. The audited unsigned IPA contains only the executable, plist, compiled icon renditions, asset catalog, and exact third-party notices. Three-cycle iPhone/iPad Home/resume simulator checks now survive a fixed missing-frame lifecycle race; nod indexing/compressed formats, signing, physical-device runtime, and broader scene/long-session evidence remain.
 - The GameCube RTC now derives local time from a subsecond host wall clock plus an overflow-safe monotonic counter, polls for host-clock drift, and rebases on iOS activation, significant-time-change, and timezone-change notifications. Deterministic conversion tests pass and a rebuilt iPhone Home/resume smoke logged a `0.000`-second correction.
+- A reproducible Apple Silicon AddressSanitizer/UndefinedBehaviorSanitizer build now reaches and holds the fully rendered title with disc loading, 14,495 assets, 32 kHz audio, and roughly 1,900 frames of execution. That pass fixed native heap alignment, message-width, sentinel-index, player-array, and audio-resampler defects. Legacy floating-point-to-signed-angle wrap diagnostics remain excluded from the strict gate and the full gameplay/address-boundary audit remains open.
 
 See [STATUS.md](docs/STATUS.md), [PLAN.md](docs/PLAN.md), and [WORKLOG.md](docs/WORKLOG.md) for evidence and current blockers.
 
@@ -94,7 +95,7 @@ and cryptographic archive pins. Binary bundles carry the tracked
 [THIRD_PARTY_NOTICES.txt](THIRD_PARTY_NOTICES.txt), and
 [product-dependencies.lock.json](product-dependencies.lock.json).
 
-The product build uses Apple Clang for iOS. Native save/reload, isolated Dolphin GCI-folder interchange, save-file UI, sequential simulator, dependency, and package-content gates pass. Physical-device validation, sanitizers, broader gameplay rendering, and long-session memory evidence remain before calling the project production-complete.
+The product build uses Apple Clang for iOS. Native save/reload, isolated Dolphin GCI-folder interchange, save-file UI, sequential simulator, dependency, package-content gates, and a bounded sanitized macOS title smoke pass. Physical-device validation, broader sanitized gameplay, broader rendering, and long-session memory evidence remain before calling the project production-complete.
 
 ## Controls
 
@@ -158,7 +159,7 @@ See [TESTING.md](docs/TESTING.md).
 
 ## Known issues
 
-- Apple Clang compilation is proven, but the full guest-address/pointer-width audit and sanitizer run are not complete.
+- Apple Clang compilation and a bounded ASan/UBSan title smoke are proven. The full guest-address/pointer-width inventory, broader sanitized gameplay, and legacy signed-angle cleanup are not complete.
 - Automated window-key delivery is harness-dependent. Guarded LLDB QA helpers can feed button taps, persistent left-stick values, and alphanumeric text through the same normalized APIs planned for Apple platform adapters.
 - Native save creation, atomic replacement, backup rotation, process relaunch, reload, isolated Dolphin GCI-folder interchange, and real Files export now pass. A fully UI-driven GCI import selection, the retail save dialogue, recovery UI, and update persistence remain required.
 - A normal macOS window close returned cleanly from the game process. Three bounded iPhone Simulator cycles paused presentation/audio on Home and restored both after activation, and three sequential iPad Home/resume cycles survived with rendering restored. The pinned SDL UIKit startup still reports two unbalanced appearance-transition warnings; real audio-route/interruption, physical-device, and long-session lifecycle testing remain open.

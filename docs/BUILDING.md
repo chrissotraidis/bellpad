@@ -55,6 +55,34 @@ The tracked DVD patch handles trimmed images correctly: JSystem requests aligned
 
 The scripts were tested from a fresh ignored checkout on 2026-08-03. The resulting executable indexed the supported local image, loaded 14,495 assets, mounted all three archives, opened 32 kHz stereo audio, and entered the title loop. A later packaged-app run closed normally through its macOS window; mobile lifecycle remains an explicit test item.
 
+### Sanitized Apple Silicon baseline
+
+```sh
+./scripts/build-sanitized-macos-game.sh
+
+BELLPAD_SANITIZER_RUN=1 \
+BELLPAD_DISC_IMAGE="/absolute/private/path/to/game.iso" \
+  ./scripts/build-sanitized-macos-game.sh
+```
+
+The first command builds the complete native game with AddressSanitizer and
+UndefinedBehaviorSanitizer. The opt-in second command runs it against private
+user-owned data with an isolated temporary profile that is deleted at exit.
+macOS LeakSanitizer is unavailable, and the script disables only the
+`strndup` interceptor at Apple's CoreGraphics theme-parser boundary. It also
+excludes `float-cast-overflow`: the original game deliberately wraps many
+floating-point angles into signed 16-bit GameCube angle units. Memory, bounds,
+alignment, pointer, arithmetic, and the other undefined-behavior checks remain
+active.
+
+Observed 2026-08-04: the sanitized build loaded 14,495 assets, started 32 kHz
+audio, rendered the complete title, and held it for roughly 1,900 frames without
+an AddressSanitizer failure. Patches 33–41 repair the actionable initialization,
+native heap alignment, message-width, zero-sized release object, clock-angle,
+event sentinel, actor-bank, player-array, and audio-resampler reports found on
+the way to that gate. This is a bounded title smoke, not a multi-scene or
+multi-hour sanitizer certification.
+
 ## Playable macOS app baseline
 
 ```sh
@@ -131,7 +159,7 @@ To install the simulator bundle, use `xcrun simctl install <device-uuid> build/i
 ./scripts/build-aurora-game-ios-simulator.sh
 ```
 
-This applies the pinned thirty-two-patch game series and five-patch Aurora series,
+This applies the pinned forty-one-patch game series and five-patch Aurora series,
 builds Dawn and SDL3 for ARM64 iOS Simulator, and links the complete game core,
 Aurora GX/Metal renderer, SDL3 audio, normalized input bridge, and UIKit GameCube
 overlay into `Bellpad.app`. The script verifies the Mach-O platform, plist,
@@ -211,7 +239,7 @@ Observed 2026-08-04: the output contains exactly the executable, plist,
 through Metal. Source-prefix mapping keeps the checkout location out of
 Bellpad-built objects. Two post-notice packages produced identical bytes with
 SHA-256
-`4275c925e1bce87f652044e34b1eb9f147be3afa2d2b9c5fe29f4d52e1fbac55`.
+`5e6b8d832d46a97ed499214088d601cd23cd4256e493f2d06d31619251b0601e`.
 
 Run the tracked-content safety check before every commit and package build:
 

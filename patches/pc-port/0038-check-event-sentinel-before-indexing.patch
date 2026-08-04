@@ -1,0 +1,87 @@
+diff --git a/src/game/m_event.c b/src/game/m_event.c
+--- a/src/game/m_event.c
++++ b/src/game/m_event.c
+@@ -2120,11 +2120,11 @@ extern void mEv_finish(Event_c* event) {
+ extern int mEv_check_schedule(int event) {
+     int hour = Common_Get(time.rtc_time.hour);
+     u8 index = index_today[event];
+-    mEv_event_today_c* ev_today = &event_today[index];
+ 
+     if (index == 0xFF) {
+         return FALSE;
+     }
++    mEv_event_today_c* ev_today = &event_today[index];
+ 
+     if ((ev_today->status & mEv_STATUS_STOP)) {
+         return FALSE;
+@@ -2143,11 +2143,11 @@ extern int mEv_check_schedule(int event) {
+ 
+ extern int mEv_check_run_today(int event) {
+     u8 index = index_today[event];
+-    mEv_event_today_c* ev_today = &event_today[index];
+ 
+     if (index == 0xFF) {
+         return FALSE;
+     }
++    mEv_event_today_c* ev_today = &event_today[index];
+ 
+     if ((ev_today->status & mEv_STATUS_STOP)) {
+         return FALSE;
+@@ -2162,9 +2162,9 @@ extern int mEv_check_run_today(int event) {
+ 
+ extern void mEv_set_status(int event, s16 status) {
+     u8 index = index_today[event];
+-    mEv_event_today_c* ev_today = &event_today[index];
+ 
+     if (index != 0xFF) {
++        mEv_event_today_c* ev_today = &event_today[index];
+         if (status == mEv_STATUS_ERROR) {
+             ev_today->status = 0;
+         }
+@@ -2176,10 +2176,10 @@ extern void mEv_set_status(int event, s16 status) {
+ 
+ static int set_active(int event) {
+     u8 index = index_today[event];
+-    mEv_event_today_c* ev_today = &event_today[index];
+     int res = FALSE;
+ 
+     if (index != 0xFF) {
++        mEv_event_today_c* ev_today = &event_today[index];
+         if ((ev_today->status & mEv_STATUS_ACTIVE) == 0) {
+             res = TRUE; // status updated
+         }
+@@ -2193,19 +2193,19 @@ static int set_active(int event) {
+ 
+ extern void mEv_clear_status(int event, s16 status) {
+     u8 index = index_today[event];
+-    mEv_event_today_c* ev_today = &event_today[index];
+ 
+     if (index != 0xFF) {
++        mEv_event_today_c* ev_today = &event_today[index];
+         ev_today->status &= ~status;
+     }
+ }
+ 
+ static int clear_active(int event) {
+     u8 index = index_today[event];
+-    mEv_event_today_c* ev_today = &event_today[index];
+     int res = FALSE;
+ 
+     if (index != 0xFF) {
++        mEv_event_today_c* ev_today = &event_today[index];
+         if ((ev_today->status & mEv_STATUS_ACTIVE) != 0) {
+             res = TRUE; // status updated
+         }
+@@ -2218,11 +2218,11 @@ static int clear_active(int event) {
+ 
+ extern int mEv_check_status(int event, s16 status) {
+     u8 index = index_today[event];
+-    mEv_event_today_c* ev_today = &event_today[index];
+ 
+     if (index == 0xFF) {
+         return FALSE;
+     }
++    mEv_event_today_c* ev_today = &event_today[index];
+ 
+     /* Default to 'false' if the event is in an error state */
+     if (status != mEv_STATUS_ERROR && (ev_today->status & mEv_STATUS_ERROR)) {

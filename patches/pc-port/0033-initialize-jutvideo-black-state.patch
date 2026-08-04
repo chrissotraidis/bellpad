@@ -1,0 +1,14 @@
+diff --git a/src/static/JSystem/JUtility/JUTVideo.cpp b/src/static/JSystem/JUtility/JUTVideo.cpp
+--- a/src/static/JSystem/JUtility/JUTVideo.cpp
++++ b/src/static/JSystem/JUtility/JUTVideo.cpp
+@@ -24,6 +24,10 @@ void JUTVideo::destroyManager() {
+ }
+ 
+ JUTVideo::JUTVideo(const GXRenderModeObj* renderModeObj) {
++#ifdef TARGET_PC
++    mIsSetBlack = false;
++    mSetBlackFrameCount = 0;
++#endif
+     mRenderModeObj = nullptr;
+     VIInit();
+     setRenderMode(renderModeObj);

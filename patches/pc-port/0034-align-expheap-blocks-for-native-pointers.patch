@@ -1,0 +1,51 @@
+diff --git a/src/static/JSystem/JKernel/JKRExpHeap.cpp b/src/static/JSystem/JKernel/JKRExpHeap.cpp
+--- a/src/static/JSystem/JKernel/JKRExpHeap.cpp
++++ b/src/static/JSystem/JKernel/JKRExpHeap.cpp
+@@ -155,7 +155,11 @@ void* JKRExpHeap::allocFromHead(u32 size, int align) {
+     CMemBlock* newFreeBlock;
+     CMemBlock* newUsedBlock;
+ 
++#ifdef TARGET_PC
++    size = ALIGN_NEXT(size, alignof(CMemBlock));
++#else
+     size = ALIGN_NEXT(size, 4);
++#endif
+     int foundSize = -1;
+     u32 foundOffset = 0;
+     CMemBlock* foundBlock = nullptr;
+@@ -260,7 +264,11 @@ void* JKRExpHeap::allocFromHead(u32 size, int align) {
+ }
+ 
+ void* JKRExpHeap::allocFromHead(u32 size) {
++#ifdef TARGET_PC
++    size = ALIGN_NEXT(size, alignof(CMemBlock));
++#else
+     size = ALIGN_NEXT(size, 4);
++#endif
+     int foundSize = -1;
+     CMemBlock* foundBlock = nullptr;
+ 
+@@ -354,7 +362,11 @@ void* JKRExpHeap::allocFromTail(u32 size, int align) {
+ }
+ 
+ void* JKRExpHeap::allocFromTail(u32 size) {
++#ifdef TARGET_PC
++    u32 size2 = ALIGN_NEXT(size, alignof(CMemBlock));
++#else
+     u32 size2 = ALIGN_NEXT(size, 4);
++#endif
+     CMemBlock* foundBlock = nullptr;
+     for (CMemBlock* block = mTail; block; block = block->mPrev) {
+         if (block->mAllocatedSpace >= size2) {
+@@ -446,7 +458,11 @@ s32 JKRExpHeap::do_resize(void* ptr, u32 size) {
+         unlock();
+         return -1;
+     }
++#ifdef TARGET_PC
++    size = ALIGN_NEXT(size, alignof(CMemBlock));
++#else
+     size = ALIGN_NEXT(size, 4);
++#endif
+     if (size == block->mAllocatedSpace) {
+         unlock();
+         return size;

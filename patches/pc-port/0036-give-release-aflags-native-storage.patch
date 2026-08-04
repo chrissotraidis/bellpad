@@ -1,0 +1,15 @@
+diff --git a/include/libforest/emu64/emu64.hpp b/include/libforest/emu64/emu64.hpp
+--- a/include/libforest/emu64/emu64.hpp
++++ b/include/libforest/emu64/emu64.hpp
+@@ -344,7 +344,11 @@ class aflags_c {
+ #endif
+ 
+   private:
++#ifdef TARGET_PC
++    int flags[(AFLAGS_MAX > 0) ? AFLAGS_MAX : 1];
++#else
+     int flags[AFLAGS_MAX];
++#endif
+ };
+ 
+ class Texture {
