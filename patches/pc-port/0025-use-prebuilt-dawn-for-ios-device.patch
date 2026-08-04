@@ -1,0 +1,15 @@
+diff --git a/pc/CMakeLists.txt b/pc/CMakeLists.txt
+index 83ef30a..57db2df 100644
+--- a/pc/CMakeLists.txt
++++ b/pc/CMakeLists.txt
+@@ -31,4 +31,9 @@ if(BELLPAD_AURORA_LINK_PROBE)
+     set(AURORA_CACHE_USE_ZSTD OFF CACHE BOOL "" FORCE)
+     if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
+-        set(AURORA_DAWN_PROVIDER vendor CACHE STRING "" FORCE)
++        string(TOLOWER "${CMAKE_OSX_SYSROOT}" BELLPAD_IOS_SYSROOT_LOWER)
++        if(BELLPAD_IOS_SYSROOT_LOWER MATCHES "iphonesimulator")
++            set(AURORA_DAWN_PROVIDER vendor CACHE STRING "" FORCE)
++        else()
++            set(AURORA_DAWN_PROVIDER package CACHE STRING "" FORCE)
++        endif()
+         set(AURORA_DAWN_LINKAGE static CACHE STRING "" FORCE)

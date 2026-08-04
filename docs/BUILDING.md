@@ -2,7 +2,7 @@
 
 Last updated: 2026-08-04
 
-The repository now builds a playable macOS game-core bundle, native Aurora/Metal game targets for macOS and iOS Simulator, Bellpad-owned Metal/touch integration shells, and pinned compatibility probes.
+The repository now builds a playable macOS game-core bundle, native Aurora/Metal game targets for macOS, iOS Simulator, and ARM64 iOS devices, an audited unsigned IPA, Bellpad-owned Metal/touch integration shells, and pinned compatibility probes.
 
 ## Host
 
@@ -119,7 +119,7 @@ To install the simulator bundle, use `xcrun simctl install <device-uuid> build/i
 ./scripts/build-aurora-game-ios-simulator.sh
 ```
 
-This applies the pinned twenty-four-patch game series and four-patch Aurora series,
+This applies the pinned twenty-five-patch game series and four-patch Aurora series,
 builds Dawn and SDL3 for ARM64 iOS Simulator, and links the complete game core,
 Aurora GX/Metal renderer, SDL3 audio, normalized input bridge, and UIKit GameCube
 overlay into `Bellpad.app`. The script verifies the Mach-O platform, plist,
@@ -145,6 +145,33 @@ disc 0, and revision 0. Invalid input remains on the import screen and cannot
 replace valid retained data. Compressed formats, size/hash allowlisting,
 remove/reimport UI, and nod indexing remain intentionally unavailable until their
 readers and validation rules are linked and tested.
+
+### Native iOS device bundle and unsigned IPA
+
+```sh
+./scripts/build-aurora-game-ios-device.sh
+./scripts/package-unsigned-ipa.sh
+```
+
+The device build uses Aurora's pinned prebuilt `dawn-ios-arm64` package and
+vendored SDL3, then compiles the same complete game core and Bellpad UIKit
+adapter for iOS 17 or newer. It verifies an ARM64 Mach-O with platform `IOS`,
+Metal linkage, a valid product plist, no SDL2, and no disc, save, or provisioning
+files in `Bellpad.app`. This is an unsigned build; installation still requires a
+user-owned signing identity and provisioning profile outside the repository.
+
+The package script accepts only an iOS device app, removes any incidental code
+signature and provisioning profile from its private staging copy, audits both
+the staging tree and final archive, normalizes timestamps, and writes the ignored
+`dist/Bellpad-unsigned.ipa`. It rejects disc images, known extracted assets,
+saves, credentials, certificates, keys, and provisioning material. It never
+reads or packages the ignored development disc image. Set
+`BELLPAD_SKIP_IOS_DEVICE_BUILD=1` to repackage an already audited device build.
+
+Observed 2026-08-04: the output contains exactly `Payload/Bellpad.app/Bellpad`
+and `Payload/Bellpad.app/Info.plist`, is 7.9 MB, targets ARM64 iOS 17.0 through
+Metal, and two independent packaging runs produced identical bytes with SHA-256
+`9834e5171202139fdb656cf5938f6719146c34fe9994d4edac7e1af7f1f2a1ac`.
 
 Run the tracked-content safety check before every commit and package build:
 

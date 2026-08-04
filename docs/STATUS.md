@@ -2,7 +2,7 @@
 
 Last updated: 2026-08-04
 
-Current phase: extending the converged native mobile game from import/title/touch/player-name proof through town creation, safe saves, relaunch, lifecycle, and full gameplay.
+Current phase: product hardening after simulator convergence—game-data/save management, bounded lifecycle and save/relaunch proof, original branding, macOS wrapper convergence, and physical-device runtime validation.
 
 ## Confirmed
 
@@ -27,7 +27,8 @@ Current phase: extending the converged native mobile game from import/title/touc
 - Bellpad's portable input mask exactly matches GameCube PAD bits and exposes a mutex-protected C snapshot covering buttons, both sticks, and analog triggers. Patch 19 polls that snapshot on Aurora's game thread before event/PAD work instead of calling Aurora's unguarded virtual-pad storage from UIKit callbacks. Unit tests verify every button constant, the eight-byte state layout, merge semantics, snapshot values, null-output rejection, and 10,000 concurrent writes/copies without a torn state. The mobile game executable exports the strong snapshot while the standalone macOS Aurora executable retains the weak fallback.
 - The convergence is now live in one universal iOS/iPadOS game bundle. SDL3/Aurora owns UIKit lifecycle and the `CAMetalLayer`; Bellpad attaches its adaptive controls and strong normalized-input snapshot to that product. Rising button edges are latched through one 60 Hz game-thread poll. On iPhone, UIKit A advanced the real title into K.K.'s opening.
 - The native ARM64 iOS Simulator bundle now presents Files when no supported data is retained. It security-scopes and validates raw ISO/GCM, stages a private Application Support copy, validates the completed copy, atomically installs it, and boots the real core. Sequential iPhone 17 Pro and iPad Pro 13-inch valid-import and relaunch tests reached the animated Metal title; exact byte comparison passed and no staging residue remained.
-- `scripts/build-aurora-game-ios-simulator.sh` reproduces the product build and audits its Mach-O, plist, Metal linkage, SDL2 absence, and exclusion of disc/save formats. All twenty-four game-core patches round-trip in a fresh detached worktree.
+- `scripts/build-aurora-game-ios-simulator.sh` reproduces the simulator product build and audits its Mach-O, plist, Metal linkage, SDL2 absence, and exclusion of disc/save formats. The current twenty-five-patch game-core series round-trips cleanly from the pinned commit in a fresh detached worktree.
+- `scripts/build-aurora-game-ios-device.sh` builds the same complete product as an unsigned ARM64 iOS 17 device app using Aurora's pinned device Dawn package. `scripts/package-unsigned-ipa.sh` emits a 7.9 MB unsigned IPA containing only the executable and plist; staging/archive safety audits pass, and two runs produced byte-identical SHA-256 `9834e5171202139fdb656cf5938f6719146c34fe9994d4edac7e1af7f1f2a1ac`.
 - The mobile product now observes the real editor lifecycle and presents an adaptive native UIKit text proxy with explicit Done and paste handling. A bounded mutex queue transfers UTF-8, Backspace, and Done to the game thread, which alone mutates the existing Animal Crossing editor. The iPhone flow committed exact player name `Bell` and town name `Cove`; iPad proved the same native field/commit/editor lifecycle.
 - Canonical GCI writes now check data writes, flush and synchronize the completed sibling temp file, rotate three backups, atomically rename it into place, and synchronize parent-directory metadata on Apple/POSIX hosts. Interrupted-save recovery already checks an orphan temp file and backups. Both Apple ARM64 products rebuild; successful game-driven save/relaunch remains unproven.
 - Aurora pause/unpause events now pause and resume the existing SDL3 audio stream. Aurora remains the lifecycle/presentation owner and UIKit resign-active still clears product input; background/foreground and audio-interruption behavior require a runtime pass.
@@ -56,7 +57,7 @@ Current phase: extending the converged native mobile game from import/title/touc
 - A minimal keyboard-edge latch now executes inside the actual `SDL_KEYDOWN` case and carries each non-repeating GameCube button event through both controller reads in one game input update. A debugger-fed normalized A edge advanced exactly one K.K. prompt in the Apple Clang build.
 - The desktop SDL text adapter accepted the test player name `Bell` and town name `Cedar` through the in-game editors.
 - The full train sequence completed, a new town was generated, the player arrived at the station, exited into town, moved outdoors, met Tom Nook, and reached the house-selection area.
-- Tracked scripts now reproduce the pinned checkout, apply all twenty-four clean core compatibility patches and four Aurora compatibility patches idempotently, build Apple Clang ARM64 macOS and iOS Simulator game products, compile/audit the Aurora-defined full core, allow an isolated GCC cross-check, and optionally select (never package) a local image.
+- Tracked scripts now reproduce the pinned checkout, apply all twenty-five clean core compatibility patches and four Aurora compatibility patches idempotently, build Apple Clang ARM64 macOS, iOS Simulator, and iOS device game products, package/audit an unsigned IPA, compile/audit the Aurora-defined full core, allow an isolated GCC cross-check, and optionally select (never package) a local image.
 - A fresh scripted build was run from an empty ignored checkout and reached the title loop with disc/archive/audio initialization complete. A targeted `SIGTERM` test terminated that clean process.
 - The Bell/Cedar run selected a house, accepted the mortgage, entered Nook's work tutorial, equipped the work uniform through inventory, planted all seven flowers and three saplings, and completed first introductions with Peaches and Chuck. Runtime quest data reported 2 friends out of Cedar's 6 starting villagers.
 - Frame-counted analog QA now sets the normalized stick, stops after an exact number of `PADRead` calls, clears it before detaching, and can queue a button edge on release. It moved Bell through town and reliably initiated both resident conversations.
@@ -82,7 +83,7 @@ Current phase: extending the converged native mobile game from import/title/touc
 - SDL window close/Command-Q and full cleanup still require a clean retest. The earlier instrumented app-wrapper run needed `SIGKILL`, while the fresh scripted executable terminates on `SIGTERM`; the conflicting evidence is kept explicit.
 - Animal Crossing now renders the complete title composition and correctly placed multi-line K.K. dialogue through Aurora GX/Metal. The next renderer gate is representative water, choice-menu, train, and outdoor-town comparison rather than more title-only tuning.
 - NES emulation and audio compile in the Aurora target, but the old OpenGL framebuffer presenter is excluded. NES video remains blank until its RGB565 frame is uploaded through GX/Metal.
-- The real core, Aurora/Metal renderer, SDL3 audio, Application Support data retention, UIKit Files flow, touch/controller input, native setup text, and persistent control settings now coexist in the mobile product. The next product work is game-data/save management plus one save/relaunch proof, bounded lifecycle validation, branding, and IPA packaging.
+- The real core, Aurora/Metal renderer, SDL3 audio, Application Support data retention, UIKit Files flow, touch/controller input, native setup text, persistent control settings, device build, and unsigned IPA now coexist in the mobile product. The next product work is game-data/save management plus one save/relaunch proof, bounded lifecycle validation, original branding, and physical-device runtime.
 - Current iPadOS may place the full-screen-requesting game in a managed window. The responsive iPad metrics are visibly proven over the real 2752×2064 game framebuffer, but additional window sizes and physical hardware remain test gates.
 - Mobile raw ISO/GCM retention and picker-to-boot wiring pass. Hash/size allowlisting, nod indexing, compressed CISO/RVZ support, and explicit remove/reimport UI remain.
 - Simulator Animal Crossing title and touch evidence exists; physical-device gameplay evidence does not.
@@ -91,7 +92,7 @@ Current phase: extending the converged native mobile game from import/title/touc
 
 | # | Criterion | State |
 |---|---|---|
-| 1 | Clean-checkout build | Partial — pinned core, playable macOS bundle, and converged native Aurora/Metal simulator app build reproducibly; device/IPA path pending |
+| 1 | Clean-checkout build | Partial — pinned core plus macOS, native simulator, native ARM64 device, and IPA paths build reproducibly; a final clean-machine run remains |
 | 2 | Dependencies pinned/documented | Desktop mechanism passes; product dependency mechanism pending |
 | 3 | No leaked source | Pass for current tree — provenance is recorded and the tracked-content audit rejects retail data, saves, packages, signing material, and known extracted assets |
 | 4 | User image selection/validation | Partial — mobile Files selection, strict raw ISO/GCM header validation, private retention, invalid rejection, and relaunch pass; full hash/size allowlisting and compressed formats remain |
@@ -100,8 +101,8 @@ Current phase: extending the converged native mobile game from import/title/touc
 | 7 | iPad Simulator installs/launches | Pass for current milestone — after iPhone shutdown, the universal import/relaunch, iPad layout, and native player-name field/commit path pass |
 | 8–10 | Title/setup/town entry | Desktop pass; mobile partial — native mobile setup has completed player and town naming; bounded train/town-entry evidence remains |
 | 11–21 | Rendering/platform behavior | OpenGL desktop game path is correct; Aurora/Metal has complete title geometry, correct multi-line K.K. dialogue, native mobile name input, audio, fixed pacing, and a 5,000-frame cache smoke. Safe-area touch/controller merge, persistent per-device control settings, and durable save mechanics pass; game-driven save/relaunch, representative town rendering, RTC lifecycle, backgrounding, and memory soak remain |
-| 22 | Reproducible unsigned IPA | Not started |
-| 23 | IPA contains no game data | Not started |
+| 22 | Reproducible unsigned IPA | Pass — two normalized packaging runs are byte-identical; the audited 7.9 MB artifact targets ARM64 iOS 17.0 |
+| 23 | IPA contains no game data | Pass — archive has exactly the executable and plist; staged and archived paths reject retail data, saves, signing material, and known extracted assets |
 | 24 | Original icon/branding | Not started |
 | 25 | Accurate README/docs | In progress |
 | 26 | Coherent work committed/pushed | Safety/research and reproducible gameplay checkpoints pushed; ongoing work remains |

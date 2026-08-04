@@ -75,6 +75,11 @@ existing replacement behavior.
 pause/unpause events and pauses or resumes the SDL3 audio stream. Aurora remains
 the single owner of UIKit/window lifecycle and presentation state.
 
+`pc-port/0025-use-prebuilt-dawn-for-ios-device.patch` keeps source-built Dawn
+for iOS Simulator, where Aurora publishes no compatible archive, and selects
+Aurora's pinned prebuilt `ios-arm64` Dawn package for physical-device builds.
+Both routes retain static linkage and the same Aurora/Metal API boundary.
+
 `aurora/0001-complete-acgc-gx-compatibility.patch` applies to Aurora commit
 `5027ed63a73dfba28de9eceed00481fb09a19c35`. It implements the five GX calls
 used by the compiled game core that the pinned Aurora library did not export:

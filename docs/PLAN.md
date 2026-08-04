@@ -99,7 +99,7 @@ GX reaches Metal as: game/JSystem/emu64 GX calls → Aurora GX command processor
 - Sequential simulator loop: iPhone build/run/stop, then iPad build/run/stop.
 - Physical ARM64 device tests for Metal, audio routes, haptics, controller reconnect, Files access, memory pressure, suspension, and thermal behavior.
 - Functional matrix in `TESTING.md`, including town creation, inventory, shops, letters, tools, museum, saving, NES, island, and town travel where supported.
-- Automated clean-checkout builds, package-content audits, unsigned IPA generation, license collection, and dependency pin checks.
+- [x] Add an ARM64 iOS device build and reproducible unsigned IPA with staging/archive audits. Final clean-machine reproduction, signing/install, license collection, and dependency-pin checks remain.
 - Long sessions with memory sampling and repeated suspend/resume/save/reload cycles.
 
 ## Definition-of-done control

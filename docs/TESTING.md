@@ -125,6 +125,9 @@ scene/orientation/safe-area policy and adaptive touch controls.
 | iPad retained relaunch | Pass — terminate/relaunch with no arguments returned directly to the animated Metal title using the retained private copy |
 | Cleanup | Pass — the iPad app terminated, exact simulator test copies were moved to Trash, the simulator shut down, and no simulator remained booted |
 | Lifecycle/audio wiring | Partial — UIKit resign-active clears product input and Aurora pause/unpause now pauses/resumes SDL3 audio; a bounded background/foreground runtime pass remains |
+| ARM64 device build | Pass (static audit) — complete product links as Mach-O arm64 with `LC_BUILD_VERSION` platform `IOS`, minimum iOS 17.0, Metal, and no SDL2; physical install/runtime remains |
+| Unsigned IPA reproducibility | Pass — two timestamp-normalized packages were byte-identical with SHA-256 `9834e5171202139fdb656cf5938f6719146c34fe9994d4edac7e1af7f1f2a1ac` |
+| Unsigned IPA contents | Pass — 7.9 MB archive contains only `Payload/Bellpad.app/Bellpad` and `Payload/Bellpad.app/Info.plist`; no signature, provisioning profile, retail data, save, key, or certificate |
 
 The import runs above used the native Files UI and no `--disc` argument. They
 prove the raw ISO/GCM user flow and relaunch retention, not hash/size allowlisting,
