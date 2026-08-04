@@ -1,0 +1,128 @@
+diff --git a/include/dolphin/pad.h b/include/dolphin/pad.h
+--- a/include/dolphin/pad.h
++++ b/include/dolphin/pad.h
+@@ -22,0 +23,4 @@
++#ifdef AURORA
++#define PAD_CHAN0 0
++#endif
++
+@@ -38,0 +43,16 @@
++#ifdef AURORA
++#define PAD_BUTTON_COUNT 12
++
++#define PAD_AXIS_LEFT_X_POS 0
++#define PAD_AXIS_LEFT_X_NEG 1
++#define PAD_AXIS_LEFT_Y_POS 2
++#define PAD_AXIS_LEFT_Y_NEG 3
++#define PAD_AXIS_RIGHT_X_POS 4
++#define PAD_AXIS_RIGHT_X_NEG 5
++#define PAD_AXIS_RIGHT_Y_POS 6
++#define PAD_AXIS_RIGHT_Y_NEG 7
++#define PAD_AXIS_TRIGGER_L 8
++#define PAD_AXIS_TRIGGER_R 9
++#define PAD_AXIS_COUNT 10
++#endif
++
+@@ -66,0 +87,16 @@
++#ifdef AURORA
++typedef u16 PADButton;
++typedef u16 PADAxis;
++
++typedef struct PADKeyButtonBinding {
++    s32 scancode;
++    PADButton padButton;
++} PADKeyButtonBinding;
++
++typedef struct PADKeyAxisBinding {
++    s32 scancode;
++    PADAxis padAxis;
++    s16 influence;
++} PADKeyAxisBinding;
++#endif
++
+@@ -82,0 +119,9 @@
++#ifdef AURORA
++BOOL PADSetKeyButtonBindings(u32 port, PADKeyButtonBinding bindings[PAD_BUTTON_COUNT]);
++PADKeyButtonBinding* PADGetKeyButtonBindings(u32 port, u32* buttonCount);
++BOOL PADSetKeyAxisBindings(u32 port, PADKeyAxisBinding bindings[PAD_AXIS_COUNT]);
++void PADSetKeyboardActive(u32 port, BOOL active);
++void PADSetVirtualStatus(u32 port, const PADStatus* status);
++void PADClearVirtualStatus(u32 port);
++#endif
++
+diff --git a/pc/src/pc_aurora_main.c b/pc/src/pc_aurora_main.c
+--- a/pc/src/pc_aurora_main.c
++++ b/pc/src/pc_aurora_main.c
+@@ -11,0 +12,4 @@
++#include <dolphin/pad.h>
++
++#include <SDL3/SDL_scancode.h>
++
+@@ -48,0 +53,38 @@
++static void bellpad_configure_default_keyboard(void) {
++    u32 count = 0;
++    if (PADGetKeyButtonBindings(PAD_CHAN0, &count) != NULL) {
++        return;
++    }
++
++    PADKeyButtonBinding buttons[PAD_BUTTON_COUNT] = {
++        {SDL_SCANCODE_SPACE, PAD_BUTTON_A},
++        {SDL_SCANCODE_LSHIFT, PAD_BUTTON_B},
++        {SDL_SCANCODE_X, PAD_BUTTON_X},
++        {SDL_SCANCODE_Y, PAD_BUTTON_Y},
++        {SDL_SCANCODE_RETURN, PAD_BUTTON_START},
++        {SDL_SCANCODE_Z, PAD_TRIGGER_Z},
++        {SDL_SCANCODE_Q, PAD_TRIGGER_L},
++        {SDL_SCANCODE_E, PAD_TRIGGER_R},
++        {SDL_SCANCODE_I, PAD_BUTTON_UP},
++        {SDL_SCANCODE_K, PAD_BUTTON_DOWN},
++        {SDL_SCANCODE_J, PAD_BUTTON_LEFT},
++        {SDL_SCANCODE_L, PAD_BUTTON_RIGHT},
++    };
++    PADKeyAxisBinding axes[PAD_AXIS_COUNT] = {
++        {SDL_SCANCODE_D, PAD_AXIS_LEFT_X_POS, 100},
++        {SDL_SCANCODE_A, PAD_AXIS_LEFT_X_NEG, 100},
++        {SDL_SCANCODE_W, PAD_AXIS_LEFT_Y_POS, 100},
++        {SDL_SCANCODE_S, PAD_AXIS_LEFT_Y_NEG, 100},
++        {SDL_SCANCODE_RIGHT, PAD_AXIS_RIGHT_X_POS, 100},
++        {SDL_SCANCODE_LEFT, PAD_AXIS_RIGHT_X_NEG, 100},
++        {SDL_SCANCODE_UP, PAD_AXIS_RIGHT_Y_POS, 100},
++        {SDL_SCANCODE_DOWN, PAD_AXIS_RIGHT_Y_NEG, 100},
++        {SDL_SCANCODE_Q, PAD_AXIS_TRIGGER_L, 100},
++        {SDL_SCANCODE_E, PAD_AXIS_TRIGGER_R, 100},
++    };
++
++    PADSetKeyButtonBindings(PAD_CHAN0, buttons);
++    PADSetKeyAxisBindings(PAD_CHAN0, axes);
++    PADSetKeyboardActive(PAD_CHAN0, TRUE);
++}
++
+@@ -188,0 +231,3 @@
++    PADInit();
++    bellpad_configure_default_keyboard();
++
+diff --git a/pc/src/pc_virtual_input.c b/pc/src/pc_virtual_input.c
+--- a/pc/src/pc_virtual_input.c
++++ b/pc/src/pc_virtual_input.c
+@@ -2,0 +3,4 @@
++#ifdef AURORA
++#include <dolphin/pad.h>
++#endif
++
+@@ -13,0 +18,12 @@
++#ifdef AURORA
++    PADStatus status = {0};
++    status.button = buttons;
++    status.stickX = stick_x;
++    status.stickY = stick_y;
++    status.substickX = cstick_x;
++    status.substickY = cstick_y;
++    status.triggerLeft = trigger_left;
++    status.triggerRight = trigger_right;
++    status.err = PAD_ERR_NONE;
++    PADSetVirtualStatus(PAD_CHAN0, &status);
++#endif
+@@ -17,0 +34,3 @@
++#ifdef AURORA
++    PADClearVirtualStatus(PAD_CHAN0);
++#endif

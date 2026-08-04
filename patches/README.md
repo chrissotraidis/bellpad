@@ -44,6 +44,13 @@ copied into Application Support by this patch.
 was already larger than Aurora's implementation. This makes the compiled core
 safe for an Aurora link without changing the GameCube-target structure sizes.
 
+`pc-port/0017-connect-aurora-keyboard-and-virtual-pad.patch` supplies the
+desktop keyboard defaults that Aurora deliberately leaves unbound, preserves
+an existing user mapping when present, and forwards Bellpad's normalized
+virtual-pad state into Aurora's PAD merger. The same API boundary now accepts
+desktop diagnostics and the future iPhone/iPad touch overlay without separate
+game-facing input implementations.
+
 `aurora/0001-complete-acgc-gx-compatibility.patch` applies to Aurora commit
 `5027ed63a73dfba28de9eceed00481fb09a19c35`. It implements the five GX calls
 used by the compiled game core that the pinned Aurora library did not export:
@@ -60,3 +67,9 @@ byte-order contract to static as well as dynamic paletted textures, connects
 `GXInvalidateTexAll` to Aurora's cache invalidation, and disables draw merging
 for the emu64 integration until the merge key represents reused texture and
 matrix dependencies. The patch contains no game data.
+
+`aurora/0004-correct-webgpu-front-face-winding.patch` selects counter-clockwise
+front faces for the WebGPU render target. A controlled title-scene comparison
+showed that Aurora's clockwise setting culled the visible side of the game's
+geometry; disabling culling restored the scene, and the corrected winding
+restored it while preserving the game's requested front/back cull modes.

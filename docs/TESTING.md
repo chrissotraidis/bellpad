@@ -127,7 +127,8 @@ scene/orientation/safe-area policy and adaptive touch controls.
 | Aurora-defined full-core compile | Pass — 3,904 game objects compile with `AURORA`; 111 GX/GD imports all resolve |
 | Legacy renderer-hook isolation | Pass — zero `pc_gx_*`, `pc_emu64_frame_*`, or `s_tlut_*` imports; host TLUT byte order resolves through the explicit Aurora bridge |
 | OpenGL baseline regression rebuild | Pass — ARM64 `Bellpad.app` relinked after the conditional split, proving the temporary playable backend still compiles |
-| Animal Crossing through Aurora/Metal | Partial — native ARM64 executable selects Metal, loads disc/assets/audio, and reaches an interactive title menu at 60 FPS; EFB clearing prevents frame accumulation, static palette colors are plausible, unsafe draw merging is isolated, and a post-cache-fix smoke reached 5,000 frames without the pre-fix Metal allocation failure; geometry remains wrong, so rendering correctness and long-session memory still fail |
+| Animal Crossing through Aurora/Metal | Partial — native ARM64 executable selects Metal, loads disc/assets/audio, and reaches an interactive title menu at 60 FPS; EFB clearing prevents accumulation, palette/cache fixes hold, counter-clockwise WebGPU front faces restore the complete title geometry, and keyboard A advances into K.K.'s new-game scene. Water and dialogue/selection TEV-alpha output remain wrong, and long-session memory still needs a measured soak |
+| Aurora normalized input boundary | Partial pass — default keyboard mapping preserved existing user bindings and a held Space/A advanced title action 3→4→5; the normalized virtual-pad setter compiles and links directly to `PADSetVirtualStatus`, but live UIKit-to-game execution awaits product-target convergence |
 
 The iPhone simulator screenshot required rotation for human inspection because
 `simctl io screenshot` retained the physical portrait buffer while UIKit

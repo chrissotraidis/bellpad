@@ -1,0 +1,13 @@
+diff --git a/lib/gx/gx.cpp b/lib/gx/gx.cpp
+index ef15738..a3f1e7b 100644
+--- a/lib/gx/gx.cpp
++++ b/lib/gx/gx.cpp
+@@ -644,7 +644,7 @@ static inline wgpu::PrimitiveState to_primitive_state(GXCullMode gx_cullMode) {
+   return {
+       .topology = wgpu::PrimitiveTopology::TriangleList,
+       .stripIndexFormat = wgpu::IndexFormat::Undefined,
+-      .frontFace = wgpu::FrontFace::CW,
++      .frontFace = wgpu::FrontFace::CCW,
+       .cullMode = cullMode,
+   };
+ }

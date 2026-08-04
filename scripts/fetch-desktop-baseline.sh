@@ -20,7 +20,22 @@ if [ "$actual_commit" != "$baseline_commit" ]; then
     exit 1
 fi
 
-patch_state="$baseline_dir/.git/bellpad-applied-patches"
+baseline_git_dir=$(git -C "$baseline_dir" rev-parse --absolute-git-dir)
+patch_state="$baseline_git_dir/bellpad-applied-patches"
+patch_lock="$baseline_git_dir/bellpad-patch-lock"
+lock_attempt=0
+while ! mkdir "$patch_lock" 2>/dev/null; do
+    lock_attempt=$((lock_attempt + 1))
+    if [ "$lock_attempt" -ge 300 ]; then
+        echo "Timed out waiting for the desktop patch lock: $patch_lock" >&2
+        echo "If no fetch/build is running, remove that stale lock directory and retry." >&2
+        exit 1
+    fi
+    sleep 0.1
+done
+trap 'exit 1' HUP INT TERM
+trap 'rmdir "$patch_lock" 2>/dev/null || true' EXIT
+
 applied_count=0
 
 set -- "$repo_root"/patches/pc-port/*.patch

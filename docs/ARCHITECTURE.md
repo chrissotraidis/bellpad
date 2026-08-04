@@ -31,7 +31,7 @@ simulation ticks.
 
 The app executes compiled C/C++ game code directly on Apple ARM64. Aurora is a source-level SDK compatibility layer, not a CPU/GPU emulator. The existing WebAssembly port is research material only and will not be embedded.
 
-The current implementation has three deliberately visible tracks. `Bellpad.app` is the complete playable ARM64 behavior oracle using temporary SDL2/OpenGL. The Bellpad-owned AppKit/UIKit shells prove native product surfaces, Files UI, lifecycle hooks, and normalized touch/controller input. `BellpadAurora` is the convergence target: it links the complete game to Aurora/SDL3/Metal and reaches the title menu, but its GX output is not yet correct and it has not adopted the product shell's services. Completion merges the latter two tracks and retires the oracle; it does not launch one app from another or preserve multiple products.
+The current implementation has three deliberately visible tracks. `Bellpad.app` is the complete playable ARM64 behavior oracle using temporary SDL2/OpenGL. The Bellpad-owned AppKit/UIKit shells prove native product surfaces, Files UI, lifecycle hooks, and normalized touch/controller input. `BellpadAurora` is the convergence target: it links the complete game to Aurora/SDL3/Metal, renders the full title geometry, and accepts desktop input into K.K.'s scene, but remaining TEV/alpha defects and product services are not yet converged. Completion merges the latter two tracks and retires the oracle; it does not launch one app from another or preserve multiple products.
 
 ## Address and data model
 
@@ -77,8 +77,11 @@ same stride. With that fixed, the complete game reaches the interactive title
 menu through Metal. Explicit JSystem EFB clearing now prevents successive frames
 from accumulating. Aurora's static and dynamic palette paths share the same
 byte-order normalization, and `GXInvalidateTexAll` bounds the static texture
-cache at the frame boundary. Remaining missing/incorrectly placed geometry proves
-retained `emu64` command flow, not matrix/projection/vertex correctness.
+cache at the frame boundary. A culling isolation test proved matrices and vertex
+placement were sound: disabling culling restored every missing scene component,
+and selecting counter-clockwise WebGPU front faces retained them with normal
+front/back culling. Remaining water and dialogue-surface defects are now traced
+through texture, alpha/blend, and TEV state.
 
 The entire game source has dedicated `AURORA` compile and link targets.
 That build follows the original JSystem frame lifecycle, retains host/ARM64
@@ -90,16 +93,19 @@ GX command stream and normalizes entries before both static and dynamic texture 
 read from retail GameCube data continue through standard big-endian
 `GXInitTlutObj`. This avoids renderer-specific global state and preserves the
 same intended palette semantics on macOS, iOS, and iPadOS. Corrected title/tree
-colors provide runtime evidence for that boundary, although scene geometry remains
-under direct audit.
+colors provide runtime evidence for that boundary; the separate winding fix now
+provides complete title-scene geometry, while TEV/alpha output remains under audit.
 
 The convergence target deliberately uses SDL3 only. Its audio adapter exposes
 the game's 32 kHz stereo DMA stream through an SDL3/CoreAudio stream and producer
 thread. Aurora owns window creation, event acquisition, frame begin/end, Dawn,
 and Metal. JSystem's GameCube VI-message wait is bypassed on this synchronous
 host path because it otherwise deadlocks before the first draw. Event/input
-ownership is still transitional and must be consolidated with Bellpad's shared
-normalized input layer before the target becomes the mobile product.
+ownership is still transitional. The Aurora executable now installs keyboard
+defaults only when no user mapping exists, while Bellpad's normalized virtual-pad
+setter forwards to Aurora's PAD merger. That is the shared game-facing boundary
+for UIKit touch and external controllers; lifecycle and product event ownership
+still need consolidation before the target becomes the mobile product.
 
 Aurora's released Dawn archive for iOS is device-platform only. Simulator builds
 therefore compile Dawn from source with Ninja, vendored SDL3, protobuf disabled,
