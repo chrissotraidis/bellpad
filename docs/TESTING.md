@@ -1,6 +1,6 @@
 # Testing strategy and evidence
 
-Last updated: 2026-08-03
+Last updated: 2026-08-04
 
 No gameplay test is marked passed without a dated result, device/OS, build revision, image revision, and observable outcome.
 
@@ -102,7 +102,7 @@ scene/orientation/safe-area policy and adaptive touch controls.
 | macOS open panel | Pass — native sheet presented with ISO/GCM content filtering; cancelled without selecting a file |
 | Shell game rendering/input | Superseded — the product overlay is now linked directly into the Aurora game bundle |
 
-### Native iOS/iPadOS game evidence — 2026-08-03
+### Native iOS/iPadOS game evidence — 2026-08-04
 
 | Test | Result |
 |---|---|
@@ -113,17 +113,28 @@ scene/orientation/safe-area policy and adaptive touch controls.
 | iPhone valid Files import | Pass — a private ignored GAFE01 revision 0 image selected through Files was security-scoped, source/staged validated, copied byte-for-byte into private Application Support, and booted without `--disc`; no staging file remained |
 | iPhone real-game launch | Pass — private ignored GAFE01 data was read from the simulator sandbox, 14,495 assets loaded, 32 kHz audio opened, and the animated title rendered at the fixed 60 Hz simulation cadence |
 | iPhone touch-to-game path | Pass — UIKit A advanced the real title into K.K.'s opening; the button edge crossed the mutex snapshot and Aurora PAD on the game thread |
+| iPhone native player name | Pass — the game opened its real name editor, UIKit's native field became first responder and accepted `Bell`, the game-thread bridge consumed all four characters plus Done, and Rover rendered `Bell` in the following dialogue |
 | iPhone layout | Pass — landscape controls are upright after rotating the simulated hardware and avoid the Dynamic Island/safe areas |
 | iPhone retained relaunch | Pass — terminating and launching again with no arguments skipped Files and returned to the animated title from the retained Application Support copy |
 | Sequential stop | Pass — iPhone app terminated, exact simulator test copies were removed, and the simulator shut down before iPad boot |
 | iPad first-run/valid import | Pass — no-data screen presented in iPadOS's managed window; Files-selected GAFE01 data was retained byte-exactly with no staging residue and the native title rendered with iPad control metrics |
+| iPad native player name | Pass with harness limitation — the real editor presented the adaptive UIKit field as first responder, accepted text through the production insertion method, exited on Done, and Rover echoed the entered prefix. Simulator host-focus loss paused consumption during LLDB automation, so this run does not claim an exact full-name value |
 | iPad retained relaunch | Pass — terminate/relaunch with no arguments returned directly to the animated Metal title using the retained private copy |
 | Cleanup | Pass — the iPad app terminated, exact simulator test copies were moved to Trash, the simulator shut down, and no simulator remained booted |
 
 The import runs above used the native Files UI and no `--disc` argument. They
 prove the raw ISO/GCM user flow and relaunch retention, not hash/size allowlisting,
-compressed formats, game-save persistence, physical-device security scopes, or
-mobile lifecycle completion.
+compressed formats, game-save persistence, town-name/letter editor coverage,
+physical-device security scopes/keyboards, or mobile lifecycle completion.
+
+The native keyboard tests used the actual UIKit first-responder and insertion
+methods, then inspected the bounded product queue and existing game editor under
+LLDB. The iOS software keyboard was visibly presented on iPhone. Simulator
+hardware-keyboard capture and host focus made reliable on-screen key clicking
+non-deterministic, especially on iPad; that automation limitation is recorded
+instead of treating partial queued input as an exact-name pass. Both simulator
+sessions were terminated and shut down sequentially, and their exact private
+test copies were removed or moved to Trash afterward.
 
 ### Playable macOS app evidence — 2026-08-03
 

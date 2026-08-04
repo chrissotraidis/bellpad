@@ -1,6 +1,6 @@
 # Building
 
-Last updated: 2026-08-03
+Last updated: 2026-08-04
 
 The repository now builds a playable macOS game-core bundle, native Aurora/Metal game targets for macOS and iOS Simulator, Bellpad-owned Metal/touch integration shells, and pinned compatibility probes.
 
@@ -119,7 +119,7 @@ To install the simulator bundle, use `xcrun simctl install <device-uuid> build/i
 ./scripts/build-aurora-game-ios-simulator.sh
 ```
 
-This applies the pinned twenty-one-patch game series and four-patch Aurora series,
+This applies the pinned twenty-two-patch game series and four-patch Aurora series,
 builds Dawn and SDL3 for ARM64 iOS Simulator, and links the complete game core,
 Aurora GX/Metal renderer, SDL3 audio, normalized input bridge, and UIKit GameCube
 overlay into `Bellpad.app`. The script verifies the Mach-O platform, plist,
@@ -132,6 +132,12 @@ Files import screen. A supported raw ISO/GCM is security-scoped while it is read
 validated, copied to a staging file under private Application Support, validated
 again, atomically installed, and then supplied to the real Aurora disc reader.
 The app reuses that retained copy on subsequent launches.
+
+Patch 22 connects the core's SDL-independent editor API to Bellpad's native
+UIKit text proxy. The proxy is shown only while the game reports an active
+editor; UTF-8, Backspace, and Done are queued from UIKit and consumed by the
+game thread. The first runtime gate covers player names. Town names, letters,
+large paste backpressure, and editor-specific keyboard configuration remain.
 
 The shared validator checks `.iso` and `.gcm` for the GameCube header, `GAFE01`,
 disc 0, and revision 0. Invalid input remains on the import screen and cannot

@@ -1,6 +1,6 @@
 # Architecture
 
-Last updated: 2026-08-03
+Last updated: 2026-08-04
 
 ## Layers
 
@@ -164,7 +164,7 @@ GCI-folder mode is the initial canonical store because it gives one file per sav
 - UIKit owns the adaptive touch overlay. Compact sizing is computed from actual safe-area width/height for iPhone and resizable iPad windows; expanded iPad sizing is visibly proven over the real game target.
 - Touch and external-controller sources now target one portable, mutex-protected normalized GameCube state. Buttons are ORed, the strongest absolute value wins per stick axis, and the maximum analog trigger wins. The linked game-core adapter snapshots this state on the game thread before Aurora PAD/event processing rather than receiving UIKit callbacks directly.
 - The touch source is cleared on resign-active. Presentation pauses while inactive and resumes on become-active. A physical controller hides touch on real devices while retaining an explicit user override; simulator virtual controllers do not hide the overlay so touch QA remains possible.
-- The separated editor begin/end, UTF-8 commit, and command API is ready for a UIKit text adapter; SDL desktop events already delegate to it, while the real mobile product adapter remains pending.
+- The real mobile adapter observes the separated editor lifecycle and shows one native UIKit text-field proxy only while a game editor is active. UIKit callbacks append bounded UTF-8/Backspace/Enter events to a mutex-protected queue; the Aurora game thread drains them into the existing editor API before PAD/event work. UIKit never mutates game editor state directly, and the proxy never becomes the canonical text store. This path has passed the player-name editor on both simulator families; editor-specific behavior beyond names remains.
 - Rendering uses the SDL/CAMetalLayer surface supplied to Dawn.
 - Wall-clock changes and timezone changes are observed explicitly.
 - Backgrounding pauses presentation/audio and requests a safe save flush; foregrounding recreates transient resources.

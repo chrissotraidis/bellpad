@@ -1,0 +1,74 @@
+diff --git a/pc/src/pc_typing.c b/pc/src/pc_typing.c
+index 18278d4..f52dda8 100644
+--- a/pc/src/pc_typing.c
++++ b/pc/src/pc_typing.c
+@@ -36,7 +36,9 @@ int pc_typing_begin(void) {
+     if (!g_pc_editor_active) return 0;
+     if (!g_pc_typing_mode) {
+         g_pc_typing_mode = 1;
+-#ifdef AURORA
++#if defined(BELLPAD_IOS)
++        /* Bellpad's UIKit proxy owns the native first responder. */
++#elif defined(AURORA)
+         SDL_StartTextInput(g_pc_window);
+ #else
+         SDL_StartTextInput();
+@@ -48,7 +50,9 @@ int pc_typing_begin(void) {
+ 
+ void pc_typing_end(void) {
+     g_pc_typing_mode = 0;
+-#ifdef AURORA
++#if defined(BELLPAD_IOS)
++    /* Bellpad's UIKit proxy owns the native first responder. */
++#elif defined(AURORA)
+     SDL_StopTextInput(g_pc_window);
+ #else
+     SDL_StopTextInput();
+diff --git a/pc/src/pc_aurora_main.c b/pc/src/pc_aurora_main.c
+index 20396d5..57924c6 100644
+--- a/pc/src/pc_aurora_main.c
++++ b/pc/src/pc_aurora_main.c
+@@ -4,6 +4,7 @@
+ #include "pc_assets.h"
+ #include "pc_disc.h"
+ #include "pc_settings.h"
++#include "pc_typing.h"
+ #include "pc_virtual_input.h"
+ 
+ #include <aurora/aurora.h>
+@@ -34,7 +35,7 @@
+ #endif
+ 
+ struct SDL_Window* g_pc_window = NULL;
+-void* g_pc_gl_context = NULL;
++SDL_GLContext g_pc_gl_context = NULL;
+ int g_pc_running = 1;
+ int g_pc_no_framelimit = 0;
+ int g_pc_fast_forward = 0;
+@@ -169,6 +170,26 @@ static void bellpad_find_image_range(void) {
+ }
+ 
+ int pc_platform_poll_events(void) {
++#ifdef BELLPAD_IOS
++    pc_typing_update();
++    if (g_pc_editor_active && !g_pc_typing_mode) {
++        pc_typing_begin();
++    }
++    bellpad_set_native_text_active(g_pc_typing_mode && g_pc_editor_active);
++
++    char native_text[128];
++    int native_command = BELLPAD_NATIVE_TEXT_NONE;
++    while (bellpad_poll_native_text_event(native_text, sizeof(native_text),
++                                           &native_command)) {
++        if (native_text[0]) {
++            pc_typing_commit_utf8(native_text);
++        } else if (native_command == BELLPAD_NATIVE_TEXT_BACKSPACE) {
++            pc_typing_command(PC_TYPING_CMD_BACKSPACE);
++        } else if (native_command == BELLPAD_NATIVE_TEXT_ENTER) {
++            pc_typing_command(PC_TYPING_CMD_ENTER);
++        }
++    }
++#endif
+     pc_pad_poll_normalized_state();
+     const AuroraEvent* event = aurora_update();
+     while (event && event->type != AURORA_NONE) {

@@ -9,9 +9,14 @@
 #include "BellpadInput.h"
 
 #include <algorithm>
+#include <atomic>
 #include <cmath>
 #include <cstdint>
 #include <cstring>
+#include <deque>
+#include <mutex>
+#include <string>
+#include <utility>
 
 @protocol BPStickDelegate <NSObject>
 - (void)stick:(NSInteger)tag changedX:(std::int8_t)x y:(std::int8_t)y;
@@ -85,6 +90,71 @@
 @property(nonatomic) std::uint16_t inputMask;
 @end
 @implementation BPGameButton
+@end
+
+struct BPNativeTextEvent {
+    std::string text;
+    int command = BELLPAD_NATIVE_TEXT_NONE;
+};
+
+static std::mutex sNativeTextMutex;
+static std::deque<BPNativeTextEvent> sNativeTextEvents;
+static std::atomic_bool sNativeTextRequested{false};
+
+static void BellpadQueueNativeText(NSString *text) {
+    const char *utf8 = text.UTF8String;
+    if (!utf8 || !utf8[0]) return;
+    std::lock_guard<std::mutex> lock(sNativeTextMutex);
+    if (sNativeTextEvents.size() < 64) {
+        sNativeTextEvents.push_back({utf8, BELLPAD_NATIVE_TEXT_NONE});
+    }
+}
+
+static void BellpadQueueNativeTextCommand(int command) {
+    std::lock_guard<std::mutex> lock(sNativeTextMutex);
+    if (sNativeTextEvents.size() < 64) {
+        sNativeTextEvents.push_back({{}, command});
+    }
+}
+
+@interface BPNativeTextField : UITextField
+@end
+
+@implementation BPNativeTextField
+
+- (BOOL)hasText {
+    // Keep delete enabled while the game, rather than this proxy field, owns
+    // the canonical editor contents.
+    return YES;
+}
+
+- (void)setText:(NSString *)text {
+    // Accessibility and dictation may replace the proxy value instead of
+    // calling insertText:. Route those replacements through the same queue.
+    if (text.length > 0) {
+        BellpadQueueNativeText(text);
+    }
+    [super setText:@""];
+}
+
+- (void)setAccessibilityValue:(NSString *)value {
+    // UI automation and Switch Control use the accessibility value setter.
+    // Treat it like dictation/replacement text while keeping the proxy empty.
+    BellpadQueueNativeText(value);
+}
+
+- (void)insertText:(NSString *)text {
+    if ([text isEqualToString:@"\n"] || [text isEqualToString:@"\r"]) {
+        BellpadQueueNativeTextCommand(BELLPAD_NATIVE_TEXT_ENTER);
+    } else {
+        BellpadQueueNativeText(text);
+    }
+}
+
+- (void)deleteBackward {
+    BellpadQueueNativeTextCommand(BELLPAD_NATIVE_TEXT_BACKSPACE);
+}
+
 @end
 
 @interface BPDiscImportViewController : UIViewController <UIDocumentPickerDelegate>
@@ -485,6 +555,66 @@ static UIWindow *BellpadGameWindow(void) {
 }
 
 static BPDiscImportViewController *sDiscImportController;
+static BPNativeTextField *sNativeTextField;
+
+static void BellpadApplyNativeTextState(BOOL active) {
+    UIWindow *window = BellpadGameWindow();
+    UIView *rootView = window.rootViewController.view;
+    if (!rootView) return;
+
+    if (!sNativeTextField) {
+        BPNativeTextField *field = [BPNativeTextField new];
+        field.translatesAutoresizingMaskIntoConstraints = NO;
+        field.backgroundColor = [UIColor colorWithWhite:0.06 alpha:0.94];
+        field.textColor = UIColor.whiteColor;
+        field.tintColor = UIColor.whiteColor;
+        field.font = [UIFont systemFontOfSize:17.0 weight:UIFontWeightSemibold];
+        field.textAlignment = NSTextAlignmentCenter;
+        field.placeholder = @"Type with the native keyboard";
+        field.attributedPlaceholder = [[NSAttributedString alloc]
+            initWithString:field.placeholder
+                attributes:@{NSForegroundColorAttributeName:
+                                 [UIColor colorWithWhite:1.0 alpha:0.62]}];
+        field.layer.cornerRadius = 12.0;
+        field.layer.borderWidth = 1.0;
+        field.layer.borderColor = [UIColor colorWithWhite:1.0 alpha:0.28].CGColor;
+        field.keyboardType = UIKeyboardTypeDefault;
+        field.keyboardAppearance = UIKeyboardAppearanceDark;
+        field.returnKeyType = UIReturnKeyDone;
+        field.autocapitalizationType = UITextAutocapitalizationTypeNone;
+        field.autocorrectionType = UITextAutocorrectionTypeNo;
+        field.spellCheckingType = UITextSpellCheckingTypeNo;
+        field.smartQuotesType = UITextSmartQuotesTypeNo;
+        field.smartDashesType = UITextSmartDashesTypeNo;
+        field.smartInsertDeleteType = UITextSmartInsertDeleteTypeNo;
+        field.accessibilityLabel = @"Animal Crossing text input";
+        [rootView addSubview:field];
+
+        UILayoutGuide *safe = rootView.safeAreaLayoutGuide;
+        NSLayoutConstraint *preferredWidth =
+            [field.widthAnchor constraintEqualToConstant:420.0];
+        preferredWidth.priority = UILayoutPriorityDefaultHigh;
+        [NSLayoutConstraint activateConstraints:@[
+            [field.topAnchor constraintEqualToAnchor:safe.topAnchor constant:12.0],
+            [field.centerXAnchor constraintEqualToAnchor:safe.centerXAnchor],
+            [field.leadingAnchor constraintGreaterThanOrEqualToAnchor:safe.leadingAnchor constant:24.0],
+            [field.trailingAnchor constraintLessThanOrEqualToAnchor:safe.trailingAnchor constant:-24.0],
+            [field.widthAnchor constraintLessThanOrEqualToConstant:420.0],
+            preferredWidth,
+            [field.heightAnchor constraintEqualToConstant:44.0],
+        ]];
+        sNativeTextField = field;
+    }
+
+    sNativeTextField.hidden = !active;
+    if (active) {
+        [rootView bringSubviewToFront:sNativeTextField];
+        [sNativeTextField becomeFirstResponder];
+    } else {
+        [sNativeTextField resignFirstResponder];
+        sNativeTextField.text = @"";
+    }
+}
 
 static BOOL BellpadCopyPath(NSString *path, char *outputPath, size_t outputCapacity) {
     const char *fileSystemPath = path.fileSystemRepresentation;
@@ -565,4 +695,38 @@ int bellpad_prepare_game_data_path(const char* applicationSupportPath,
         dispatch_semaphore_wait(completionSemaphore, DISPATCH_TIME_FOREVER);
     }
     return selectedPath && BellpadCopyPath(selectedPath, outputPath, outputCapacity) ? 1 : 0;
+}
+
+void bellpad_set_native_text_active(int active) {
+    const bool requested = active != 0;
+    const bool previous = sNativeTextRequested.exchange(requested);
+    if (previous == requested) return;
+
+    {
+        std::lock_guard<std::mutex> lock(sNativeTextMutex);
+        sNativeTextEvents.clear();
+    }
+    void (^apply)(void) = ^{ BellpadApplyNativeTextState(requested); };
+    if (NSThread.isMainThread) apply();
+    else dispatch_async(dispatch_get_main_queue(), apply);
+}
+
+int bellpad_poll_native_text_event(char* utf8,
+                                   size_t utf8Capacity,
+                                   int* command) {
+    if (!utf8 || utf8Capacity == 0 || !command) return 0;
+    utf8[0] = '\0';
+    *command = BELLPAD_NATIVE_TEXT_NONE;
+
+    std::lock_guard<std::mutex> lock(sNativeTextMutex);
+    if (sNativeTextEvents.empty()) return 0;
+    BPNativeTextEvent event = std::move(sNativeTextEvents.front());
+    sNativeTextEvents.pop_front();
+    *command = event.command;
+    if (!event.text.empty()) {
+        const size_t length = std::min(event.text.size(), utf8Capacity - 1);
+        std::memcpy(utf8, event.text.data(), length);
+        utf8[length] = '\0';
+    }
+    return 1;
 }

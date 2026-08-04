@@ -1,6 +1,6 @@
 # Bellpad implementation plan
 
-Last updated: 2026-08-03
+Last updated: 2026-08-04
 
 Bellpad is a native Apple-platform source port. It will not ship an emulator, a WebAssembly build, a retail disc image, or extracted retail assets.
 
@@ -69,6 +69,7 @@ GX reaches Metal as: game/JSystem/emu64 GX calls → Aurora GX command processor
 - [x] Add native macOS/iOS document choosers and one shared raw ISO/GCM header validator for GameCube magic, `GAFE01`, and revision 0. The UI presentation and synthetic-header tests pass without selecting retail data.
 - [x] Connect the working Aurora game target to a native universal iOS/iPadOS bundle. SDL3/Aurora owns `UIApplicationMain`, lifecycle, and the `CAMetalLayer`; Bellpad attaches a transparent UIKit overlay to that existing view instead of creating a second renderer. The real game reaches title on both simulators, and an iPhone touch A advances into K.K.'s opening.
 - [x] Connect the Files picker/validator to durable raw ISO/GCM retention and the real boot path. The importer security-scopes the selected URL, validates source and staged copies, atomically installs `Application Support/Bellpad/Bellpad/Game Data/Animal Crossing.iso`, and reuses it on relaunch. No-data, cancel, invalid, valid import, title boot, exact-copy, and relaunch checks pass sequentially on iPhone and iPad simulators.
+- [x] Connect the real mobile editor lifecycle to a native UIKit keyboard proxy. UTF-8, Backspace, and Done cross a bounded mutex queue and are drained only on the game thread. The real player-name editor passed sequentially on iPhone and iPad simulators; the iPhone run rendered exact name `Bell` in Rover's next dialogue. Town names and broader editors remain test gates.
 - Add hash/size allowlisting, nod indexing, and measured CISO/RVZ support before advertising those formats.
 - Extend the security-scoped document picker beyond the currently supported ISO/GCM formats only after each reader is linked and tested.
 - Validate disc header, revision, size, and known supported hashes before retaining data.
@@ -83,7 +84,7 @@ GX reaches Metal as: game/JSystem/emu64 GX calls → Aurora GX command processor
 - Audio: native SDL3/CoreAudio route with AVAudioSession ownership, interruption/route-change recovery, suspension-safe queues, and no busy-loop while inactive.
 - Input: one normalized GameCube state merging touch, GCController/SDL controller, and keyboard sources. Physical-controller connection optionally hides gameplay touch controls.
 - Lifecycle: stop presentation and pause safely on resign-active/background; flush saves atomically; recreate drawable/audio resources on foreground; handle memory warnings without discarding live save state.
-- Keyboard: native text input for player/town names, letters, passwords, and other supported editors, translating committed text into the game's character encoding with length validation.
+- Keyboard: extend the proven native player-name path through town names, letters, passwords, and other supported editors; add editor-aware return keys, paste backpressure, length validation, and physical-device/accessibility coverage.
 
 ## Milestone 5 — touch and adaptive UI
 

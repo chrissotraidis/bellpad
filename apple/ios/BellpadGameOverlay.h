@@ -17,6 +17,19 @@ int bellpad_prepare_game_data_path(const char* application_support_path,
                                    char* output_path,
                                    size_t output_capacity);
 
+enum {
+    BELLPAD_NATIVE_TEXT_NONE = 0,
+    BELLPAD_NATIVE_TEXT_BACKSPACE = 1,
+    BELLPAD_NATIVE_TEXT_ENTER = 2,
+};
+
+/* The game thread publishes editor state and drains UIKit keyboard events.
+ * Text is UTF-8; commands use BELLPAD_NATIVE_TEXT_* above. */
+void bellpad_set_native_text_active(int active);
+int bellpad_poll_native_text_event(char* utf8,
+                                   size_t utf8_capacity,
+                                   int* command);
+
 #ifdef __cplusplus
 }
 #endif
