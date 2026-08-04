@@ -54,7 +54,7 @@ open ref/upstream/acgc-64bit/pc/build-bellpad-app/bin/Bellpad.app
 
 This opt-in build packages the actual compiled game core as an ARM64 app bundle. If no image was selected with `--disc PATH` and none is found by the legacy search, it presents a native `NSOpenPanel`. The core accepts only GAFE01 disc 0 revision 0 and reads the selected image in place. The bundle contains its clean GLSL shaders, executable, and plist only; it never copies the selected image.
 
-The current bundle is an honest Milestone 1 product baseline, not the final architecture: rendering remains SDL2/OpenGL. On macOS it creates and enters `~/Library/Application Support/Bellpad` before loading settings, keybindings, or `save/card_a`. Set `BELLPAD_DATA_HOME` to an isolated absolute directory for development tests. This proves path stability, not a successful in-game save; atomic replacement/backups and save/relaunch gameplay evidence remain required.
+The current bundle is an honest Milestone 1 product baseline, not the final architecture: rendering remains SDL2/OpenGL. On macOS it creates and enters `~/Library/Application Support/Bellpad` before loading settings, keybindings, or `save/card_a`. Set `BELLPAD_DATA_HOME` to an isolated absolute directory for development tests. GCI writes use a durable sibling temp file, three rolling backups, atomic rename, and parent-directory synchronization on Apple/POSIX hosts. A successful in-game save/relaunch still requires gameplay evidence.
 
 ## Native Aurora/Metal game convergence
 
@@ -119,7 +119,7 @@ To install the simulator bundle, use `xcrun simctl install <device-uuid> build/i
 ./scripts/build-aurora-game-ios-simulator.sh
 ```
 
-This applies the pinned twenty-two-patch game series and four-patch Aurora series,
+This applies the pinned twenty-four-patch game series and four-patch Aurora series,
 builds Dawn and SDL3 for ARM64 iOS Simulator, and links the complete game core,
 Aurora GX/Metal renderer, SDL3 audio, normalized input bridge, and UIKit GameCube
 overlay into `Bellpad.app`. The script verifies the Mach-O platform, plist,
@@ -135,9 +135,10 @@ The app reuses that retained copy on subsequent launches.
 
 Patch 22 connects the core's SDL-independent editor API to Bellpad's native
 UIKit text proxy. The proxy is shown only while the game reports an active
-editor; UTF-8, Backspace, and Done are queued from UIKit and consumed by the
-game thread. The first runtime gate covers player names. Town names, letters,
-large paste backpressure, and editor-specific keyboard configuration remain.
+editor; UTF-8, intercepted paste, Backspace, and explicit Done are queued from
+UIKit and consumed by the game thread. Runtime gates cover exact player and
+town names on iPhone plus the same editor lifecycle on iPad. Letters, large
+paste backpressure, and editor-specific keyboard configuration remain.
 
 The shared validator checks `.iso` and `.gcm` for the GameCube header, `GAFE01`,
 disc 0, and revision 0. Invalid input remains on the import screen and cannot

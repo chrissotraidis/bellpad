@@ -2,7 +2,7 @@
 
 Bellpad is an experimental, native Apple ARM64 source port project for the original US revision of Animal Crossing for Nintendo GameCube. The intended application compiles legally clean reverse-engineered game code for macOS, iOS, and iPadOS. It is not a GameCube emulator and will not embed a WebAssembly/browser port.
 
-The repository is in active platform integration. The proven ARM64 game core packages as a playable macOS `Bellpad.app`, and the same complete core now links through Aurora, SDL3, and Metal as a universal native iOS/iPadOS simulator app with Bellpad's UIKit controls. The mobile build imports user-owned raw game data through Files, retains it privately, reaches the title and player-name sequence, accepts touch input, and connects the real game editor to the native iOS keyboard. Town creation, saves, lifecycle proof, broader gameplay validation, device builds, and IPA generation remain incomplete.
+The repository is in active platform integration. The proven ARM64 game core packages as a playable macOS `Bellpad.app`, and the same complete core now links through Aurora, SDL3, and Metal as a universal native iOS/iPadOS simulator app with Bellpad's UIKit controls. The mobile build imports user-owned raw game data through Files, retains it privately, reaches the title and setup sequence, accepts touch input, and connects the real game editor to the native iOS keyboard. Save/relaunch proof, product settings, broader lifecycle proof, device builds, and IPA generation remain incomplete.
 
 ## Current status
 
@@ -16,15 +16,15 @@ As of 2026-08-04:
 - The desktop baseline renders the title, setup, train, and generated town at 60 FPS and starts 32 kHz stereo audio.
 - A trimmed-image aligned-read bug was identified and corrected locally.
 - Player and town naming work through the port's native SDL text-input path; a test player entered and moved around a newly generated town.
-- Save creation/relaunch and app-window lifecycle remain under investigation. The title cleanup invalid-free was traced to an undersized static structure-actor pool and repaired with an upstream-derived host slot layout.
+- GCI saves use a durable temporary-file replacement and three rolling backups in Application Support. A successful in-game save/relaunch remains to be demonstrated, and app-window lifecycle validation is incomplete.
 - Aurora is the selected production compatibility layer. The complete game now links natively to Aurora/SDL3, selects Metal on Apple Silicon, validates and reads a private retail image, loads all game archives, starts 32 kHz audio, and reaches the interactive title menu at the fixed 60 Hz simulation rate.
 - The initial multi-frame smear was traced to a missing host EFB clear and fixed. Palette/cache repairs and corrected WebGPU front-face winding restore the complete title composition. Explicit N64 color unpacking plus Aurora's polygon-font path now render K.K. and multi-line dialogue with the expected colors and placement. Water, choices, and representative train/town scenes still require comparison before rendering correctness is claimed broadly.
 - The Aurora target has live desktop keyboard mappings and normalized virtual-pad input. The mobile product now links Bellpad's canonical GameCube touch/controller mixer directly; patch 19 pulls its mutex-protected snapshot on the game thread, and short button edges remain latched until one 60 Hz poll consumes them.
 - Bellpad-owned clean platform harnesses still build with MetalKit for isolated QA. The production mobile game instead uses SDL3/Aurora's native Metal surface and the same fixed-60-Hz normalized GameCube input boundary.
 - The mobile game includes left/C sticks, A/B/X/Y, Z/L/R/Start, D-pad, adaptive compact/expanded layouts, safe-area handling, GameController merging, physical-controller auto-hide on devices, and the thread-safe game-input snapshot consumed by the Aurora core. Layout editing, persistence, opacity, and a manual visibility setting remain product work.
 - Native macOS and iOS/iPadOS choosers accept a user-selected file through a shared header validator. The current slice recognizes raw ISO/GCM and requires GameCube magic plus `GAFE01` revision 0. On mobile, a valid selection is copied through a staging file to private Application Support, validated again, atomically installed, and used by the real core; the retained copy is reused on relaunch.
-- When the real game opens a text editor, the mobile adapter presents a native UIKit first responder and drains UTF-8, Backspace, and Done events on the game thread. The player-name editor accepted `Bell` on iPhone and advanced to Rover's dialogue; iPad also presented the native field, accepted text, exited the editor, and echoed the entered prefix. Town naming, letter writing, dictation/accessibility breadth, and physical-device keyboard behavior remain to be tested.
-- The playable macOS bundle still uses the proven SDL2/OpenGL renderer and Application Support. The mobile Aurora game bundle now runs the real core, renderer, audio, touch, user-facing import, and first native-text path. Hash allowlisting, nod indexing/compressed formats, remove/reimport UI, atomic save backups/import/export, full text/lifecycle proof, broader scene validation, device packaging, and IPA generation remain.
+- When the real game opens a text editor, the mobile adapter presents a native UIKit first responder and drains UTF-8, Backspace, paste, and Done events on the game thread. The iPhone flow committed exact player name `Bell` and town name `Cove`; iPad also presented and committed through the same native field. Letter writing, dictation/accessibility breadth, and physical-device keyboard behavior remain to be tested.
+- The playable macOS bundle still uses the proven SDL2/OpenGL renderer and Application Support. The mobile Aurora game bundle now runs the real core, renderer, audio, touch, user-facing import, and native-text path. Hash allowlisting, nod indexing/compressed formats, remove/reimport UI, save import/export and relaunch proof, product settings, broader lifecycle/scene validation, device packaging, and IPA generation remain.
 
 See [STATUS.md](docs/STATUS.md), [PLAN.md](docs/PLAN.md), and [WORKLOG.md](docs/WORKLOG.md) for evidence and current blockers.
 
@@ -93,11 +93,11 @@ The first native mobile layout now has a left analog stick, large A/B buttons, s
 
 ## Native keyboard
 
-The mobile game now observes the real editor lifecycle and presents a native UIKit text field as its first responder. UIKit queues UTF-8, Backspace, and Done events; the game thread alone drains those events into the existing editor API and character mapping. This first slice passed the player-name editor on both iPhone and iPad simulators, with the exact name `Bell` rendered by Rover on iPhone. Town names, letters, passwords, paste backpressure, editor-specific return-key behavior, and physical-device/accessibility coverage remain.
+The mobile game now observes the real editor lifecycle and presents a native UIKit text field plus an explicit Done control. UIKit queues UTF-8, paste, Backspace, and Done events; the game thread alone drains those events into the existing editor API and character mapping. This path committed exact player name `Bell` and town name `Cove` on iPhone and passed the editor lifecycle on iPad. Letters, passwords, paste backpressure, editor-specific keyboard behavior, and physical-device/accessibility coverage remain.
 
 ## Saves
 
-The intended canonical store is one Dolphin-compatible GCI per save in Application Support, with serialized writes, validation, atomic replacement, and rotating backups. Import/export and update persistence must be proven before save compatibility is advertised. No user save belongs in Git, an app bundle, an IPA, documentation, or fixtures.
+The canonical store is one Dolphin-compatible GCI per save in Application Support. Writes build a sibling temporary file, flush it to stable storage, rotate three backups, atomically rename it into place, and synchronize parent-directory metadata on Apple/POSIX hosts. Import/export, successful in-game creation/relaunch, recovery, and update persistence must still be proven before save compatibility is advertised. No user save belongs in Git, an app bundle, an IPA, documentation, or fixtures.
 
 ## Architecture
 
@@ -132,11 +132,11 @@ See [TESTING.md](docs/TESTING.md).
 - Apple Clang compilation is proven, but the full guest-address/pointer-width audit and sanitizer run are not complete.
 - Automated window-key delivery is harness-dependent. Guarded LLDB QA helpers can feed button taps, persistent left-stick values, and alphanumeric text through the same normalized APIs planned for Apple platform adapters.
 - Save creation and relaunch persistence have not yet been completed in the local baseline.
-- The playable macOS bundle now uses Application Support, but atomic save replacement, rotating backups, import/export, and a successful in-game save/relaunch proof remain required.
+- The save path now uses durable temporary-file replacement and three rolling backups in Application Support; import/export and a successful in-game save/relaunch proof remain required.
 - App-window close and lifecycle teardown still need a clean retest; `SIGTERM` exits the clean scripted build.
 - The real Animal Crossing target now links, renders the complete title composition, and correctly displays and advances multi-line K.K. dialogue through Aurora/Metal. Water, choices, and representative train/town rendering remain open.
 - The embedded NES emulator and audio path compile under Aurora, but its legacy OpenGL framebuffer presenter is intentionally disabled; a GX/Metal upload path is still required before NES games can display.
-- The iOS/iPadOS real-game bundle, touch UI, native Files import, private data retention, relaunch boot, and first native player-name keyboard path work in both simulators. Hash allowlisting, compressed formats, remove/reimport UI, save persistence, complete editor coverage, lifecycle/audio interruption proof, physical-device validation, and unsigned IPA remain pending.
+- The iOS/iPadOS real-game bundle, touch UI, native Files import, private data retention, relaunch boot, and native name-entry path work in both simulators. Hash allowlisting, compressed formats, remove/reimport UI, save/relaunch proof, complete editor coverage, audio-interruption proof, physical-device validation, and unsigned IPA remain pending.
 
 ## Research and credits
 

@@ -154,13 +154,13 @@ renderer is created.
 
 ## Saves
 
-GCI-folder mode is the initial canonical store because it gives one file per save and aligns with Dolphin import/export. Writes go to a temporary sibling, are flushed, validated, and atomically replaced; previous valid generations are retained. Save operations are serialized with lifecycle transitions.
+GCI-folder mode is the initial canonical store because it gives one file per save and aligns with Dolphin import/export. Writes go to a temporary sibling, are flushed and synchronized, then atomically replace the canonical file after three previous generations rotate; the parent directory is synchronized on Apple/POSIX hosts. Load-time checksums and orphan-temp/backup recovery reject or repair interrupted saves. Game-driven creation/relaunch and import/export remain validation gates.
 
 ## Platform integration
 
 - SDL3's iOS main callback owns the game thread and UIKit lifecycle. Bellpad does not create a second application delegate, window, Metal view, or simulation clock.
 - Aurora/Dawn renders through SDL3's existing `CAMetalLayer`; the UIKit overlay is transparent and returns hits only for controls, leaving the render view and keyboard/event path intact.
-- The full desktop core also has an opt-in native macOS app-bundle target. Its `NSOpenPanel` and explicit disc-path API launch real game code, shaders resolve from bundle resources, and settings/GCI paths live under Application Support. This is the playable migration baseline; it still uses SDL2/OpenGL and does not yet provide atomic save backups/import/export.
+- The full desktop core also has an opt-in native macOS app-bundle target. Its `NSOpenPanel` and explicit disc-path API launch real game code, shaders resolve from bundle resources, and settings/GCI paths live under Application Support. This is the playable migration baseline; it still uses SDL2/OpenGL and does not yet provide save import/export or in-game relaunch proof.
 - UIKit owns the adaptive touch overlay. Compact sizing is computed from actual safe-area width/height for iPhone and resizable iPad windows; expanded iPad sizing is visibly proven over the real game target.
 - Touch and external-controller sources now target one portable, mutex-protected normalized GameCube state. Buttons are ORed, the strongest absolute value wins per stick axis, and the maximum analog trigger wins. The linked game-core adapter snapshots this state on the game thread before Aurora PAD/event processing rather than receiving UIKit callbacks directly.
 - The touch source is cleared on resign-active. Presentation pauses while inactive and resumes on become-active. A physical controller hides touch on real devices while retaining an explicit user override; simulator virtual controllers do not hide the overlay so touch QA remains possible.

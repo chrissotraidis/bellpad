@@ -65,6 +65,16 @@ fallback keeps the standalone convergence executable independent until it is
 linked with the strong UIKit/AppKit product implementation. This avoids writing
 Aurora's unguarded virtual-pad storage from UIKit controller/touch callbacks.
 
+`pc-port/0023-make-gci-save-commits-durable.patch` flushes and synchronizes a
+complete temporary GCI before rotating backups and atomically renaming it into
+place. Apple/POSIX builds then synchronize the parent directory so the rename
+survives interruption; Windows uses `_commit` for the file and retains the
+existing replacement behavior.
+
+`pc-port/0024-pause-audio-with-aurora-lifecycle.patch` consumes Aurora's
+pause/unpause events and pauses or resumes the SDL3 audio stream. Aurora remains
+the single owner of UIKit/window lifecycle and presentation state.
+
 `aurora/0001-complete-acgc-gx-compatibility.patch` applies to Aurora commit
 `5027ed63a73dfba28de9eceed00481fb09a19c35`. It implements the five GX calls
 used by the compiled game core that the pinned Aurora library did not export:

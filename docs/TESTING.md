@@ -114,6 +114,7 @@ scene/orientation/safe-area policy and adaptive touch controls.
 | iPhone real-game launch | Pass — private ignored GAFE01 data was read from the simulator sandbox, 14,495 assets loaded, 32 kHz audio opened, and the animated title rendered at the fixed 60 Hz simulation cadence |
 | iPhone touch-to-game path | Pass — UIKit A advanced the real title into K.K.'s opening; the button edge crossed the mutex snapshot and Aurora PAD on the game thread |
 | iPhone native player name | Pass — the game opened its real name editor, UIKit's native field became first responder and accepted `Bell`, the game-thread bridge consumed all four characters plus Done, and Rover rendered `Bell` in the following dialogue |
+| iPhone native town name | Pass — native paste interception queued exact `Cove`, the explicit UIKit Done control committed it on the game thread, and the game advanced without debugger input injection |
 | iPhone layout | Pass — landscape controls are upright after rotating the simulated hardware and avoid the Dynamic Island/safe areas |
 | iPhone retained relaunch | Pass — terminating and launching again with no arguments skipped Files and returned to the animated title from the retained Application Support copy |
 | Sequential stop | Pass — iPhone app terminated, exact simulator test copies were removed, and the simulator shut down before iPad boot |
@@ -121,10 +122,11 @@ scene/orientation/safe-area policy and adaptive touch controls.
 | iPad native player name | Pass with harness limitation — the real editor presented the adaptive UIKit field as first responder, accepted text through the production insertion method, exited on Done, and Rover echoed the entered prefix. Simulator host-focus loss paused consumption during LLDB automation, so this run does not claim an exact full-name value |
 | iPad retained relaunch | Pass — terminate/relaunch with no arguments returned directly to the animated Metal title using the retained private copy |
 | Cleanup | Pass — the iPad app terminated, exact simulator test copies were moved to Trash, the simulator shut down, and no simulator remained booted |
+| Lifecycle/audio wiring | Partial — UIKit resign-active clears product input and Aurora pause/unpause now pauses/resumes SDL3 audio; a bounded background/foreground runtime pass remains |
 
 The import runs above used the native Files UI and no `--disc` argument. They
 prove the raw ISO/GCM user flow and relaunch retention, not hash/size allowlisting,
-compressed formats, game-save persistence, town-name/letter editor coverage,
+compressed formats, game-save persistence, letter-editor coverage,
 physical-device security scopes/keyboards, or mobile lifecycle completion.
 
 The native keyboard tests used the actual UIKit first-responder and insertion
@@ -148,7 +150,7 @@ test copies were removed or moved to Trash afterward.
 | Overclock rejection | Pass — bundled executable returns status 2 for both `--framelimit 120` and `--no-framelimit` with an acceleration warning |
 | Native picker | Build/runtime path present; the previously proven AppKit sheet covers presentation, but selecting retail data through it remains a manual product test |
 | Application Support path/relaunch | Pass — isolated `BELLPAD_DATA_HOME` became the reported save cwd; a second launch loaded the same settings/keybindings |
-| In-game save/atomic backups | Pending — no successful GCI creation/reload yet; atomic replacement, rotating backups, and import/export are not implemented |
+| In-game save/atomic backups | Partial — the build implements checksummed GCI output, durable temp-file flush, atomic replacement, three rolling backups, and recovery; successful game-driven creation/reload and import/export remain pending |
 
 ### Game-core/Aurora convergence evidence — 2026-08-03
 

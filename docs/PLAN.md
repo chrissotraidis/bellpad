@@ -33,7 +33,7 @@ This selection is now supported by platform, symbol-surface, ABI, source-boundar
    NPC-house entry and scene reinitialization are now explicit regression gates after reproducing an unreachable host door sample and a null e-Reader payload allocation in `play_init`.
 6. Rebase or forward-port the 64-bit work onto the current bug-fixed native port.
 7. [x] Remove compiler-blocking GCC-only pointer truncation behavior so Apple Clang can compile and run the core. Continue the broader address audit and sanitizer work; compiler acceptance alone is not proof that every guest/native boundary is correct.
-8. [x] Package the complete Apple Clang ARM64 core as an opt-in `Bellpad.app` with a native picker, explicit supported-image path, strict GAFE01 disc/revision validation, ROM-free resources, and Application Support settings/save paths. Atomic save backups and in-game save/relaunch proof remain separate gates.
+8. [x] Package the complete Apple Clang ARM64 core as an opt-in `Bellpad.app` with a native picker, explicit supported-image path, strict GAFE01 disc/revision validation, ROM-free resources, and Application Support settings/save paths. Durable temporary replacement and rolling backups are implemented; in-game save/relaunch proof remains a separate gate.
 
 ### 64-bit and address model
 
@@ -69,7 +69,7 @@ GX reaches Metal as: game/JSystem/emu64 GX calls → Aurora GX command processor
 - [x] Add native macOS/iOS document choosers and one shared raw ISO/GCM header validator for GameCube magic, `GAFE01`, and revision 0. The UI presentation and synthetic-header tests pass without selecting retail data.
 - [x] Connect the working Aurora game target to a native universal iOS/iPadOS bundle. SDL3/Aurora owns `UIApplicationMain`, lifecycle, and the `CAMetalLayer`; Bellpad attaches a transparent UIKit overlay to that existing view instead of creating a second renderer. The real game reaches title on both simulators, and an iPhone touch A advances into K.K.'s opening.
 - [x] Connect the Files picker/validator to durable raw ISO/GCM retention and the real boot path. The importer security-scopes the selected URL, validates source and staged copies, atomically installs `Application Support/Bellpad/Bellpad/Game Data/Animal Crossing.iso`, and reuses it on relaunch. No-data, cancel, invalid, valid import, title boot, exact-copy, and relaunch checks pass sequentially on iPhone and iPad simulators.
-- [x] Connect the real mobile editor lifecycle to a native UIKit keyboard proxy. UTF-8, Backspace, and Done cross a bounded mutex queue and are drained only on the game thread. The real player-name editor passed sequentially on iPhone and iPad simulators; the iPhone run rendered exact name `Bell` in Rover's next dialogue. Town names and broader editors remain test gates.
+- [x] Connect the real mobile editor lifecycle to a native UIKit keyboard proxy and explicit Done control. UTF-8, paste, Backspace, and Done cross a bounded mutex queue and are drained only on the game thread. The iPhone flow committed exact player name `Bell` and town name `Cove`; the same editor lifecycle passed on iPad. Broader editors remain test gates.
 - Add hash/size allowlisting, nod indexing, and measured CISO/RVZ support before advertising those formats.
 - Extend the security-scoped document picker beyond the currently supported ISO/GCM formats only after each reader is linked and tested.
 - Validate disc header, revision, size, and known supported hashes before retaining data.
@@ -79,11 +79,11 @@ GX reaches Metal as: game/JSystem/emu64 GX calls → Aurora GX command processor
 
 ## Milestone 4 — platform services
 
-- Saves: Aurora CARD with GCI-folder mode first; Application Support storage, atomic replacement, rolling backups, checksum validation, and import/export document pickers. Test Dolphin-compatible GCI in both directions. Consider raw-card support after GCI is stable.
+- Saves: [x] Application Support GCI storage, checksums, durable atomic replacement, recovery, and rolling backups. Add import/export document pickers and prove in-game creation/relaunch plus Dolphin-compatible GCI in both directions. Consider raw-card support after GCI is stable.
 - RTC: wall clock plus monotonic time; observe timezone and significant-time-change notifications; preserve GameCube tick conversion without overflow; test Resetti/time-travel behaviors.
 - Audio: native SDL3/CoreAudio route with AVAudioSession ownership, interruption/route-change recovery, suspension-safe queues, and no busy-loop while inactive.
 - Input: one normalized GameCube state merging touch, GCController/SDL controller, and keyboard sources. Physical-controller connection optionally hides gameplay touch controls.
-- Lifecycle: stop presentation and pause safely on resign-active/background; flush saves atomically; recreate drawable/audio resources on foreground; handle memory warnings without discarding live save state.
+- Lifecycle: Aurora already stops presentation while inactive, Bellpad clears input, and pause/unpause events now pause/resume SDL3 audio. Runtime-test background/foreground and interruption recovery; handle memory warnings without discarding live save state. Do not invent an out-of-band gameplay save during suspension.
 - Keyboard: extend the proven native player-name path through town names, letters, passwords, and other supported editors; add editor-aware return keys, paste backpressure, length validation, and physical-device/accessibility coverage.
 
 ## Milestone 5 — touch and adaptive UI

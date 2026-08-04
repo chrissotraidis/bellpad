@@ -118,6 +118,7 @@ static void BellpadQueueNativeTextCommand(int command) {
 }
 
 @interface BPNativeTextField : UITextField
+- (void)submitText;
 @end
 
 @implementation BPNativeTextField
@@ -153,6 +154,17 @@ static void BellpadQueueNativeTextCommand(int command) {
 
 - (void)deleteBackward {
     BellpadQueueNativeTextCommand(BELLPAD_NATIVE_TEXT_BACKSPACE);
+}
+
+- (void)paste:(id)sender {
+    (void)sender;
+    NSString *text = UIPasteboard.generalPasteboard.string;
+    if (text.length > 0) BellpadQueueNativeText(text);
+    [super setText:@""];
+}
+
+- (void)submitText {
+    BellpadQueueNativeTextCommand(BELLPAD_NATIVE_TEXT_ENTER);
 }
 
 @end
@@ -556,6 +568,7 @@ static UIWindow *BellpadGameWindow(void) {
 
 static BPDiscImportViewController *sDiscImportController;
 static BPNativeTextField *sNativeTextField;
+static UIButton *sNativeTextDoneButton;
 
 static void BellpadApplyNativeTextState(BOOL active) {
     UIWindow *window = BellpadGameWindow();
@@ -590,25 +603,43 @@ static void BellpadApplyNativeTextState(BOOL active) {
         field.accessibilityLabel = @"Animal Crossing text input";
         [rootView addSubview:field];
 
+        UIButton *done = [UIButton buttonWithType:UIButtonTypeSystem];
+        done.translatesAutoresizingMaskIntoConstraints = NO;
+        [done setTitle:@"Done" forState:UIControlStateNormal];
+        [done setTitleColor:UIColor.whiteColor forState:UIControlStateNormal];
+        done.titleLabel.font = [UIFont systemFontOfSize:16.0 weight:UIFontWeightBold];
+        done.backgroundColor = [UIColor colorWithRed:0.20 green:0.55 blue:0.37 alpha:0.96];
+        done.layer.cornerRadius = 12.0;
+        done.accessibilityLabel = @"Finish Animal Crossing text input";
+        [done addTarget:field action:@selector(submitText) forControlEvents:UIControlEventTouchUpInside];
+        [rootView addSubview:done];
+
         UILayoutGuide *safe = rootView.safeAreaLayoutGuide;
         NSLayoutConstraint *preferredWidth =
-            [field.widthAnchor constraintEqualToConstant:420.0];
+            [field.widthAnchor constraintEqualToConstant:340.0];
         preferredWidth.priority = UILayoutPriorityDefaultHigh;
         [NSLayoutConstraint activateConstraints:@[
             [field.topAnchor constraintEqualToAnchor:safe.topAnchor constant:12.0],
-            [field.centerXAnchor constraintEqualToAnchor:safe.centerXAnchor],
+            [field.centerXAnchor constraintEqualToAnchor:safe.centerXAnchor constant:-40.0],
             [field.leadingAnchor constraintGreaterThanOrEqualToAnchor:safe.leadingAnchor constant:24.0],
-            [field.trailingAnchor constraintLessThanOrEqualToAnchor:safe.trailingAnchor constant:-24.0],
-            [field.widthAnchor constraintLessThanOrEqualToConstant:420.0],
+            [field.widthAnchor constraintLessThanOrEqualToConstant:340.0],
             preferredWidth,
             [field.heightAnchor constraintEqualToConstant:44.0],
+            [done.leadingAnchor constraintEqualToAnchor:field.trailingAnchor constant:8.0],
+            [done.trailingAnchor constraintLessThanOrEqualToAnchor:safe.trailingAnchor constant:-24.0],
+            [done.centerYAnchor constraintEqualToAnchor:field.centerYAnchor],
+            [done.widthAnchor constraintEqualToConstant:72.0],
+            [done.heightAnchor constraintEqualToConstant:44.0],
         ]];
         sNativeTextField = field;
+        sNativeTextDoneButton = done;
     }
 
     sNativeTextField.hidden = !active;
+    sNativeTextDoneButton.hidden = !active;
     if (active) {
         [rootView bringSubviewToFront:sNativeTextField];
+        [rootView bringSubviewToFront:sNativeTextDoneButton];
         [sNativeTextField becomeFirstResponder];
     } else {
         [sNativeTextField resignFirstResponder];
