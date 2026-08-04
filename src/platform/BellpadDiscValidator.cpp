@@ -66,7 +66,7 @@ std::string BellpadDiscValidationMessage(const BellpadDiscValidationResult& resu
     case BellpadDiscValidationCode::Valid: {
         std::ostringstream message;
         message << "Supported " << result.gameId << " revision " << static_cast<unsigned>(result.revision)
-                << " selected. Retention and game launch connect next.";
+                << " image.";
         return message.str();
     }
     case BellpadDiscValidationCode::CannotOpen:

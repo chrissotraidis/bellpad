@@ -1,0 +1,64 @@
+diff --git a/pc/CMakeLists.txt b/pc/CMakeLists.txt
+index 2c8c29e..b18bfa2 100644
+--- a/pc/CMakeLists.txt
++++ b/pc/CMakeLists.txt
+@@ -546,6 +546,7 @@ if(BELLPAD_AURORA_LINK_PROBE)
+         endif()
+         target_sources(ac_aurora PRIVATE
+             "${BELLPAD_PRODUCT_SOURCE_DIR}/apple/ios/BellpadGameOverlay.mm"
++            "${BELLPAD_PRODUCT_SOURCE_DIR}/src/platform/BellpadDiscValidator.cpp"
+             "${BELLPAD_PRODUCT_SOURCE_DIR}/src/platform/BellpadInput.cpp"
+         )
+         target_include_directories(ac_aurora PRIVATE
+@@ -562,6 +563,7 @@ if(BELLPAD_AURORA_LINK_PROBE)
+             "-framework QuartzCore"
+             "-framework UIKit"
+             "-framework Metal"
++            "-framework UniformTypeIdentifiers"
+         )
+         set_target_properties(ac_aurora PROPERTIES
+             MACOSX_BUNDLE TRUE
+diff --git a/pc/src/pc_aurora_main.c b/pc/src/pc_aurora_main.c
+index a30205a..20396d5 100644
+--- a/pc/src/pc_aurora_main.c
++++ b/pc/src/pc_aurora_main.c
+@@ -202,12 +202,18 @@ void pc_platform_shutdown(void) {
+ int main(int argc, char* argv[]) {
+     setvbuf(stdout, NULL, _IONBF, 0);
+     setvbuf(stderr, NULL, _IONBF, 0);
++#ifdef BELLPAD_IOS
++    bool explicit_disc_path = false;
++#endif
+     for (int index = 1; index < argc; ++index) {
+         if (strcmp(argv[index], "--disc") == 0 && index + 1 < argc) {
+             if (!pc_disc_set_path(argv[++index])) {
+                 fprintf(stderr, "Disc image path is too long.\n");
+                 return 2;
+             }
++#ifdef BELLPAD_IOS
++            explicit_disc_path = true;
++#endif
+         } else if (strcmp(argv[index], "--framelimit") == 0) {
+             if (index + 1 >= argc || strcmp(argv[++index], "60") != 0) {
+                 fprintf(stderr, "Aurora integration is fixed to the native 60 Hz simulation rate.\n");
+@@ -253,6 +259,20 @@ int main(int argc, char* argv[]) {
+         return 1;
+     }
+     printf("[Storage] Using %s\n", writable_path);
++#ifdef BELLPAD_IOS
++    if (!explicit_disc_path) {
++        char imported_disc_path[1024];
++        if (!bellpad_prepare_game_data_path(writable_path, imported_disc_path,
++                                             sizeof(imported_disc_path)) ||
++            !pc_disc_set_path(imported_disc_path)) {
++            fprintf(stderr, "Bellpad could not prepare supported user game data.\n");
++            SDL_free(writable_path);
++            pc_platform_shutdown();
++            return 1;
++        }
++        printf("[Storage] Using retained game data at %s\n", imported_disc_path);
++    }
++#endif
+     SDL_free(writable_path);
+ 
+     PADInit();

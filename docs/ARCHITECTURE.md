@@ -130,16 +130,27 @@ or generator fix is available.
 
 ## Disc and assets
 
-The app bundle contains no retail data. The user selects a supported image through Files. A validator reads only the header and required metadata before a nod-backed disc reader indexes the filesystem. The initial preference is direct reading from a private Application Support copy or a durable security-scoped bookmark. Any derived cache is local, versioned by image hash, removable, and excluded from source and release packages.
+The app bundle contains no retail data. The user selects a supported image through Files. The implemented raw-image path reads directly from a private Application Support copy; nod-backed compressed containers and a hash-versioned derived index remain future work. Any later derived cache stays local, removable, and excluded from source and release packages.
 
 The first product boundary is implemented: AppKit uses `NSOpenPanel`, UIKit uses
 `UIDocumentPickerViewController`, and both call one portable validator. It reads
 exactly the first 0x20 bytes of raw `.iso`/`.gcm`, checks the GameCube magic at
-`0x1C`, the six-byte game ID, and revision byte, then closes the file. UIKit
-balances security-scoped access around that read. No selected URL is persisted
-and no image is copied yet. CISO/RVZ and hash verification wait for nod-backed
-indexing and the final retention policy rather than pretending a raw header
-reader supports compressed containers.
+`0x1C`, the six-byte game ID, disc number, and revision byte, then closes the
+file. UIKit balances security-scoped access around source validation and copy.
+It copies to `Game Data/Animal Crossing.importing.iso`, validates the completed
+copy, and atomically installs `Game Data/Animal Crossing.iso` under Bellpad's
+Application Support directory. Failure removes only staging and preserves the
+previous retained image. Normal launch validates and reuses that path before
+presenting Files; the development-only explicit `--disc` argument bypasses it.
+CISO/RVZ, full-image hash/size verification, and nod indexing remain unavailable
+rather than pretending the raw-header reader supports compressed containers.
+
+SDL3's traditional iOS entry point currently invokes the game main function on
+UIKit's main thread. While the core waits for first-run import, Bellpad pumps the
+default and UI-tracking run-loop modes so the document picker, security-scoped
+copy progress, and modal dismissal remain responsive. Once import completes,
+normal SDL3/Aurora event ownership resumes; no second application delegate or
+renderer is created.
 
 ## Saves
 

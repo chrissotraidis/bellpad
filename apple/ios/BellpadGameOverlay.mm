@@ -3,12 +3,15 @@
 #import <GameController/GameController.h>
 #import <TargetConditionals.h>
 #import <UIKit/UIKit.h>
+#import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
 
+#include "BellpadDiscValidator.h"
 #include "BellpadInput.h"
 
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <cstring>
 
 @protocol BPStickDelegate <NSObject>
 - (void)stick:(NSInteger)tag changedX:(std::int8_t)x y:(std::int8_t)y;
@@ -82,6 +85,174 @@
 @property(nonatomic) std::uint16_t inputMask;
 @end
 @implementation BPGameButton
+@end
+
+@interface BPDiscImportViewController : UIViewController <UIDocumentPickerDelegate>
+@property(nonatomic, copy) void (^completion)(NSURL *retainedURL);
+@property(nonatomic, strong) NSURL *applicationSupportURL;
+@end
+
+@implementation BPDiscImportViewController {
+    UILabel *_statusLabel;
+    UIButton *_chooseButton;
+    UIActivityIndicatorView *_activityIndicator;
+}
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    self.view.backgroundColor = [UIColor colorWithRed:0.035 green:0.055 blue:0.095 alpha:1.0];
+
+    UILabel *title = [UILabel new];
+    title.translatesAutoresizingMaskIntoConstraints = NO;
+    title.text = @"Choose your game data";
+    title.textColor = UIColor.whiteColor;
+    title.font = [UIFont systemFontOfSize:28.0 weight:UIFontWeightBold];
+    title.textAlignment = NSTextAlignmentCenter;
+    [self.view addSubview:title];
+
+    UILabel *detail = [UILabel new];
+    detail.translatesAutoresizingMaskIntoConstraints = NO;
+    detail.text = @"Bellpad requires a legally obtained Animal Crossing GAFE01 revision 0 ISO or GCM. The selected file is validated and copied to private Application Support. It is never added to the app bundle.";
+    detail.numberOfLines = 0;
+    detail.textColor = [UIColor colorWithWhite:1.0 alpha:0.76];
+    detail.font = [UIFont systemFontOfSize:16.0 weight:UIFontWeightRegular];
+    detail.textAlignment = NSTextAlignmentCenter;
+    [self.view addSubview:detail];
+
+    _statusLabel = [UILabel new];
+    _statusLabel.translatesAutoresizingMaskIntoConstraints = NO;
+    _statusLabel.text = @"No supported game data is stored on this device.";
+    _statusLabel.numberOfLines = 0;
+    _statusLabel.textColor = [UIColor colorWithWhite:1.0 alpha:0.68];
+    _statusLabel.font = [UIFont systemFontOfSize:14.0 weight:UIFontWeightMedium];
+    _statusLabel.textAlignment = NSTextAlignmentCenter;
+    [self.view addSubview:_statusLabel];
+
+    _chooseButton = [UIButton buttonWithType:UIButtonTypeSystem];
+    _chooseButton.translatesAutoresizingMaskIntoConstraints = NO;
+    [_chooseButton setTitle:@"Choose ISO or GCM…" forState:UIControlStateNormal];
+    [_chooseButton setTitleColor:UIColor.whiteColor forState:UIControlStateNormal];
+    _chooseButton.titleLabel.font = [UIFont systemFontOfSize:17.0 weight:UIFontWeightSemibold];
+    _chooseButton.backgroundColor = [UIColor colorWithRed:0.22 green:0.48 blue:0.76 alpha:1.0];
+    _chooseButton.layer.cornerRadius = 14.0;
+    [_chooseButton addTarget:self action:@selector(chooseGameData) forControlEvents:UIControlEventTouchUpInside];
+    [self.view addSubview:_chooseButton];
+
+    _activityIndicator = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleLarge];
+    _activityIndicator.translatesAutoresizingMaskIntoConstraints = NO;
+    _activityIndicator.color = UIColor.whiteColor;
+    _activityIndicator.hidesWhenStopped = YES;
+    [self.view addSubview:_activityIndicator];
+
+    UILayoutGuide *safe = self.view.safeAreaLayoutGuide;
+    [NSLayoutConstraint activateConstraints:@[
+        [title.centerXAnchor constraintEqualToAnchor:safe.centerXAnchor],
+        [title.bottomAnchor constraintEqualToAnchor:detail.topAnchor constant:-18.0],
+        [title.leadingAnchor constraintGreaterThanOrEqualToAnchor:safe.leadingAnchor constant:24.0],
+        [detail.centerXAnchor constraintEqualToAnchor:safe.centerXAnchor],
+        [detail.centerYAnchor constraintEqualToAnchor:safe.centerYAnchor constant:-32.0],
+        [detail.widthAnchor constraintLessThanOrEqualToConstant:620.0],
+        [detail.leadingAnchor constraintGreaterThanOrEqualToAnchor:safe.leadingAnchor constant:32.0],
+        [_statusLabel.topAnchor constraintEqualToAnchor:detail.bottomAnchor constant:20.0],
+        [_statusLabel.centerXAnchor constraintEqualToAnchor:safe.centerXAnchor],
+        [_statusLabel.widthAnchor constraintLessThanOrEqualToConstant:620.0],
+        [_statusLabel.leadingAnchor constraintGreaterThanOrEqualToAnchor:safe.leadingAnchor constant:32.0],
+        [_chooseButton.topAnchor constraintEqualToAnchor:_statusLabel.bottomAnchor constant:20.0],
+        [_chooseButton.centerXAnchor constraintEqualToAnchor:safe.centerXAnchor],
+        [_chooseButton.widthAnchor constraintEqualToConstant:220.0],
+        [_chooseButton.heightAnchor constraintEqualToConstant:50.0],
+        [_activityIndicator.centerXAnchor constraintEqualToAnchor:safe.centerXAnchor],
+        [_activityIndicator.topAnchor constraintEqualToAnchor:_chooseButton.bottomAnchor constant:16.0],
+    ]];
+}
+
+- (void)chooseGameData {
+    UIDocumentPickerViewController *picker =
+        [[UIDocumentPickerViewController alloc] initForOpeningContentTypes:@[ UTTypeData ] asCopy:NO];
+    picker.delegate = self;
+    picker.allowsMultipleSelection = NO;
+    [self presentViewController:picker animated:YES completion:nil];
+}
+
+- (void)setBusy:(BOOL)busy status:(NSString *)status {
+    _chooseButton.enabled = !busy;
+    _chooseButton.alpha = busy ? 0.45 : 1.0;
+    _statusLabel.text = status;
+    _statusLabel.textColor = [UIColor colorWithWhite:1.0 alpha:0.76];
+    if (busy) [_activityIndicator startAnimating];
+    else [_activityIndicator stopAnimating];
+}
+
+- (void)finishWithError:(NSString *)message {
+    [self setBusy:NO status:message];
+    _statusLabel.textColor = [UIColor colorWithRed:1.0 green:0.58 blue:0.58 alpha:1.0];
+}
+
+- (void)documentPicker:(UIDocumentPickerViewController *)controller
+    didPickDocumentsAtURLs:(NSArray<NSURL *> *)urls {
+    (void)controller;
+    NSURL *sourceURL = urls.firstObject;
+    if (!sourceURL) return;
+
+    [self setBusy:YES status:@"Validating and importing game data…"];
+    __weak BPDiscImportViewController *weakSelf = self;
+    dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
+        BPDiscImportViewController *strongSelf = weakSelf;
+        if (!strongSelf) return;
+        BOOL accessed = [sourceURL startAccessingSecurityScopedResource];
+        const BellpadDiscValidationResult sourceResult =
+            BellpadValidateDiscImage(sourceURL.fileSystemRepresentation);
+        if (!sourceResult.valid()) {
+            const std::string text = BellpadDiscValidationMessage(sourceResult);
+            if (accessed) [sourceURL stopAccessingSecurityScopedResource];
+            dispatch_async(dispatch_get_main_queue(), ^{
+                [strongSelf finishWithError:[NSString stringWithUTF8String:text.c_str()]];
+            });
+            return;
+        }
+
+        NSFileManager *files = NSFileManager.defaultManager;
+        NSURL *directory = [strongSelf.applicationSupportURL URLByAppendingPathComponent:@"Game Data"
+                                                                             isDirectory:YES];
+        NSURL *destination = [directory URLByAppendingPathComponent:@"Animal Crossing.iso"];
+        NSURL *staging = [directory URLByAppendingPathComponent:@"Animal Crossing.importing.iso"];
+        NSError *error = nil;
+        [files createDirectoryAtURL:directory withIntermediateDirectories:YES attributes:nil error:&error];
+        if (!error && [files fileExistsAtPath:staging.path]) [files removeItemAtURL:staging error:&error];
+        if (!error) [files copyItemAtURL:sourceURL toURL:staging error:&error];
+        if (accessed) [sourceURL stopAccessingSecurityScopedResource];
+
+        if (!error) {
+            const BellpadDiscValidationResult stagedResult =
+                BellpadValidateDiscImage(staging.fileSystemRepresentation);
+            if (!stagedResult.valid()) {
+                error = [NSError errorWithDomain:@"dev.bellpad.import" code:2
+                                         userInfo:@{NSLocalizedDescriptionKey:
+                                             @"The copied file failed validation. The previous game data was kept."}];
+            }
+        }
+        if (!error) {
+            if ([files fileExistsAtPath:destination.path]) {
+                [files replaceItemAtURL:destination withItemAtURL:staging backupItemName:nil
+                                options:0 resultingItemURL:nil error:&error];
+            } else {
+                [files moveItemAtURL:staging toURL:destination error:&error];
+            }
+        }
+        if (error) {
+            [files removeItemAtURL:staging error:nil];
+            NSString *message = [NSString stringWithFormat:@"Import failed: %@", error.localizedDescription];
+            dispatch_async(dispatch_get_main_queue(), ^{ [strongSelf finishWithError:message]; });
+            return;
+        }
+
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [strongSelf setBusy:NO status:@"Supported game data imported. Starting Bellpad…"];
+            if (strongSelf.completion) strongSelf.completion(destination);
+        });
+    });
+}
+
 @end
 
 @interface BPGameOverlay : UIView <BPStickDelegate>
@@ -313,6 +484,17 @@ static UIWindow *BellpadGameWindow(void) {
     return nil;
 }
 
+static BPDiscImportViewController *sDiscImportController;
+
+static BOOL BellpadCopyPath(NSString *path, char *outputPath, size_t outputCapacity) {
+    const char *fileSystemPath = path.fileSystemRepresentation;
+    if (!fileSystemPath) return NO;
+    const size_t length = std::strlen(fileSystemPath);
+    if (length >= outputCapacity) return NO;
+    std::memcpy(outputPath, fileSystemPath, length + 1);
+    return YES;
+}
+
 void bellpad_install_game_overlay(void) {
     void (^install)(void) = ^{
         UIWindow *window = BellpadGameWindow();
@@ -325,4 +507,62 @@ void bellpad_install_game_overlay(void) {
     };
     if (NSThread.isMainThread) install();
     else dispatch_sync(dispatch_get_main_queue(), install);
+}
+
+int bellpad_prepare_game_data_path(const char* applicationSupportPath,
+                                   char* outputPath,
+                                   size_t outputCapacity) {
+    if (!applicationSupportPath || !outputPath || outputCapacity == 0) return 0;
+    outputPath[0] = '\0';
+
+    NSString *supportPath = [NSString stringWithUTF8String:applicationSupportPath];
+    if (!supportPath) return 0;
+    NSURL *supportURL = [NSURL fileURLWithPath:supportPath isDirectory:YES];
+    NSURL *retainedURL = [[supportURL URLByAppendingPathComponent:@"Game Data" isDirectory:YES]
+        URLByAppendingPathComponent:@"Animal Crossing.iso"];
+    if (BellpadValidateDiscImage(retainedURL.fileSystemRepresentation).valid()) {
+        return BellpadCopyPath(retainedURL.path, outputPath, outputCapacity) ? 1 : 0;
+    }
+    dispatch_semaphore_t completionSemaphore = dispatch_semaphore_create(0);
+    __block NSString *selectedPath = nil;
+    __block BOOL finished = NO;
+    void (^presentImport)(void) = ^{
+        UIWindow *window = BellpadGameWindow();
+        UIViewController *presenter = window.rootViewController;
+        if (!presenter) {
+            finished = YES;
+            dispatch_semaphore_signal(completionSemaphore);
+            return;
+        }
+
+        BPDiscImportViewController *controller = [BPDiscImportViewController new];
+        controller.applicationSupportURL = supportURL;
+        controller.modalPresentationStyle = UIModalPresentationFullScreen;
+        __weak BPDiscImportViewController *weakController = controller;
+        controller.completion = ^(NSURL *url) {
+            selectedPath = url.path;
+            BPDiscImportViewController *strongController = weakController;
+            [strongController dismissViewControllerAnimated:YES completion:^{
+                strongController.completion = nil;
+                sDiscImportController = nil;
+                finished = YES;
+                dispatch_semaphore_signal(completionSemaphore);
+            }];
+        };
+        sDiscImportController = controller;
+        [presenter presentViewController:controller animated:NO completion:nil];
+    };
+    if (NSThread.isMainThread) {
+        presentImport();
+        while (!finished) {
+            @autoreleasepool {
+                CFRunLoopRunInMode(kCFRunLoopDefaultMode, 0.01, true);
+                CFRunLoopRunInMode((CFStringRef)UITrackingRunLoopMode, 0.01, true);
+            }
+        }
+    } else {
+        dispatch_async(dispatch_get_main_queue(), presentImport);
+        dispatch_semaphore_wait(completionSemaphore, DISPATCH_TIME_FOREVER);
+    }
+    return selectedPath && BellpadCopyPath(selectedPath, outputPath, outputCapacity) ? 1 : 0;
 }

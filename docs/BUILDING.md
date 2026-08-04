@@ -119,22 +119,25 @@ To install the simulator bundle, use `xcrun simctl install <device-uuid> build/i
 ./scripts/build-aurora-game-ios-simulator.sh
 ```
 
-This applies the pinned twenty-patch game series and four-patch Aurora series,
+This applies the pinned twenty-one-patch game series and four-patch Aurora series,
 builds Dawn and SDL3 for ARM64 iOS Simulator, and links the complete game core,
 Aurora GX/Metal renderer, SDL3 audio, normalized input bridge, and UIKit GameCube
 overlay into `Bellpad.app`. The script verifies the Mach-O platform, plist,
 Metal linkage, absence of SDL2, and absence of disc/save formats in the bundle.
 
-The current development launch accepts `--disc /absolute/private/path.iso`.
-That path must point into local private storage and is never copied into the app
-bundle. The final product picker-to-retention flow is still pending; do not treat
-the command-line development path as user-facing import support.
+For automated development, launch may still accept
+`--disc /absolute/private/path.iso`; this bypasses the picker and must point into
+local private storage. A normal launch with no argument now presents the native
+Files import screen. A supported raw ISO/GCM is security-scoped while it is read,
+validated, copied to a staging file under private Application Support, validated
+again, atomically installed, and then supplied to the real Aurora disc reader.
+The app reuses that retained copy on subsequent launches.
 
-The built shells include native “Choose Game Data…” buttons. They currently
-perform validation only: `.iso` and `.gcm` are checked for the GameCube header,
-`GAFE01`, and revision 0, then immediately closed. The selection is not copied,
-bookmarked, indexed, or launched. Compressed formats remain intentionally
-rejected until the nod-backed reader is linked.
+The shared validator checks `.iso` and `.gcm` for the GameCube header, `GAFE01`,
+disc 0, and revision 0. Invalid input remains on the import screen and cannot
+replace valid retained data. Compressed formats, size/hash allowlisting,
+remove/reimport UI, and nod indexing remain intentionally unavailable until their
+readers and validation rules are linked and tested.
 
 Run the tracked-content safety check before every commit and package build:
 

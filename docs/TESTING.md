@@ -98,7 +98,7 @@ scene/orientation/safe-area policy and adaptive touch controls.
 | iPad Pro 13-inch Simulator | Pass — universal bundle installs/launches in a 960×640 resizable iPadOS window; actual-size scaling selects a compact no-overlap layout |
 | Expanded iPad layout | Pass on the real game target — iPad metrics are visibly applied over the 2752×2064 Aurora framebuffer; current iPadOS may still manage the game in a system window |
 | Shared disc validator | Pass — synthetic 32-byte `.iso` accepts `GAFE01` Rev 0; synthetic wrong revision/game and `.rvz` rejection pass; no retail fixture used |
-| iPhone Files picker | Pass — Computer Use activated “Choose Game Data…” and observed Apple's native Files/Recents UI; cancelled without selecting a file |
+| iPhone Files picker | Pass — Computer Use activated “Choose Game Data…” and observed Apple's native Files/Recents UI; cancel returned cleanly, and later product tests exercised invalid and valid selections |
 | macOS open panel | Pass — native sheet presented with ISO/GCM content filtering; cancelled without selecting a file |
 | Shell game rendering/input | Superseded — the product overlay is now linked directly into the Aurora game bundle |
 
@@ -108,16 +108,22 @@ scene/orientation/safe-area policy and adaptive touch controls.
 |---|---|
 | Product build | Pass — complete game core links as an ARM64 `IOSSIMULATOR` `Bellpad.app` with SDL3, Aurora, Dawn/Metal, UIKit overlay, and strong normalized-input snapshot |
 | Package contents | Pass — bundle contains only the executable and plist; no ISO/GCM/CISO/RVZ, extracted retail asset, GCI, or raw card |
+| iPhone first-run/cancel | Pass — no retained data presents Bellpad's native legal import screen; Files opens and cancellation returns to that screen without starting the core |
+| iPhone invalid image | Pass — a synthetic invalid `.iso` reports an invalid GameCube header, remains on the import screen, and creates no retained image |
+| iPhone valid Files import | Pass — a private ignored GAFE01 revision 0 image selected through Files was security-scoped, source/staged validated, copied byte-for-byte into private Application Support, and booted without `--disc`; no staging file remained |
 | iPhone real-game launch | Pass — private ignored GAFE01 data was read from the simulator sandbox, 14,495 assets loaded, 32 kHz audio opened, and the animated title rendered at the fixed 60 Hz simulation cadence |
 | iPhone touch-to-game path | Pass — UIKit A advanced the real title into K.K.'s opening; the button edge crossed the mutex snapshot and Aurora PAD on the game thread |
 | iPhone layout | Pass — landscape controls are upright after rotating the simulated hardware and avoid the Dynamic Island/safe areas |
-| Sequential stop | Pass — iPhone app terminated, its simulator-only disc copy was removed, and the simulator shut down before iPad boot |
-| iPad real-game launch | Pass — the same universal bundle loaded the private image and rendered the animated title through the 2752×2064 Metal framebuffer with iPad control metrics |
-| Cleanup | Pass — the iPad app terminated, its simulator-only disc copy was removed, the simulator shut down, and no simulator remained booted |
+| iPhone retained relaunch | Pass — terminating and launching again with no arguments skipped Files and returned to the animated title from the retained Application Support copy |
+| Sequential stop | Pass — iPhone app terminated, exact simulator test copies were removed, and the simulator shut down before iPad boot |
+| iPad first-run/valid import | Pass — no-data screen presented in iPadOS's managed window; Files-selected GAFE01 data was retained byte-exactly with no staging residue and the native title rendered with iPad control metrics |
+| iPad retained relaunch | Pass — terminate/relaunch with no arguments returned directly to the animated Metal title using the retained private copy |
+| Cleanup | Pass — the iPad app terminated, exact simulator test copies were moved to Trash, the simulator shut down, and no simulator remained booted |
 
-These launches use a development-only `--disc` argument. The native Files picker
-is not yet connected to durable retention and boot, so this evidence does not
-claim final user-facing import, save persistence, or mobile lifecycle completion.
+The import runs above used the native Files UI and no `--disc` argument. They
+prove the raw ISO/GCM user flow and relaunch retention, not hash/size allowlisting,
+compressed formats, game-save persistence, physical-device security scopes, or
+mobile lifecycle completion.
 
 ### Playable macOS app evidence — 2026-08-03
 

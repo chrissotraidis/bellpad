@@ -68,12 +68,12 @@ GX reaches Metal as: game/JSystem/emu64 GX calls → Aurora GX command processor
 - [x] Align the product input mask with GameCube PAD and add a thread-safe pull ABI. The linked UIKit product exports the strong snapshot consumed by patch 19 on the game thread. Rising button edges are latched until one 60 Hz poll consumes them so short taps cannot disappear between frames.
 - [x] Add native macOS/iOS document choosers and one shared raw ISO/GCM header validator for GameCube magic, `GAFE01`, and revision 0. The UI presentation and synthetic-header tests pass without selecting retail data.
 - [x] Connect the working Aurora game target to a native universal iOS/iPadOS bundle. SDL3/Aurora owns `UIApplicationMain`, lifecycle, and the `CAMetalLayer`; Bellpad attaches a transparent UIKit overlay to that existing view instead of creating a second renderer. The real game reaches title on both simulators, and an iPhone touch A advances into K.K.'s opening.
-- Connect the existing Files picker/validator to durable disc retention and the real boot path. Development currently supplies an ignored private simulator file with `--disc`; this is test-only, not the final user workflow.
-- Add hash allowlisting, security-scoped bookmark or Application Support retention, nod indexing, and measured CISO/RVZ support before enabling launch.
-- Use a document picker for security-scoped ISO/GCM/CISO/RVZ selection.
+- [x] Connect the Files picker/validator to durable raw ISO/GCM retention and the real boot path. The importer security-scopes the selected URL, validates source and staged copies, atomically installs `Application Support/Bellpad/Bellpad/Game Data/Animal Crossing.iso`, and reuses it on relaunch. No-data, cancel, invalid, valid import, title boot, exact-copy, and relaunch checks pass sequentially on iPhone and iPad simulators.
+- Add hash/size allowlisting, nod indexing, and measured CISO/RVZ support before advertising those formats.
+- Extend the security-scoped document picker beyond the currently supported ISO/GCM formats only after each reader is linked and tested.
 - Validate disc header, revision, size, and known supported hashes before retaining data.
 - Prefer direct indexed reads through Aurora/nod because it supports compressed formats and avoids duplicating copyrighted data. If measurements show unacceptable random-read latency, build a local, versioned index or extracted cache under Application Support; that cache remains excluded from packages and backups as appropriate.
-- Store a bookmark or a private Application Support copy selected by the user. Never place the image in the app bundle.
+- [x] Store a private Application Support copy selected by the user. Never place the image in the app bundle. A security-scoped bookmark remains an optional future storage-mode alternative.
 - Provide actionable invalid-image errors and an explicit remove/reimport flow.
 
 ## Milestone 4 — platform services

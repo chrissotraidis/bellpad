@@ -48,4 +48,4 @@ if find "$app" -type f \( \
 fi
 
 echo "Native Aurora/Metal iOS Simulator game bundle: $app"
-echo "The bundle contains no disc image; launch only with private supported data."
+echo "The bundle contains no disc image; launch normally to choose private supported data through Files."
