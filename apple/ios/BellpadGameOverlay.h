@@ -31,7 +31,7 @@ int bellpad_poll_native_text_event(char* utf8,
                                    int* command);
 
 /* Returns the user's internal render-resolution scale. Zero selects the
- * device's native drawable resolution; one and two select 1x and 2x EFB. */
+ * device's native drawable resolution; one through four select an EFB scale. */
 float bellpad_get_framebuffer_scale(void);
 
 #ifdef __cplusplus

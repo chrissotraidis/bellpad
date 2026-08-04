@@ -9,7 +9,7 @@ diff --git a/pc/src/pc_aurora_main.c b/pc/src/pc_aurora_main.c
  
  static void bellpad_configure_default_keyboard(void) {
      u32 count = 0;
-@@ -172,6 +173,15 @@
+@@ -172,6 +173,17 @@
  
  int pc_platform_poll_events(void) {
  #ifdef BELLPAD_IOS
@@ -18,14 +18,16 @@ diff --git a/pc/src/pc_aurora_main.c b/pc/src/pc_aurora_main.c
 +    if (requested_framebuffer_scale != applied_framebuffer_scale) {
 +        VISetFrameBufferScale(requested_framebuffer_scale);
 +        applied_framebuffer_scale = requested_framebuffer_scale;
-+        printf("[Graphics] Render resolution: %s\n",
-+               requested_framebuffer_scale == 0.0f ? "Native" :
-+               (requested_framebuffer_scale == 1.0f ? "1x" : "2x"));
++        if (requested_framebuffer_scale == 0.0f) {
++            printf("[Graphics] Render resolution: Native\n");
++        } else {
++            printf("[Graphics] Render resolution: %.0fx\n", requested_framebuffer_scale);
++        }
 +    }
      pc_typing_update();
      if (g_pc_editor_active && !g_pc_typing_mode) {
          pc_typing_begin();
-@@ -205,6 +215,9 @@
+@@ -205,6 +217,9 @@
          } else if (event->type == AURORA_WINDOW_RESIZED) {
              g_pc_window_w = (int)event->windowSize.native_fb_width;
              g_pc_window_h = (int)event->windowSize.native_fb_height;

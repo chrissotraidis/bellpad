@@ -486,7 +486,7 @@ static void BellpadQueueNativeTextCommand(int command) {
     _controlOpacity = std::clamp<CGFloat>(opacity ? opacity.doubleValue : 0.76, 0.25, 1.0);
     _controlScale = std::clamp<CGFloat>(scale ? scale.doubleValue : 1.0, 0.70, 1.35);
     _manualControlsHidden = hidden ? hidden.boolValue : NO;
-    NSInteger renderScaleMode = std::clamp<NSInteger>(renderScale ? renderScale.integerValue : 0, 0, 2);
+    NSInteger renderScaleMode = std::clamp<NSInteger>(renderScale ? renderScale.integerValue : 0, 0, 4);
     _opacitySlider.value = _controlOpacity;
     _scaleSlider.value = _controlScale;
     _renderScaleControl.selectedSegmentIndex = renderScaleMode;
@@ -511,9 +511,15 @@ static void BellpadQueueNativeTextCommand(int command) {
     label.text = title;
     label.textColor = [UIColor colorWithWhite:1.0 alpha:0.90];
     label.font = [UIFont systemFontOfSize:15.0 weight:UIFontWeightMedium];
+    [label setContentCompressionResistancePriority:UILayoutPriorityRequired
+                                           forAxis:UILayoutConstraintAxisHorizontal];
     [row addSubview:label];
 
     control.translatesAutoresizingMaskIntoConstraints = NO;
+    if ([control isKindOfClass:UISegmentedControl.class]) {
+        [control setContentCompressionResistancePriority:UILayoutPriorityDefaultLow
+                                                  forAxis:UILayoutConstraintAxisHorizontal];
+    }
     [row addSubview:control];
     NSMutableArray<NSLayoutConstraint *> *constraints = [NSMutableArray arrayWithArray:@[
         [label.leadingAnchor constraintEqualToAnchor:row.leadingAnchor],
@@ -568,7 +574,7 @@ static void BellpadQueueNativeTextCommand(int command) {
     _scaleSlider.accessibilityLabel = @"Control size";
     [_scaleSlider addTarget:self action:@selector(scaleChanged:) forControlEvents:UIControlEventValueChanged];
 
-    _renderScaleControl = [[UISegmentedControl alloc] initWithItems:@[@"Native", @"1×", @"2×"]];
+    _renderScaleControl = [[UISegmentedControl alloc] initWithItems:@[@"Native", @"1×", @"2×", @"3×", @"4×"]];
     _renderScaleControl.selectedSegmentIndex = 0;
     _renderScaleControl.accessibilityLabel = @"Render resolution";
     [_renderScaleControl addTarget:self action:@selector(renderScaleChanged:)
@@ -593,7 +599,7 @@ static void BellpadQueueNativeTextCommand(int command) {
 
     UIStackView *stack = [[UIStackView alloc] initWithArrangedSubviews:@[
         title,
-        [self settingsRowWithTitle:@"Resolution" control:_renderScaleControl],
+        [self settingsRowWithTitle:@"Render" control:_renderScaleControl],
         [self settingsRowWithTitle:@"Opacity" control:_opacitySlider],
         [self settingsRowWithTitle:@"Size" control:_scaleSlider],
         [self settingsRowWithTitle:@"Hide controls" control:_hideControlsSwitch],
@@ -636,7 +642,7 @@ static void BellpadQueueNativeTextCommand(int command) {
 }
 
 - (void)renderScaleChanged:(UISegmentedControl *)control {
-    NSInteger mode = std::clamp<NSInteger>(control.selectedSegmentIndex, 0, 2);
+    NSInteger mode = std::clamp<NSInteger>(control.selectedSegmentIndex, 0, 4);
     [NSUserDefaults.standardUserDefaults setInteger:mode
                                              forKey:[self graphicsSettingsKey:@"renderScale"]];
     sFrameBufferScaleMode.store(static_cast<int>(mode), std::memory_order_relaxed);
@@ -884,7 +890,7 @@ static void BellpadQueueNativeTextCommand(int command) {
     _settingsButton.frame = CGRectMake(CGRectGetMaxX(safe) - settingsSide,
                                        CGRectGetMinY(safe) + 8.0,
                                        settingsSide, settingsSide);
-    CGFloat panelWidth = std::min<CGFloat>(300.0, std::max<CGFloat>(240.0, safe.size.width - 24.0));
+    CGFloat panelWidth = std::min<CGFloat>(360.0, std::max<CGFloat>(300.0, safe.size.width - 24.0));
     CGFloat panelHeight = std::min<CGFloat>(331.0, safe.size.height - 62.0);
     _settingsPanel.frame = CGRectMake(CGRectGetMaxX(safe) - panelWidth,
                                       CGRectGetMinY(safe) + 54.0,
@@ -1104,5 +1110,5 @@ int bellpad_poll_native_text_event(char* utf8,
 
 float bellpad_get_framebuffer_scale(void) {
     const int mode = sFrameBufferScaleMode.load(std::memory_order_relaxed);
-    return mode == 1 ? 1.0f : (mode == 2 ? 2.0f : 0.0f);
+    return mode >= 1 && mode <= 4 ? static_cast<float>(mode) : 0.0f;
 }

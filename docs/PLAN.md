@@ -91,9 +91,10 @@ GX reaches Metal as: game/JSystem/emu64 GX calls → Aurora GX command processor
 - iPhone: large contextual A/B buttons, smaller X/Y, left stick, shoulders/Z/Start, optional D-pad, and a camera drag region.
 - iPad: wider separated controls, larger camera region, and layouts tuned independently from iPhone.
 - [x] Persist position, scale, visibility, and opacity in separate iPhone/iPad profiles; the app is landscape-only and recomputes normalized positions for both supported landscape orientations and resizable safe areas.
-- [x] Expose per-device Native, 1×, and 2× internal render-resolution choices without changing the fixed 60 Hz simulation cadence.
+- [x] Expose per-device Native, 1×, 2×, 3×, and 4× internal render-resolution choices without changing the fixed 60 Hz simulation cadence.
 - [x] Add a drag layout editor, per-device reset, controller auto-hide, and accessible labels.
 - [x] Route touch and physical input through the same normalization and conflict-resolution layer.
+- [x] Accept representative iPhone/iPad button, stick, layout, settings, and text-entry evidence as the wrapper gate; retain exhaustive gameplay scenarios for release acceptance instead of replaying them for every input change.
 
 ## Milestone 6 — verification and packaging
 

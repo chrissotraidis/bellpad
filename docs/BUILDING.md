@@ -171,7 +171,7 @@ reads or packages the ignored development disc image. Set
 Observed 2026-08-04: the output contains exactly `Payload/Bellpad.app/Bellpad`
 and `Payload/Bellpad.app/Info.plist`, is 7.9 MB, targets ARM64 iOS 17.0 through
 Metal, and two independent packaging runs produced identical bytes with SHA-256
-`3200a8793c435cd16cad3f262720acb3b61be144923d0968774fb38c625f22a2`.
+`aebad5e8ec87de3049d8044449679a03faa3a13d7513c76c9b385b744d868d7b`.
 
 Run the tracked-content safety check before every commit and package build:
 
