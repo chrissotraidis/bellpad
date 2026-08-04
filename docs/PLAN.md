@@ -11,7 +11,7 @@ Bellpad is a native Apple-platform source port. It will not ship an emulator, a 
 - Final compatibility layer: Aurora (MIT), initially for SDL3/application lifecycle, DVD/nod, PAD, CARD, OS/RTC, VI, MTX, and Metal-backed GX through Dawn/WebGPU.
 - Mobile shell: a thin Objective-C++/UIKit layer around a portable C/C++ game target. HarkinianPad is an architecture and UX reference only unless separately licensed code is explicitly contributed.
 
-This selection is now supported by platform, symbol-surface, ABI, source-boundary, executable-link, rendering, and input evidence. The desktop-compiled core requires 112 GX/GD symbols; Bellpad's pinned Aurora patches supply all 112, and compiled probes verify matching value types plus sufficient opaque texture/palette storage. The complete core links to Aurora without SDL2, initializes Metal and SDL3 audio, reads the supported image, renders the complete title composition at 60 Hz, and accepts keyboard input into K.K.'s new-game scene. Remaining TEV/alpha texture defects and representative gameplay scenes must still pass before OpenGL is retired.
+This selection is now supported by platform, symbol-surface, ABI, source-boundary, executable-link, rendering, and input evidence. The desktop-compiled core requires 112 GX/GD symbols; Bellpad's pinned Aurora patches supply all 112, and compiled probes verify matching value types plus sufficient opaque texture/palette storage. The complete core links to Aurora without SDL2, initializes Metal and SDL3 audio, reads the supported image, renders the complete title composition and correctly placed multi-line K.K. dialogue at 60 Hz, and accepts live input. Water, choices, and representative train/town scenes must still pass before OpenGL is retired.
 
 ## Milestone 0 — safety, research, and provenance
 
@@ -55,6 +55,8 @@ This selection is now supported by platform, symbol-surface, ABI, source-boundar
    [x] Compile the complete game source with the Aurora path enabled and audit undefined symbols. All 3,904 core objects compile, all 111 resulting GX/GD imports resolve, and no `pc_gx_*` or renderer diagnostic globals remain. Host-generated palettes use one explicit `AuroraInitTlutObjHost` extension so byte order is not hidden inside the old OpenGL backend.
 4. [x] Feed the title scene's Animal Crossing display lists through Aurora GX. Explicit host EFB clearing removed the accumulated-frame smear; static host-endian palette conversion now matches the dynamic path, cache invalidation is bounded per frame, unsafe draw merging is disabled, and corrected counter-clockwise WebGPU front faces restore the complete scene geometry.
 5. Validate correct title, train, outdoor town, interiors, inventory, dialogue, particles, framebuffer effects, and NES output.
+   [x] Title composition and multi-line K.K. dialogue match the OpenGL oracle at the fixed 60 Hz cadence.
+   [ ] Choice UI, water, train, town, interiors, inventory, particles, framebuffer effects, and NES output remain.
 6. Use Aurora GX after the real core link and scene-rendering gates pass. Keep the existing OpenGL renderer only as a temporary desktop oracle.
 
 GX reaches Metal as: game/JSystem/emu64 GX calls → Aurora GX command processor → WebGPU → Dawn Metal backend → `CAMetalLayer`.

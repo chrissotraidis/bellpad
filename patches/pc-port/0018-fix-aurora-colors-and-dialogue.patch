@@ -1,0 +1,49 @@
+diff --git a/src/game/m_msg.c b/src/game/m_msg.c
+--- a/src/game/m_msg.c
++++ b/src/game/m_msg.c
+@@ -91 +91,11 @@ static void mMsg_Draw_Window(mMsg_Window_c* msg_p, GAME* game) {
++#ifdef AURORA
++            /* The original texture-rectangle glyph path installs its own
++             * screen-space matrix. Aurora renders these glyphs as polygons,
++             * so restore the font's identity model-view after drawing the
++             * translated/scaled message window. */
++            mFont_SetMatrix(game->graph, mFont_MODE_FONT);
++#endif
+             mMsg_draw_font(msg_p, game);
++#ifdef AURORA
++            mFont_UnSetMatrix(game->graph, mFont_MODE_FONT);
++#endif
+diff --git a/src/game/m_msg_draw_font.c_inc b/src/game/m_msg_draw_font.c_inc
+--- a/src/game/m_msg_draw_font.c_inc
++++ b/src/game/m_msg_draw_font.c_inc
+@@ -81,0 +82,3 @@ static void mMsg_draw_font(mMsg_Window_c* msg_p, GAME* game) {
++#ifdef AURORA
++    sentence_flags |= mFont_SENTENCE_FLAG_USE_POLY;
++#endif
+diff --git a/src/static/libforest/emu64/emu64.c b/src/static/libforest/emu64/emu64.c
+--- a/src/static/libforest/emu64/emu64.c
++++ b/src/static/libforest/emu64/emu64.c
+@@ -3229 +3229,11 @@ void emu64::dirty_check(int tile, int n_tiles, int do_texture_matrix) {
++#ifdef AURORA
++        GXColor primitive_color = {
++            (u8)(this->primitive_color.raw >> 24),
++            (u8)(this->primitive_color.raw >> 16),
++            (u8)(this->primitive_color.raw >> 8),
++            (u8)this->primitive_color.raw,
++        };
++        GXSetTevColor(GX_TEVREG1, primitive_color);
++#else
+         GXSetTevColor(GX_TEVREG1, this->primitive_color.color);
++#endif
+@@ -3238 +3248,11 @@ void emu64::dirty_check(int tile, int n_tiles, int do_texture_matrix) {
++#ifdef AURORA
++        GXColor environment_color = {
++            (u8)(this->environment_color.raw >> 24),
++            (u8)(this->environment_color.raw >> 16),
++            (u8)(this->environment_color.raw >> 8),
++            (u8)this->environment_color.raw,
++        };
++        GXSetTevColor(GX_TEVREG2, environment_color);
++#else
+         GXSetTevColor(GX_TEVREG2, this->environment_color.color);
++#endif

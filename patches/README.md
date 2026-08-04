@@ -51,6 +51,13 @@ virtual-pad state into Aurora's PAD merger. The same API boundary now accepts
 desktop diagnostics and the future iPhone/iPad touch overlay without separate
 game-facing input implementations.
 
+`pc-port/0018-fix-aurora-colors-and-dialogue.patch` unpacks N64 primitive and
+environment colors explicitly before passing them to Aurora, avoiding the
+little-endian union layout that reversed RGBA channels. It also routes message
+glyphs through the working polygon-font path and reinstalls the screen-space
+font matrix after the transformed message window. Runtime comparison against
+the OpenGL oracle verifies correctly colored, positioned multi-line K.K. text.
+
 `aurora/0001-complete-acgc-gx-compatibility.patch` applies to Aurora commit
 `5027ed63a73dfba28de9eceed00481fb09a19c35`. It implements the five GX calls
 used by the compiled game core that the pinned Aurora library did not export:

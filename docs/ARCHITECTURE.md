@@ -31,7 +31,7 @@ simulation ticks.
 
 The app executes compiled C/C++ game code directly on Apple ARM64. Aurora is a source-level SDK compatibility layer, not a CPU/GPU emulator. The existing WebAssembly port is research material only and will not be embedded.
 
-The current implementation has three deliberately visible tracks. `Bellpad.app` is the complete playable ARM64 behavior oracle using temporary SDL2/OpenGL. The Bellpad-owned AppKit/UIKit shells prove native product surfaces, Files UI, lifecycle hooks, and normalized touch/controller input. `BellpadAurora` is the convergence target: it links the complete game to Aurora/SDL3/Metal, renders the full title geometry, and accepts desktop input into K.K.'s scene, but remaining TEV/alpha defects and product services are not yet converged. Completion merges the latter two tracks and retires the oracle; it does not launch one app from another or preserve multiple products.
+The current implementation has three deliberately visible tracks. `Bellpad.app` is the complete playable ARM64 behavior oracle using temporary SDL2/OpenGL. The Bellpad-owned AppKit/UIKit shells prove native product surfaces, Files UI, lifecycle hooks, and normalized touch/controller input. `BellpadAurora` is the convergence target: it links the complete game to Aurora/SDL3/Metal, renders the full title geometry and K.K. dialogue correctly, and accepts live desktop input, but representative gameplay rendering and product services are not yet converged. Completion merges the latter two tracks and retires the oracle; it does not launch one app from another or preserve multiple products.
 
 ## Address and data model
 
@@ -80,8 +80,12 @@ byte-order normalization, and `GXInvalidateTexAll` bounds the static texture
 cache at the frame boundary. A culling isolation test proved matrices and vertex
 placement were sound: disabling culling restored every missing scene component,
 and selecting counter-clockwise WebGPU front faces retained them with normal
-front/back culling. Remaining water and dialogue-surface defects are now traced
-through texture, alpha/blend, and TEV state.
+front/back culling. N64 primitive/environment colors are unpacked explicitly
+before crossing the Aurora boundary so their byte significance is independent
+of host endianness. Message glyphs use the working polygon-font path and restore
+the identity font model-view after the transformed window is drawn. This makes
+the K.K. scene and multi-line dialogue agree with the OpenGL oracle; water,
+choices, and representative gameplay scenes remain in the renderer audit.
 
 The entire game source has dedicated `AURORA` compile and link targets.
 That build follows the original JSystem frame lifecycle, retains host/ARM64
@@ -94,7 +98,9 @@ read from retail GameCube data continue through standard big-endian
 `GXInitTlutObj`. This avoids renderer-specific global state and preserves the
 same intended palette semantics on macOS, iOS, and iPadOS. Corrected title/tree
 colors provide runtime evidence for that boundary; the separate winding fix now
-provides complete title-scene geometry, while TEV/alpha output remains under audit.
+provides complete title-scene geometry, and the explicit color/font boundary
+produces correctly colored and positioned K.K. dialogue. Broader scene output
+remains under audit.
 
 The convergence target deliberately uses SDL3 only. Its audio adapter exposes
 the game's 32 kHz stereo DMA stream through an SDL3/CoreAudio stream and producer

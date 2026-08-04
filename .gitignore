@@ -44,6 +44,7 @@ SaveData/
 # Apple/Xcode build products and local configuration
 build/
 DerivedData/
+settings.ini
 *.xcarchive
 *.ipa
 *.dSYM

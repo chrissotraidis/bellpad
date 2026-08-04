@@ -18,7 +18,7 @@ As of 2026-08-03:
 - Player and town naming work through the port's native SDL text-input path; a test player entered and moved around a newly generated town.
 - Save creation/relaunch and app-window lifecycle remain under investigation. The title cleanup invalid-free was traced to an undersized static structure-actor pool and repaired with an upstream-derived host slot layout.
 - Aurora is the selected production compatibility layer. The complete game now links natively to Aurora/SDL3, selects Metal on Apple Silicon, validates and reads a private retail image, loads all game archives, starts 32 kHz audio, and reaches the interactive title menu at the fixed 60 Hz simulation rate.
-- The initial multi-frame smear was traced to a missing host EFB clear and fixed. Palette/cache repairs and corrected WebGPU front-face winding now restore the complete title composition. Water and K.K. dialogue/selection surfaces still have TEV/alpha defects, so representative-scene rendering correctness is not yet claimed.
+- The initial multi-frame smear was traced to a missing host EFB clear and fixed. Palette/cache repairs and corrected WebGPU front-face winding restore the complete title composition. Explicit N64 color unpacking plus Aurora's polygon-font path now render K.K. and multi-line dialogue with the expected colors and placement. Water, choices, and representative train/town scenes still require comparison before rendering correctness is claimed broadly.
 - The Aurora target now has live desktop keyboard mappings and accepts Bellpad's normalized virtual-pad state through Aurora PAD. A runtime input test advanced from the title into K.K.'s new-game scene; UIKit touch is not yet connected to this executable.
 - Bellpad-owned macOS and universal iOS/iPadOS bundles now build as native ARM64 applications. They render with MetalKit at a fixed 60 Hz and expose a shared normalized GameCube input boundary.
 - The mobile shell includes left/C sticks, A/B/X/Y, Z/L/R/Start, D-pad, adaptive compact/expanded layouts, safe-area handling, a touch visibility override, GameController merging, and physical-controller auto-hide on devices.
@@ -31,7 +31,7 @@ See [STATUS.md](docs/STATUS.md), [PLAN.md](docs/PLAN.md), and [WORKLOG.md](docs/
 
 | Platform | Status |
 |---|---|
-| Apple Silicon macOS | Playable OpenGL `Bellpad.app` reaches a generated town; native Aurora/Metal target renders the full title and accepts input into K.K.'s new-game scene, with remaining TEV/alpha defects |
+| Apple Silicon macOS | Playable OpenGL `Bellpad.app` reaches a generated town; native Aurora/Metal target renders the full title and correctly displays/advances multi-line K.K. dialogue at 60 Hz |
 | iPhone Simulator/device | Bellpad ARM64 simulator shell installs, launches, renders, and shows touch controls; game core pending |
 | iPad Simulator/device | Same universal shell passes sequentially with adaptive resizable-window controls; game core pending |
 | Intel macOS, Windows, Linux | Upstream-reference platforms, not Bellpad release targets |
@@ -133,7 +133,7 @@ See [TESTING.md](docs/TESTING.md).
 - Save creation and relaunch persistence have not yet been completed in the local baseline.
 - The playable macOS bundle now uses Application Support, but atomic save replacement, rotating backups, import/export, and a successful in-game save/relaunch proof remain required.
 - App-window close and lifecycle teardown still need a clean retest; `SIGTERM` exits the clean scripted build.
-- The real Animal Crossing target now links, renders the complete title composition, and accepts input into K.K.'s scene through Aurora/Metal. Water and dialogue/selection texture-alpha output plus representative full-scene correctness remain open.
+- The real Animal Crossing target now links, renders the complete title composition, and correctly displays and advances multi-line K.K. dialogue through Aurora/Metal. Water, choices, and representative train/town rendering remain open.
 - The iOS/iPadOS shell, first touch UI, native Files chooser, and raw-header validator exist; durable import/indexing, the game core, native game keyboard, audio/lifecycle integration, and unsigned IPA remain pending.
 
 ## Research and credits
