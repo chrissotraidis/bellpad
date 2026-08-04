@@ -4,6 +4,15 @@ Last updated: 2026-08-04
 
 No gameplay test is marked passed without a dated result, device/OS, build revision, image revision, and observable outcome.
 
+## Source-release gate
+
+| Test | Current evidence |
+|---|---|
+| Clean Apple ARM64 checkout | Pass — GitHub Actions [run 30931076037](https://github.com/chrissotraidis/bellpad/actions/runs/30931076037), 2026-08-04, `macos-15` ARM64 runner |
+| Retail-data exclusion | Pass — the hosted job receives no disc image, extracted asset, or save and completes the tracked/release-content audits |
+| Pinned core reconstruction | Pass — the exact `915fb86…` upstream commit is fetched and all forty-one tracked patches pass `git apply --check` and replay in an isolated detached worktree |
+| Source checks | Pass — native macOS shell and normalized-input test, deterministic RTC suite, NES/GX frame-conversion suite, shell syntax, and whitespace checks |
+
 ## Desktop baseline matrix
 
 | Test | Expected | Current evidence |

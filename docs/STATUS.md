@@ -11,6 +11,7 @@ Near-term finish order is deliberately narrow: representative train/station Meta
 - Retail image and nested reference repositories are local and untracked.
 - Root ignore rules reject common GameCube image formats, extracted runtime data, saves, Apple build products, packages, signing material, and credentials.
 - The local image path is matched by `.gitignore`.
+- The retail-data-free source-release workflow passed from a clean checkout on GitHub's Apple ARM64 `macos-15` runner in [run 30931076037](https://github.com/chrissotraidis/bellpad/actions/runs/30931076037). It audited tracked content, fetched the pinned upstream core, replayed all forty-one patches in isolation, built/tested the native shell, and passed RTC, NES/GX, shell-syntax, and whitespace gates.
 - Xcode 26.6 and an Apple Silicon (`arm64`) host are available.
 - The current upstream PC port remains deliberately 32-bit.
 - A separate 64-bit migration at commit `915fb86…` documents and has community validation for macOS ARM64, Windows/Linux 64-bit, audio, GCI save, and reload.

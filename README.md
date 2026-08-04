@@ -1,6 +1,8 @@
 # Bellpad
 
-Bellpad is an experimental, native Apple ARM64 source port project for the original US revision of Animal Crossing for Nintendo GameCube. The intended application compiles legally clean reverse-engineered game code for macOS, iOS, and iPadOS. It is not a GameCube emulator and will not embed a WebAssembly/browser port.
+[![Source release](https://github.com/chrissotraidis/bellpad/actions/workflows/source-release.yml/badge.svg)](https://github.com/chrissotraidis/bellpad/actions/workflows/source-release.yml)
+
+Bellpad is an experimental, native Apple ARM64 source port project for the original US revision of Animal Crossing for Nintendo GameCube. It compiles legally clean reverse-engineered game code for macOS, iOS, and iPadOS. It is not a GameCube emulator and does not embed a WebAssembly/browser port.
 
 <p align="center"><img src="apple/ios/Assets.xcassets/AppIcon.appiconset/AppIcon.png" width="160" alt="Bellpad brass handbell app icon"></p>
 
@@ -14,6 +16,7 @@ As of 2026-08-04:
 - The same complete game core now builds as an opt-in ARM64 `Bellpad.app`. It accepts `--disc`, presents a native picker when needed, validates GAFE01 disc 0 revision 0, packages only clean shader resources, and reaches the title loop from an arbitrary working directory.
 - The same patched source now builds with both Apple Clang 21 and GCC 16; the Apple Clang binary reaches the correctly rendered 60 FPS title screen.
 - The pinned checkout, forty-one local game-core patches, five Aurora patches, simulator/device builds, and unsigned IPA packaging are reproducible with tracked scripts. Direct product archives are content-hash pinned, and the exact shipped dependency inventory is machine-readable.
+- GitHub's Apple ARM64 runner passes the retail-data-free source-release gate from a clean checkout: tracked-content audits, all forty-one game-core patches, the native macOS shell/input test, RTC tests, NES/GX conversion tests, shell syntax, and whitespace checks.
 - A user-supplied `GAFE01` revision 0 image is validated and read directly without extracting or bundling its assets.
 - The desktop baseline renders the title, setup, train, and generated town at 60 FPS and starts 32 kHz stereo audio.
 - A trimmed-image aligned-read bug was identified and corrected locally.
@@ -69,12 +72,12 @@ This flow is runtime-proven on both iPhone and iPad simulators for raw ISO/GCM. 
 
 ## Build instructions
 
-On an Apple Silicon Mac with Xcode 26.6, CMake, Ninja, SDL2, Git, and Homebrew available:
+On an Apple Silicon Mac with Xcode 26.6, CMake, Ninja, ripgrep, SDL2, Git, and Homebrew available:
 
 ```sh
 git clone https://github.com/chrissotraidis/bellpad.git
 cd bellpad
-brew install cmake ninja sdl2
+brew install cmake ninja ripgrep sdl2
 ./scripts/verify-release-candidate.sh
 ./scripts/build-aurora-game-ios-simulator.sh
 ```

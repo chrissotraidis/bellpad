@@ -7,12 +7,12 @@ The repository now builds a playable macOS game-core bundle, native Aurora/Metal
 For a new checkout, start with:
 
 ```sh
-brew install cmake ninja sdl2
+brew install cmake ninja ripgrep sdl2
 ./scripts/verify-release-candidate.sh
 ./scripts/build-aurora-game-ios-simulator.sh
 ```
 
-The verification command audits tracked/release content, builds and runs the clean native platform tests, exercises the deterministic RTC conversion suite against the fully patched pinned core, checks every shell script, and rejects whitespace errors. It requires no retail data. The simulator build fetches pinned dependencies and may take several minutes on its first Dawn build.
+The verification command audits tracked/release content, clones the exact pinned game core into ignored local storage, replays all forty-one patches in an isolated detached worktree, builds and runs the clean native platform tests, exercises the deterministic RTC and NES/GX conversion suites, checks every shell script, and rejects whitespace errors. It requires no retail data. The same command runs on GitHub's Apple ARM64 `macos-15` runner through the pinned [source-release workflow](https://github.com/chrissotraidis/bellpad/actions/workflows/source-release.yml); [run 30931076037](https://github.com/chrissotraidis/bellpad/actions/runs/30931076037) passed from a clean checkout on 2026-08-04. The simulator build fetches pinned dependencies and may take several minutes on its first Dawn build.
 
 ## Host
 
@@ -20,6 +20,7 @@ The verification command audits tracked/release content, builds and runs the cle
 - Xcode 26.6
 - CMake 3.27.1
 - Ninja 1.13.2
+- ripgrep 15.1.0 (release audits)
 - SDL2 compatibility package 2.32.70
 - SDL3 3.2.20 for the Aurora target
 - Apple Clang 21.0.0 (Xcode default)
