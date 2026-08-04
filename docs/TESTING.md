@@ -138,6 +138,7 @@ scene/orientation/safe-area policy and adaptive touch controls.
 | iPhone render resolution | Pass — Native used 2622×1206, 1× used 1044×480, 2× used 2087×960, 3× used 3131×1440, and 4× used 4174×1920 while the Metal drawable remained 2622×1206; this changes render resolution, not the fixed 60 Hz simulation rate |
 | iPhone retained relaunch | Pass — terminating and launching again with no arguments skipped Files and returned to the animated title from the retained Application Support copy |
 | iPhone GCI persistence | Pass — a desktop-created 467,008-byte Bell/Cove GCI loaded with all four endian round trips passing; the live game-facing save routine returned success, rotated the original to `.bak1`, wrote a changed canonical file, and the canonical file loaded successfully after app termination/relaunch |
+| iPhone app-update persistence | Pass — a `0.1.0` build-100 Simulator app was replaced in place by `0.1.1` build 101 under the production bundle identifier. CoreSimulator relocated the data-container path but preserved the original save and retained-image filesystem inodes, sizes, and SHA-256 hashes plus opacity `0.55` and render scale `3`; normal launch selected Metal, restored the 3× framebuffer, reused retained game data, passed every GCI endian round trip, logged `GCI save loaded successfully`, and reached the title |
 | iPhone saved-player Metal scene | Pass — returning-player dialogue showed the host-local August 4, 2026 date/time, the train sequence advanced, Porter announced Cove, the train departed, and the station environment remained visibly rendered through Metal |
 | iPhone outdoor town entry | Pass — the production UIKit A button advanced the saved-player path, the shared normalized left-stick state moved Bell out of Cove station, the outdoor town rendered through Metal, and the movement triggered Tom Nook's greeting. This bounded proof replaces broader activity-by-activity control replay |
 | Dolphin GCI-folder interchange | Pass with isolated harness — Dolphin 5.0-17995 booted GAFE01 with Bellpad's canonical GCI in a private GCI Folder, read its header/data without invalid-file diagnostics, and left the SHA unchanged; Bellpad then installed and loaded that Dolphin-managed file before startup |
@@ -165,9 +166,10 @@ scene/orientation/safe-area policy and adaptive touch controls.
 
 The disc-import runs above used the native Files UI and no `--disc` argument. They
 prove the raw ISO/GCM user flow and relaunch retention. The later save-management
-run used ignored GCI data and the production gear-menu export on both simulator
-families. It proves real export bytes and isolated Dolphin interchange; selecting
-the import through Files remains a separate UI gate.
+runs used ignored GCI data and the production gear-menu actions. They prove real
+export bytes, isolated Dolphin interchange, a fully UI-driven Files import, and
+byte-identical pre-boot installation. The versioned update test additionally
+proves that Simulator bundle replacement preserves that private state and settings.
 These runs do not prove compressed formats, broad letter-editor coverage,
 physical-device security scopes/keyboards, or mobile lifecycle completion.
 
