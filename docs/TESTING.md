@@ -92,7 +92,7 @@ scene/orientation/safe-area policy and adaptive touch controls.
 |---|---|
 | macOS ARM64 configure/build | Pass — native `Bellpad.app`, ARM64 Mach-O, valid Info.plist |
 | macOS launch/Metal/quit | Pass — visible MetalKit surface at requested 60 FPS; normal app quit terminates |
-| Normalized input merge | Pass — native unit test covers ORed buttons, strongest axes, maximum triggers, and clearing both sources |
+| Normalized input merge | Pass — native unit test covers exact GameCube button masks, eight-byte state layout, ORed buttons, strongest axes, maximum triggers, clearing, invalid snapshot outputs, and 10,000 concurrent writes/copies without a torn state |
 | iPhone 17 Pro Simulator | Pass — product bundle installs/launches; full GameCube touch set is visible without overlap after safe-area layout correction |
 | Sequential stop | Pass — iPhone app terminated and simulator shut down before iPad boot |
 | iPad Pro 13-inch Simulator | Pass — universal bundle installs/launches in a 960×640 resizable iPadOS window; actual-size scaling selects a compact no-overlap layout |
@@ -128,7 +128,7 @@ scene/orientation/safe-area policy and adaptive touch controls.
 | Legacy renderer-hook isolation | Pass — zero `pc_gx_*`, `pc_emu64_frame_*`, or `s_tlut_*` imports; host TLUT byte order resolves through the explicit Aurora bridge |
 | OpenGL baseline regression rebuild | Pass — ARM64 `Bellpad.app` relinked after the conditional split, proving the temporary playable backend still compiles |
 | Animal Crossing through Aurora/Metal | Partial — native ARM64 executable selects Metal, loads disc/assets/audio, and reaches an interactive title menu at 60 FPS; EFB clearing prevents accumulation, palette/cache fixes hold, counter-clockwise WebGPU front faces restore complete title geometry, and keyboard A advances correctly rendered multi-line K.K. dialogue. Water, choices, train/town scenes, and long-session memory still need direct evidence |
-| Aurora normalized input boundary | Partial pass — default keyboard mapping preserved existing user bindings and a held Space/A advanced title action 3→4→5; the normalized virtual-pad setter compiles and links directly to `PADSetVirtualStatus`, but live UIKit-to-game execution awaits product-target convergence |
+| Aurora normalized input boundary | Partial pass — default keyboard mapping preserved existing user bindings and a held Space/A advanced title action 3→4→5. Patch 19 compiles the game-thread pull into `BellpadAurora`; `nm` verifies the standalone game has the weak snapshot fallback and the iOS shell has the strong implementation. Live UIKit-to-game execution awaits product-target convergence |
 
 The iPhone simulator screenshot required rotation for human inspection because
 `simctl io screenshot` retained the physical portrait buffer while UIKit

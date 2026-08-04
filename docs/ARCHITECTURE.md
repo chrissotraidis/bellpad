@@ -107,11 +107,16 @@ the game's 32 kHz stereo DMA stream through an SDL3/CoreAudio stream and produce
 thread. Aurora owns window creation, event acquisition, frame begin/end, Dawn,
 and Metal. JSystem's GameCube VI-message wait is bypassed on this synchronous
 host path because it otherwise deadlocks before the first draw. Event/input
-ownership is still transitional. The Aurora executable now installs keyboard
-defaults only when no user mapping exists, while Bellpad's normalized virtual-pad
-setter forwards to Aurora's PAD merger. That is the shared game-facing boundary
-for UIKit touch and external controllers; lifecycle and product event ownership
-still need consolidation before the target becomes the mobile product.
+ownership is still transitional. The Aurora executable installs keyboard defaults
+only when no user mapping exists. Touch and GameController callbacks write one
+mutex-protected Bellpad state using the exact GameCube PAD button mask; they never
+call Aurora from UIKit's thread. Instead, patch 19 asks the strong product-side
+`bellpad_copy_normalized_pad_state` function for a snapshot from the game thread,
+then updates Aurora's virtual PAD before event processing. The standalone game
+provides a weak false-returning fallback until the product and core link together.
+This avoids a data race in Aurora's unguarded virtual-pad storage and preserves
+one game-facing input representation. Lifecycle and surface ownership still need
+consolidation before the target becomes the mobile product.
 
 Aurora's released Dawn archive for iOS is device-platform only. Simulator builds
 therefore compile Dawn from source with Ninja, vendored SDL3, protobuf disabled,

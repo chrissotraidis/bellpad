@@ -58,6 +58,13 @@ glyphs through the working polygon-font path and reinstalls the screen-space
 font matrix after the transformed message window. Runtime comparison against
 the OpenGL oracle verifies correctly colored, positioned multi-line K.K. text.
 
+`pc-port/0019-pull-normalized-input-on-game-thread.patch` polls Bellpad's
+mutex-protected normalized snapshot from the Aurora game thread before event
+processing, then updates Aurora's virtual PAD there. A weak false-returning
+fallback keeps the standalone convergence executable independent until it is
+linked with the strong UIKit/AppKit product implementation. This avoids writing
+Aurora's unguarded virtual-pad storage from UIKit controller/touch callbacks.
+
 `aurora/0001-complete-acgc-gx-compatibility.patch` applies to Aurora commit
 `5027ed63a73dfba28de9eceed00481fb09a19c35`. It implements the five GX calls
 used by the compiled game core that the pinned Aurora library did not export:

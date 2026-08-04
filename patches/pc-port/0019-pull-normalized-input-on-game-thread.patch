@@ -1,0 +1,47 @@
+diff --git a/pc/include/pc_virtual_input.h b/pc/include/pc_virtual_input.h
+--- a/pc/include/pc_virtual_input.h
++++ b/pc/include/pc_virtual_input.h
+@@ -24,0 +25,3 @@ void pc_pad_clear_virtual_state(void);
++#ifdef AURORA
++void pc_pad_poll_normalized_state(void);
++#endif
+diff --git a/pc/src/pc_aurora_main.c b/pc/src/pc_aurora_main.c
+--- a/pc/src/pc_aurora_main.c
++++ b/pc/src/pc_aurora_main.c
+@@ -6,0 +7 @@
++#include "pc_virtual_input.h"
+@@ -162,0 +164 @@ int pc_platform_poll_events(void) {
++    pc_pad_poll_normalized_state();
+diff --git a/pc/src/pc_virtual_input.c b/pc/src/pc_virtual_input.c
+--- a/pc/src/pc_virtual_input.c
++++ b/pc/src/pc_virtual_input.c
+@@ -7,0 +8,15 @@ PCVirtualPadState g_pc_virtual_pad_state = {0};
++
++#ifdef AURORA
++__attribute__((weak)) int bellpad_copy_normalized_pad_state(u16* buttons, s8* stick_x, s8* stick_y,
++                                                             s8* cstick_x, s8* cstick_y,
++                                                             u8* trigger_left, u8* trigger_right) {
++    (void)buttons;
++    (void)stick_x;
++    (void)stick_y;
++    (void)cstick_x;
++    (void)cstick_y;
++    (void)trigger_left;
++    (void)trigger_right;
++    return FALSE;
++}
++#endif
+@@ -37,0 +53,13 @@ void pc_pad_clear_virtual_state(void) {
++
++#ifdef AURORA
++void pc_pad_poll_normalized_state(void) {
++    PCVirtualPadState state;
++    if (bellpad_copy_normalized_pad_state(&state.buttons, &state.stick_x, &state.stick_y,
++                                          &state.cstick_x, &state.cstick_y,
++                                          &state.trigger_left, &state.trigger_right)) {
++        pc_pad_set_virtual_state(state.buttons, state.stick_x, state.stick_y,
++                                 state.cstick_x, state.cstick_y,
++                                 state.trigger_left, state.trigger_right);
++    }
++}
++#endif

@@ -3,10 +3,12 @@
 
 #include <algorithm>
 #include <array>
+#include <atomic>
 #include <cassert>
 #include <chrono>
 #include <filesystem>
 #include <fstream>
+#include <thread>
 
 namespace {
 
@@ -20,9 +22,30 @@ std::filesystem::path writeSyntheticHeader(std::array<std::uint8_t, 0x20> header
     return path;
 }
 
+bool sameState(const BellpadPadState& first, const BellpadPadState& second) {
+    return first.buttons == second.buttons &&
+           first.stickX == second.stickX && first.stickY == second.stickY &&
+           first.cStickX == second.cStickX && first.cStickY == second.cStickY &&
+           first.triggerL == second.triggerL && first.triggerR == second.triggerR;
+}
+
 } // namespace
 
 int main() {
+    static_assert(sizeof(BellpadPadState) == 8);
+    static_assert(BellpadButtonDPadLeft == 0x0001);
+    static_assert(BellpadButtonDPadRight == 0x0002);
+    static_assert(BellpadButtonDPadDown == 0x0004);
+    static_assert(BellpadButtonDPadUp == 0x0008);
+    static_assert(BellpadButtonZ == 0x0010);
+    static_assert(BellpadButtonR == 0x0020);
+    static_assert(BellpadButtonL == 0x0040);
+    static_assert(BellpadButtonA == 0x0100);
+    static_assert(BellpadButtonB == 0x0200);
+    static_assert(BellpadButtonX == 0x0400);
+    static_assert(BellpadButtonY == 0x0800);
+    static_assert(BellpadButtonStart == 0x1000);
+
     BellpadPadState touch;
     touch.buttons = BellpadButtonA | BellpadButtonDPadLeft;
     touch.stickX = -90;
@@ -54,6 +77,23 @@ int main() {
     assert(merged.triggerL == 200);
     assert(merged.triggerR == 220);
 
+    BellpadPadState copied;
+    assert(bellpad_copy_normalized_pad_state(
+        &copied.buttons, &copied.stickX, &copied.stickY,
+        &copied.cStickX, &copied.cStickY,
+        &copied.triggerL, &copied.triggerR) == 1);
+    assert(copied.buttons == merged.buttons);
+    assert(copied.stickX == merged.stickX);
+    assert(copied.stickY == merged.stickY);
+    assert(copied.cStickX == merged.cStickX);
+    assert(copied.cStickY == merged.cStickY);
+    assert(copied.triggerL == merged.triggerL);
+    assert(copied.triggerR == merged.triggerR);
+    assert(bellpad_copy_normalized_pad_state(
+        nullptr, &copied.stickX, &copied.stickY,
+        &copied.cStickX, &copied.cStickY,
+        &copied.triggerL, &copied.triggerR) == 0);
+
     BellpadClearInputState(BellpadInputSource::Touch);
     BellpadClearInputState(BellpadInputSource::Controller);
     const BellpadPadState cleared = BellpadGetMergedInputState();
@@ -61,6 +101,39 @@ int main() {
     assert(cleared.stickX == 0 && cleared.stickY == 0);
     assert(cleared.cStickX == 0 && cleared.cStickY == 0);
     assert(cleared.triggerL == 0 && cleared.triggerR == 0);
+    assert(bellpad_copy_normalized_pad_state(
+        &copied.buttons, &copied.stickX, &copied.stickY,
+        &copied.cStickX, &copied.cStickY,
+        &copied.triggerL, &copied.triggerR) == 1);
+    assert(copied.buttons == 0);
+
+    BellpadPadState alternate = touch;
+    alternate.buttons = BellpadButtonY | BellpadButtonDPadRight;
+    alternate.stickX = 75;
+    alternate.stickY = -45;
+    alternate.cStickX = -31;
+    alternate.cStickY = 88;
+    alternate.triggerL = 9;
+    alternate.triggerR = 240;
+    std::atomic<bool> startConcurrentCopy = false;
+    std::thread writer([&] {
+        while (!startConcurrentCopy.load(std::memory_order_acquire)) {
+        }
+        for (int index = 0; index < 10'000; ++index) {
+            BellpadSetInputState(BellpadInputSource::Touch, (index & 1) ? touch : alternate);
+        }
+    });
+    startConcurrentCopy.store(true, std::memory_order_release);
+    for (int index = 0; index < 10'000; ++index) {
+        BellpadPadState concurrent;
+        assert(bellpad_copy_normalized_pad_state(
+            &concurrent.buttons, &concurrent.stickX, &concurrent.stickY,
+            &concurrent.cStickX, &concurrent.cStickY,
+            &concurrent.triggerL, &concurrent.triggerR) == 1);
+        assert(sameState(concurrent, {}) || sameState(concurrent, touch) || sameState(concurrent, alternate));
+    }
+    writer.join();
+    BellpadClearInputState(BellpadInputSource::Touch);
 
     std::array<std::uint8_t, 0x20> header{};
     const char supportedId[] = "GAFE01";
