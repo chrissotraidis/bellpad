@@ -24,6 +24,11 @@ HarkinianPad-owned integration code is all-rights-reserved by default and is the
 
 The application is ROM-free. A user selects their own supported image after installation. Validation and any indexing/extraction occur inside that user's app container. Release audits must reject original or derived copyrighted game data.
 
+Bellpad may embed non-copyrightable compatibility metadata such as expected file
+lengths and cryptographic fingerprints. It never embeds bytes from the retail
+image; validation streams user-owned data locally and retains no hash input in
+Git, fixtures, logs, bundles, or release artifacts.
+
 ## Original branding
 
 The Bellpad app icon was generated from a text-only brief with no retail image,

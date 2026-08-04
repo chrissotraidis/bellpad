@@ -10,7 +10,7 @@ No gameplay test is marked passed without a dated result, device/OS, build revis
 |---|---|---|
 | Configure/build native ARM64 | Mach-O arm64 executable | Pass — 2026-08-03, M2/macOS 26.5; independent full builds with Apple Clang 21.0.0 and GCC 16.1.0 |
 | Apple toolchain runtime smoke test | Native binary reaches visible game output | Pass — Apple Clang build rendered the title correctly at 60 FPS using the ignored supported image |
-| Validate supported disc | Accept `GAFE01` USA Rev 0 only | Partial pass — local header/revision/magic/hash validated; product hash allowlist pending |
+| Validate supported disc | Accept `GAFE01` USA Rev 0 only | Pass for raw ISO/GCM — header/revision, exact full/trimmed size, and streamed meaningful-payload SHA-256 are enforced; compressed formats pending |
 | Trademark/title | Correct render/audio/input | Partial pass — correct 60 FPS rendering and 32 kHz stereo; A/Start works through a latched native test path; cleanup overflow fixed; repeatable UI automation pending |
 | Character/town creation | Completes with text entry | Pass for baseline — Bell/Cove setup, train, generated town, initialized save state, and saved-player relaunch flow completed; later tutorial breadth is covered by the separate Cedar run |
 | Enter town | Stable outdoor rendering and movement | Pass — station exit, outdoor movement, Nook greeting, and housing area observed |
@@ -97,7 +97,7 @@ scene/orientation/safe-area policy and adaptive touch controls.
 | Sequential stop | Pass — iPhone app terminated and simulator shut down before iPad boot |
 | iPad Pro 13-inch Simulator | Pass — universal bundle installs/launches in a 960×640 resizable iPadOS window; actual-size scaling selects a compact no-overlap layout |
 | Expanded iPad layout | Pass on the real game target — iPad metrics are visibly applied over the 2752×2064 Aurora framebuffer; current iPadOS may still manage the game in a system window |
-| Shared disc validator | Pass — synthetic 32-byte `.iso` accepts `GAFE01` Rev 0; synthetic wrong revision/game and `.rvz` rejection pass; no retail fixture used |
+| Shared disc validator | Pass — synthetic tests cover exact trimmed/full lengths, valid payload SHA-256, hash mismatch, wrong size/revision/game, and `.rvz` rejection; optional ignored retail-image integration passes with no retail fixture tracked |
 | iPhone Files picker | Pass — Computer Use activated “Choose Game Data…” and observed Apple's native Files/Recents UI; cancel returned cleanly, and later product tests exercised invalid and valid selections |
 | macOS open panel | Pass — native sheet presented with ISO/GCM content filtering; cancelled without selecting a file |
 | Shell game rendering/input | Superseded — the product overlay is now linked directly into the Aurora game bundle |
@@ -110,7 +110,7 @@ scene/orientation/safe-area policy and adaptive touch controls.
 | Package contents | Pass — bundle contains the executable, plist, two compiled icon PNGs, and `Assets.car`; no ISO/GCM/CISO/RVZ, extracted retail asset, GCI, or raw card |
 | iPhone first-run/cancel | Pass — no retained data presents Bellpad's native legal import screen; Files opens and cancellation returns to that screen without starting the core |
 | iPhone invalid image | Pass — a synthetic invalid `.iso` reports an invalid GameCube header, remains on the import screen, and creates no retained image |
-| iPhone valid Files import | Pass — a private ignored GAFE01 revision 0 image selected through Files was security-scoped, source/staged validated, copied byte-for-byte into private Application Support, and booted without `--disc`; no staging file remained |
+| iPhone valid Files import | Pass — a private ignored GAFE01 revision 0 image selected through Files passed source and staged header/size/SHA-256 validation, copied byte-for-byte into private Application Support, and booted without `--disc`; no staging file remained |
 | iPhone real-game launch | Pass — private ignored GAFE01 data was read from the simulator sandbox, 14,495 assets loaded, 32 kHz audio opened, and the animated title rendered at the fixed 60 Hz simulation cadence |
 | iPhone touch-to-game path | Pass — UIKit A advanced the real title into K.K.'s opening; the button edge crossed the mutex snapshot and Aurora PAD on the game thread |
 | iPhone native player name | Pass — the game opened its real name editor, UIKit's native field became first responder and accepted `Bell`, the game-thread bridge consumed all four characters plus Done, and Rover rendered `Bell` in the following dialogue |
@@ -131,11 +131,11 @@ scene/orientation/safe-area policy and adaptive touch controls.
 | iPad data-management UI | Pass — after iPhone shutdown, the full settings panel exposed `Game Data & Saves…`; a real validated GCI export presented in the managed Files sheet, saved, dismissed, and returned to the live game |
 | iPad render resolution | Pass — the 4× choice produced a 2560×1920 internal framebuffer against the 2752×2064 iPad drawable, preserving the fixed 60 Hz simulation path |
 | Original app icon | Pass — opaque full-bleed 1024×1024 source has no alpha or baked rounded corners; `actool` emitted iPhone/iPad renditions and plist metadata, the installed iPhone home screen displayed the Bellpad icon, and macOS `iconutil` round-tripped all ten 16–1024 px iconset files |
-| iPad retained relaunch | Pass — terminate/relaunch with no arguments returned directly to the animated Metal title using the retained private copy |
+| iPad retained startup/relaunch | Pass — earlier terminate/relaunch returned to the animated Metal title, and a fresh no-argument strict-validator launch accepted the retained image's exact size/SHA-256 and stayed live on the Metal product |
 | Cleanup | Pass — the iPad app terminated, exact simulator test copies were moved to Trash, the simulator shut down, and no simulator remained booted |
 | Lifecycle/audio wiring | Pass for one bounded iPhone Simulator cycle — Home cleared input, paused presentation, and changed the SDL3 stream to paused; foreground restored live Metal output and the post-`DidBecomeActive` game-thread edge changed the stream back to unpaused. Repeated cycles, route interruptions, physical hardware, and two SDL UIKit startup warnings remain |
 | ARM64 device build | Pass (static audit) — complete product links as Mach-O arm64 with `LC_BUILD_VERSION` platform `IOS`, minimum iOS 17.0, Metal, and no SDL2; physical install/runtime remains |
-| Unsigned IPA reproducibility | Pass — two timestamp-normalized post-picker-fix packages were byte-identical with SHA-256 `39af9b94fb929314c07adc4095c074517984fd0d934bd7cef7fec058d2d44742` |
+| Unsigned IPA reproducibility | Pass — two timestamp-normalized post-fingerprint packages were byte-identical with SHA-256 `58917d934a54595c45b099f5d5f7e13623059265e95969a847aa9bbe1182423e` |
 | Unsigned IPA contents | Pass — 13 MB archive contains only the executable, plist, `Assets.car`, and two compiled icon PNGs; no signature, provisioning profile, retail data, save, key, or certificate |
 
 The disc-import runs above used the native Files UI and no `--disc` argument. They
@@ -143,9 +143,8 @@ prove the raw ISO/GCM user flow and relaunch retention. The later save-managemen
 run used ignored GCI data and the production gear-menu export on both simulator
 families. It proves real export bytes and isolated Dolphin interchange; selecting
 the import through Files remains a separate UI gate.
-These runs do not prove hash/size allowlisting, compressed formats, broad
-letter-editor coverage, physical-device security scopes/keyboards, or mobile
-lifecycle completion.
+These runs do not prove compressed formats, broad letter-editor coverage,
+physical-device security scopes/keyboards, or mobile lifecycle completion.
 
 The native keyboard tests used the actual UIKit first-responder and insertion
 methods, then inspected the bounded product queue and existing game editor under

@@ -151,10 +151,11 @@ town names on iPhone plus the same editor lifecycle on iPad. Letters, large
 paste backpressure, and editor-specific keyboard configuration remain.
 
 The shared validator checks `.iso` and `.gcm` for the GameCube header, `GAFE01`,
-disc 0, and revision 0. Invalid input remains on the import screen and cannot
-replace valid retained data. Compressed formats, size/hash allowlisting, nod
-indexing, and compressed-container support remain intentionally unavailable
-until their readers and validation rules are linked and tested.
+disc 0, revision 0, the exact supported full/trimmed size, and a streamed SHA-256
+of the complete meaningful payload. Invalid input remains on the import screen
+and cannot replace valid retained data. Nod indexing and compressed-container
+support remain intentionally unavailable until their readers and validation
+rules are linked and tested.
 
 ### Native iOS device bundle and unsigned IPA
 
@@ -184,7 +185,7 @@ Observed 2026-08-04: the output contains exactly the executable, plist,
 `Assets.car`, `AppIcon60x60@2x.png`, and `AppIcon76x76@2x~ipad.png`; it is 13 MB,
 targets ARM64 iOS 17.0 through Metal, and two independent packaging runs produced
 identical bytes with SHA-256
-`39af9b94fb929314c07adc4095c074517984fd0d934bd7cef7fec058d2d44742`.
+`58917d934a54595c45b099f5d5f7e13623059265e95969a847aa9bbe1182423e`.
 
 Run the tracked-content safety check before every commit and package build:
 

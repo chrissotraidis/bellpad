@@ -7,6 +7,7 @@
 #include <atomic>
 #include <cassert>
 #include <chrono>
+#include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <thread>
@@ -14,12 +15,17 @@
 
 namespace {
 
-std::filesystem::path writeSyntheticHeader(std::array<std::uint8_t, 0x20> header, const char* extension) {
+std::filesystem::path writeSyntheticHeader(std::array<std::uint8_t, 0x20> header,
+                                           const char* extension,
+                                           std::size_t totalSize = 0x20) {
+    assert(totalSize >= header.size());
     const auto nonce = std::chrono::steady_clock::now().time_since_epoch().count();
     const auto path = std::filesystem::temp_directory_path() /
                       ("bellpad-disc-validator-" + std::to_string(nonce) + extension);
     std::ofstream stream(path, std::ios::binary);
     stream.write(reinterpret_cast<const char*>(header.data()), header.size());
+    std::vector<std::uint8_t> padding(totalSize - header.size());
+    stream.write(reinterpret_cast<const char*>(padding.data()), padding.size());
     stream.close();
     return path;
 }
@@ -167,12 +173,33 @@ int main() {
     header[0x1E] = 0x9F;
     header[0x1F] = 0x3D;
 
+    constexpr std::array<std::uint8_t, 32> syntheticHeaderSha256{
+        0xFA, 0x1C, 0xCF, 0x9C, 0xC0, 0x95, 0x3F, 0xBF,
+        0x63, 0xE2, 0x44, 0x0F, 0x85, 0xD2, 0xC3, 0xB8,
+        0x6C, 0x5B, 0x90, 0x8A, 0x0D, 0x56, 0x0C, 0xD1,
+        0x38, 0xCB, 0xB1, 0x51, 0x57, 0x20, 0xE9, 0xB4,
+    };
+    const BellpadDiscFingerprint syntheticFingerprint{0x20, 0x40, syntheticHeaderSha256};
+
     const auto validPath = writeSyntheticHeader(header, ".iso");
-    const auto valid = BellpadValidateDiscImage(validPath);
+    assert(BellpadValidateDiscImage(validPath).code == BellpadDiscValidationCode::UnsupportedSize);
+    const auto valid = BellpadValidateDiscImage(validPath, syntheticFingerprint);
     assert(valid.valid());
     assert(valid.gameId == "GAFE01");
     assert(valid.revision == 0);
+    assert(valid.payloadSha256 == "fa1ccf9cc0953fbf63e2440f85d2c3b86c5b908a0d560cd138cbb1515720e9b4");
     std::filesystem::remove(validPath);
+
+    const auto fullPath = writeSyntheticHeader(header, ".gcm", 0x40);
+    assert(BellpadValidateDiscImage(fullPath, syntheticFingerprint).valid());
+    std::filesystem::remove(fullPath);
+
+    BellpadDiscFingerprint wrongFingerprint = syntheticFingerprint;
+    wrongFingerprint.payloadSha256.back() ^= 1;
+    const auto mismatchPath = writeSyntheticHeader(header, ".iso");
+    assert(BellpadValidateDiscImage(mismatchPath, wrongFingerprint).code ==
+           BellpadDiscValidationCode::HashMismatch);
+    std::filesystem::remove(mismatchPath);
 
     header[7] = 1;
     const auto revisionPath = writeSyntheticHeader(header, ".gcm");
@@ -188,6 +215,14 @@ int main() {
     const auto containerPath = writeSyntheticHeader(header, ".rvz");
     assert(BellpadValidateDiscImage(containerPath).code == BellpadDiscValidationCode::UnsupportedContainer);
     std::filesystem::remove(containerPath);
+
+    if (const char* retailImage = std::getenv("BELLPAD_TEST_DISC_IMAGE")) {
+        const auto retailResult = BellpadValidateDiscImage(retailImage);
+        assert(retailResult.valid());
+        assert(retailResult.fileSize == 27'573'708 || retailResult.fileSize == 1'459'978'240);
+        assert(retailResult.payloadSha256 ==
+               "7bdc4fcf4a209521ba59d8fc850bc5b5d21ea96002a225224e83e3efe52d4615");
+    }
 
     std::vector<std::uint8_t> gci(BellpadExpectedGCISize);
     std::copy_n(reinterpret_cast<const std::uint8_t*>(supportedId), 6, gci.begin());

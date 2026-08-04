@@ -134,16 +134,19 @@ The app bundle contains no retail data. The user selects a supported image throu
 
 The first product boundary is implemented: AppKit uses `NSOpenPanel`, UIKit uses
 `UIDocumentPickerViewController`, and both call one portable validator. It reads
-exactly the first 0x20 bytes of raw `.iso`/`.gcm`, checks the GameCube magic at
-`0x1C`, the six-byte game ID, disc number, and revision byte, then closes the
-file. UIKit balances security-scoped access around source validation and copy.
+the first 0x20 bytes of raw `.iso`/`.gcm`, checks the GameCube magic at `0x1C`,
+the six-byte game ID, disc number, and revision byte, requires either the exact
+trimmed-payload or standard full-disc length, and streams SHA-256 over the entire
+meaningful payload. The full and trimmed forms share that payload fingerprint;
+full-disc padding is not executed game content. UIKit balances security-scoped
+access around source validation and copy.
 It copies to `Game Data/Animal Crossing.importing.iso`, validates the completed
 copy, and atomically installs `Game Data/Animal Crossing.iso` under Bellpad's
 Application Support directory. Failure removes only staging and preserves the
 previous retained image. Normal launch validates and reuses that path before
 presenting Files; the development-only explicit `--disc` argument bypasses it.
-CISO/RVZ, full-image hash/size verification, and nod indexing remain unavailable
-rather than pretending the raw-header reader supports compressed containers.
+CISO/RVZ and nod indexing remain unavailable rather than pretending the raw
+reader supports compressed containers.
 
 SDL3's traditional iOS entry point currently invokes the game main function on
 UIKit's main thread. While the core waits for first-run import, Bellpad pumps the

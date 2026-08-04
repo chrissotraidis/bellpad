@@ -22,9 +22,9 @@ As of 2026-08-04:
 - The Aurora target has live desktop keyboard mappings and normalized virtual-pad input. The mobile product now links Bellpad's canonical GameCube touch/controller mixer directly; patch 19 pulls its mutex-protected snapshot on the game thread, and short button edges remain latched until one 60 Hz poll consumes them.
 - Bellpad-owned clean platform harnesses still build with MetalKit for isolated QA. The production mobile game instead uses SDL3/Aurora's native Metal surface and the same fixed-60-Hz normalized GameCube input boundary.
 - The mobile game includes left/C sticks, A/B/X/Y, Z/L/R/Start, D-pad, adaptive compact/expanded layouts, safe-area handling, GameController merging, physical-controller auto-hide on devices, persistent opacity/size/visibility/positions, drag editing/reset, Native/1×/2×/3×/4× render-resolution choices, and the thread-safe game-input snapshot consumed by the Aurora core.
-- Native macOS and iOS/iPadOS choosers accept a user-selected file through a shared header validator. The current slice recognizes raw ISO/GCM and requires GameCube magic plus `GAFE01` revision 0. On mobile, a valid selection is copied through a staging file to private Application Support, validated again, atomically installed, and used by the real core; the retained copy is reused on relaunch.
+- Native macOS and iOS/iPadOS choosers accept a user-selected file through one shared streamed validator. The current slice recognizes raw ISO/GCM, requires GameCube magic plus `GAFE01` revision 0, accepts only the verified full or exact trimmed size, and SHA-256 checks the complete meaningful payload. On mobile, a valid selection is copied through a staging file to private Application Support, validated again, atomically installed, and used by the real core; the retained copy is reused on relaunch.
 - When the real game opens a text editor, the mobile adapter presents a native UIKit first responder and drains UTF-8, Backspace, paste, and Done events on the game thread. The iPhone flow committed exact player name `Bell` and town name `Cove`; iPad also presented and committed through the same native field. Letter writing, dictation/accessibility breadth, and physical-device keyboard behavior remain to be tested.
-- The playable macOS bundle still uses the proven SDL2/OpenGL renderer and Application Support. The mobile Aurora game bundle now runs the real core, renderer, audio, touch, persistent control settings, user-facing disc import/change/removal, native-text path, validated GCI import/export, GCI persistence, and compiled original icon on simulator and ARM64 device targets. The audited unsigned IPA contains only the executable, plist, compiled icon renditions, and asset catalog. Hash allowlisting, nod indexing/compressed formats, broader lifecycle/scene validation, signing, and physical-device runtime remain.
+- The playable macOS bundle still uses the proven SDL2/OpenGL renderer and Application Support. The mobile Aurora game bundle now runs the real core, renderer, audio, touch, persistent control settings, user-facing disc import/change/removal, native-text path, validated GCI import/export, GCI persistence, and compiled original icon on simulator and ARM64 device targets. The audited unsigned IPA contains only the executable, plist, compiled icon renditions, and asset catalog. Nod indexing/compressed formats, broader lifecycle/scene validation, signing, and physical-device runtime remain.
 
 See [STATUS.md](docs/STATUS.md), [PLAN.md](docs/PLAN.md), and [WORKLOG.md](docs/WORKLOG.md) for evidence and current blockers.
 
@@ -55,13 +55,13 @@ Never add game data to this repository. Root ignore rules cover common disc, ext
 
 ```text
 Files picker
-→ validate raw header and supported revision
+→ validate raw header, size, revision, and streamed content fingerprint
 → stage and validate a private Application Support copy
 → atomically install the retained image
 → launch the native game core
 ```
 
-This flow is runtime-proven on both iPhone and iPad simulators for raw ISO/GCM. A valid retained copy is reused after relaunch; an invalid image leaves the import screen visible with an actionable error and does not replace existing data. The gear menu can request change/reimport while preserving the current image until replacement validates, or explicitly remove the retained image on the next launch. Size/hash allowlisting and compressed nod formats remain hardening work. The desktop-game development procedure is documented in [BUILDING.md](docs/BUILDING.md); it uses an ignored symlink to local data and never copies the image into source or a bundle.
+This flow is runtime-proven on both iPhone and iPad simulators for raw ISO/GCM. A valid retained copy is reused after relaunch; an invalid image leaves the import screen visible with an actionable error and does not replace existing data. The gear menu can request change/reimport while preserving the current image until replacement validates, or explicitly remove the retained image on the next launch. The supported raw image is size-allowlisted and SHA-256 checked while streaming; compressed nod formats remain hardening work. The desktop-game development procedure is documented in [BUILDING.md](docs/BUILDING.md); it uses an ignored symlink to local data and never copies the image into source or a bundle.
 
 ## Build instructions
 
@@ -139,7 +139,7 @@ See [TESTING.md](docs/TESTING.md).
 - A normal macOS window close returned cleanly from the game process. One bounded iPhone Simulator cycle paused presentation/audio on Home and restored both after activation; the pinned SDL UIKit startup still reports two unbalanced appearance-transition warnings, and real audio-route/interruption plus repeated lifecycle testing remains open.
 - The real Animal Crossing target now links, renders the complete title composition, correctly displays and advances multi-line K.K. dialogue, and renders a returning-player train/station scene through Aurora/Metal. Water, choice UI, interiors, and broader outdoor-town comparison remain open.
 - The embedded NES emulator and audio path compile under Aurora, but its legacy OpenGL framebuffer presenter is intentionally disabled; a GX/Metal upload path is still required before NES games can display.
-- The iOS/iPadOS real-game bundle, touch UI, native Files import/change/removal, private data retention, relaunch boot, native name-entry path, iPhone GCI rewrite/reload, Dolphin GCI-folder interchange, real save export, bounded background/foreground audio recovery, ARM64 device build, and audited unsigned IPA now pass their current gates. Hash allowlisting, compressed formats, complete editor coverage, route-interruption proof, signing, and physical-device validation remain pending.
+- The iOS/iPadOS real-game bundle, touch UI, native Files import/change/removal, private data retention, relaunch boot, native name-entry path, iPhone GCI rewrite/reload, Dolphin GCI-folder interchange, real save export, bounded background/foreground audio recovery, ARM64 device build, and audited unsigned IPA now pass their current gates. Compressed formats, complete editor coverage, route-interruption proof, signing, and physical-device validation remain pending.
 
 ## Research and credits
 
