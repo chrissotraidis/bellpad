@@ -119,7 +119,7 @@ To install the simulator bundle, use `xcrun simctl install <device-uuid> build/i
 ./scripts/build-aurora-game-ios-simulator.sh
 ```
 
-This applies the pinned twenty-five-patch game series and four-patch Aurora series,
+This applies the pinned twenty-six-patch game series and four-patch Aurora series,
 builds Dawn and SDL3 for ARM64 iOS Simulator, and links the complete game core,
 Aurora GX/Metal renderer, SDL3 audio, normalized input bridge, and UIKit GameCube
 overlay into `Bellpad.app`. The script verifies the Mach-O platform, plist,
@@ -171,7 +171,7 @@ reads or packages the ignored development disc image. Set
 Observed 2026-08-04: the output contains exactly `Payload/Bellpad.app/Bellpad`
 and `Payload/Bellpad.app/Info.plist`, is 7.9 MB, targets ARM64 iOS 17.0 through
 Metal, and two independent packaging runs produced identical bytes with SHA-256
-`9834e5171202139fdb656cf5938f6719146c34fe9994d4edac7e1af7f1f2a1ac`.
+`3200a8793c435cd16cad3f262720acb3b61be144923d0968774fb38c625f22a2`.
 
 Run the tracked-content safety check before every commit and package build:
 

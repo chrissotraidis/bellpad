@@ -100,6 +100,7 @@ struct BPNativeTextEvent {
 static std::mutex sNativeTextMutex;
 static std::deque<BPNativeTextEvent> sNativeTextEvents;
 static std::atomic_bool sNativeTextRequested{false};
+static std::atomic_int sFrameBufferScaleMode{0};
 
 static void BellpadQueueNativeText(NSString *text) {
     const char *utf8 = text.UTF8String;
@@ -350,6 +351,7 @@ static void BellpadQueueNativeTextCommand(int command) {
     UIView *_settingsPanel;
     UISlider *_opacitySlider;
     UISlider *_scaleSlider;
+    UISegmentedControl *_renderScaleControl;
     UISwitch *_hideControlsSwitch;
     UISwitch *_editLayoutSwitch;
     CGFloat _controlOpacity;
@@ -467,6 +469,10 @@ static void BellpadQueueNativeTextCommand(int command) {
     return [NSString stringWithFormat:@"Bellpad.Touch.%@.%@", [self settingsProfile], name];
 }
 
+- (NSString *)graphicsSettingsKey:(NSString *)name {
+    return [NSString stringWithFormat:@"Bellpad.Graphics.%@.%@", [self settingsProfile], name];
+}
+
 - (void)loadSettingsForCurrentProfile {
     NSString *profile = [self settingsProfile];
     if ([_loadedSettingsProfile isEqualToString:profile]) return;
@@ -476,11 +482,15 @@ static void BellpadQueueNativeTextCommand(int command) {
     NSNumber *opacity = [defaults objectForKey:[self settingsKey:@"opacity"]];
     NSNumber *scale = [defaults objectForKey:[self settingsKey:@"scale"]];
     NSNumber *hidden = [defaults objectForKey:[self settingsKey:@"hidden"]];
+    NSNumber *renderScale = [defaults objectForKey:[self graphicsSettingsKey:@"renderScale"]];
     _controlOpacity = std::clamp<CGFloat>(opacity ? opacity.doubleValue : 0.76, 0.25, 1.0);
     _controlScale = std::clamp<CGFloat>(scale ? scale.doubleValue : 1.0, 0.70, 1.35);
     _manualControlsHidden = hidden ? hidden.boolValue : NO;
+    NSInteger renderScaleMode = std::clamp<NSInteger>(renderScale ? renderScale.integerValue : 0, 0, 2);
     _opacitySlider.value = _controlOpacity;
     _scaleSlider.value = _controlScale;
+    _renderScaleControl.selectedSegmentIndex = renderScaleMode;
+    sFrameBufferScaleMode.store(static_cast<int>(renderScaleMode), std::memory_order_relaxed);
     _hideControlsSwitch.on = _manualControlsHidden;
     [self updateControlAppearance];
 }
@@ -542,7 +552,7 @@ static void BellpadQueueNativeTextCommand(int command) {
     [self addSubview:_settingsPanel];
 
     UILabel *title = [UILabel new];
-    title.text = @"Touch Controls";
+    title.text = @"Bellpad Settings";
     title.textColor = UIColor.whiteColor;
     title.font = [UIFont systemFontOfSize:18.0 weight:UIFontWeightBold];
 
@@ -557,6 +567,12 @@ static void BellpadQueueNativeTextCommand(int command) {
     _scaleSlider.maximumValue = 1.35;
     _scaleSlider.accessibilityLabel = @"Control size";
     [_scaleSlider addTarget:self action:@selector(scaleChanged:) forControlEvents:UIControlEventValueChanged];
+
+    _renderScaleControl = [[UISegmentedControl alloc] initWithItems:@[@"Native", @"1×", @"2×"]];
+    _renderScaleControl.selectedSegmentIndex = 0;
+    _renderScaleControl.accessibilityLabel = @"Render resolution";
+    [_renderScaleControl addTarget:self action:@selector(renderScaleChanged:)
+                  forControlEvents:UIControlEventValueChanged];
 
     _hideControlsSwitch = [UISwitch new];
     _hideControlsSwitch.accessibilityLabel = @"Hide touch controls";
@@ -577,6 +593,7 @@ static void BellpadQueueNativeTextCommand(int command) {
 
     UIStackView *stack = [[UIStackView alloc] initWithArrangedSubviews:@[
         title,
+        [self settingsRowWithTitle:@"Resolution" control:_renderScaleControl],
         [self settingsRowWithTitle:@"Opacity" control:_opacitySlider],
         [self settingsRowWithTitle:@"Size" control:_scaleSlider],
         [self settingsRowWithTitle:@"Hide controls" control:_hideControlsSwitch],
@@ -616,6 +633,13 @@ static void BellpadQueueNativeTextCommand(int command) {
     [NSUserDefaults.standardUserDefaults setDouble:_controlScale
                                             forKey:[self settingsKey:@"scale"]];
     [self setNeedsLayout];
+}
+
+- (void)renderScaleChanged:(UISegmentedControl *)control {
+    NSInteger mode = std::clamp<NSInteger>(control.selectedSegmentIndex, 0, 2);
+    [NSUserDefaults.standardUserDefaults setInteger:mode
+                                             forKey:[self graphicsSettingsKey:@"renderScale"]];
+    sFrameBufferScaleMode.store(static_cast<int>(mode), std::memory_order_relaxed);
 }
 
 - (void)hiddenChanged:(UISwitch *)toggle {
@@ -861,7 +885,7 @@ static void BellpadQueueNativeTextCommand(int command) {
                                        CGRectGetMinY(safe) + 8.0,
                                        settingsSide, settingsSide);
     CGFloat panelWidth = std::min<CGFloat>(300.0, std::max<CGFloat>(240.0, safe.size.width - 24.0));
-    CGFloat panelHeight = std::min<CGFloat>(286.0, safe.size.height - 62.0);
+    CGFloat panelHeight = std::min<CGFloat>(331.0, safe.size.height - 62.0);
     _settingsPanel.frame = CGRectMake(CGRectGetMaxX(safe) - panelWidth,
                                       CGRectGetMinY(safe) + 54.0,
                                       panelWidth, panelHeight);
@@ -1076,4 +1100,9 @@ int bellpad_poll_native_text_event(char* utf8,
         utf8[length] = '\0';
     }
     return 1;
+}
+
+float bellpad_get_framebuffer_scale(void) {
+    const int mode = sFrameBufferScaleMode.load(std::memory_order_relaxed);
+    return mode == 1 ? 1.0f : (mode == 2 ? 2.0f : 0.0f);
 }

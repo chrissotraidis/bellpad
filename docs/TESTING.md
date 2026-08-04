@@ -116,7 +116,8 @@ scene/orientation/safe-area policy and adaptive touch controls.
 | iPhone native player name | Pass — the game opened its real name editor, UIKit's native field became first responder and accepted `Bell`, the game-thread bridge consumed all four characters plus Done, and Rover rendered `Bell` in the following dialogue |
 | iPhone native town name | Pass — native paste interception queued exact `Cove`, the explicit UIKit Done control committed it on the game thread, and the game advanced without debugger input injection |
 | iPhone layout | Pass — landscape controls are upright after rotating the simulated hardware and avoid the Dynamic Island/safe areas |
-| iPhone control settings | Pass — the native gear opened a correctly laid-out panel over the real Metal game with opacity/size sliders, hide/move switches, and per-device reset; source/build checks cover normalized safe-area position persistence |
+| iPhone control settings | Pass — the native gear opened a correctly laid-out panel over the real Metal game with Native/1×/2× resolution, opacity/size sliders, hide/move switches, and per-device reset; source/build checks cover normalized safe-area position persistence |
+| iPhone render resolution | Pass — Native used a 2622×1206 internal framebuffer, 1× used 1044×480, and 2× used 2087×960 while the Metal drawable remained 2622×1206; this changes render resolution, not the fixed 60 Hz simulation rate |
 | iPhone retained relaunch | Pass — terminating and launching again with no arguments skipped Files and returned to the animated title from the retained Application Support copy |
 | Sequential stop | Pass — iPhone app terminated, exact simulator test copies were removed, and the simulator shut down before iPad boot |
 | iPad first-run/valid import | Pass — no-data screen presented in iPadOS's managed window; Files-selected GAFE01 data was retained byte-exactly with no staging residue and the native title rendered with iPad control metrics |
@@ -126,7 +127,7 @@ scene/orientation/safe-area policy and adaptive touch controls.
 | Cleanup | Pass — the iPad app terminated, exact simulator test copies were moved to Trash, the simulator shut down, and no simulator remained booted |
 | Lifecycle/audio wiring | Partial — UIKit resign-active clears product input and Aurora pause/unpause now pauses/resumes SDL3 audio; a bounded background/foreground runtime pass remains |
 | ARM64 device build | Pass (static audit) — complete product links as Mach-O arm64 with `LC_BUILD_VERSION` platform `IOS`, minimum iOS 17.0, Metal, and no SDL2; physical install/runtime remains |
-| Unsigned IPA reproducibility | Pass — two timestamp-normalized packages were byte-identical with SHA-256 `9834e5171202139fdb656cf5938f6719146c34fe9994d4edac7e1af7f1f2a1ac` |
+| Unsigned IPA reproducibility | Pass — two timestamp-normalized packages were byte-identical with SHA-256 `3200a8793c435cd16cad3f262720acb3b61be144923d0968774fb38c625f22a2` |
 | Unsigned IPA contents | Pass — 7.9 MB archive contains only `Payload/Bellpad.app/Bellpad` and `Payload/Bellpad.app/Info.plist`; no signature, provisioning profile, retail data, save, key, or certificate |
 
 The import runs above used the native Files UI and no `--disc` argument. They

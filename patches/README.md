@@ -80,6 +80,11 @@ for iOS Simulator, where Aurora publishes no compatible archive, and selects
 Aurora's pinned prebuilt `ios-arm64` Dawn package for physical-device builds.
 Both routes retain static linkage and the same Aurora/Metal API boundary.
 
+`pc-port/0026-connect-mobile-render-resolution.patch` polls Bellpad's persisted
+mobile render-resolution preference on the game thread and applies it through
+Aurora's framebuffer-scale API. Native follows the Metal drawable; 1× and 2×
+change the internal framebuffer without changing the fixed 60 Hz simulation.
+
 `aurora/0001-complete-acgc-gx-compatibility.patch` applies to Aurora commit
 `5027ed63a73dfba28de9eceed00481fb09a19c35`. It implements the five GX calls
 used by the compiled game core that the pinned Aurora library did not export:
