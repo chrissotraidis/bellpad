@@ -130,6 +130,16 @@ sample-clock pace. Resume clears stale stream and ring data before producing
 fresh samples. This avoids command-queue saturation without a busy loop or an
 audible backlog.
 
+`pc-port/0044-hide-desktop-video-settings-on-ios.patch` removes the inherited
+desktop Video tab from the iOS in-game settings menu. Bellpad's native Render
+control remains the single iOS resolution-scale setting.
+
+`pc-port/0045-render-all-aurora-font-glyphs-as-polygons.patch` replaces the
+unsupported texture-rectangle font primitive with the existing polygon glyph
+path for every Aurora UI display list. This restores the GameCube editor grid,
+inventory and other POLY_OPA text while preserving each caller's original
+ordering and matrix. It also hides the desktop Tab-key typing status on iOS.
+
 `aurora/0001-complete-acgc-gx-compatibility.patch` applies to Aurora commit
 `5027ed63a73dfba28de9eceed00481fb09a19c35`. It implements the five GX calls
 used by the compiled game core that the pinned Aurora library did not export:

@@ -1,0 +1,38 @@
+diff --git a/src/game/m_editor_ovl.c b/src/game/m_editor_ovl.c
+index d2fcb44..a9db286 100644
+--- a/src/game/m_editor_ovl.c
++++ b/src/game/m_editor_ovl.c
+@@ -2493,7 +2493,7 @@ static void mED_editor_ovl_draw(Submenu* submenu, GAME* game) {
+         CLOSE_DISP(game->graph);
+     }
+ 
+-#if defined(TARGET_PC) && defined(KEYBOARD_TYPING)
++#if defined(TARGET_PC) && defined(KEYBOARD_TYPING) && !defined(BELLPAD_IOS)
+     {
+         extern int g_pc_typing_mode;
+         static u8 str_on[]  = "Keyboard Typing (Tab): On";
+diff --git a/src/game/m_font_main.c_inc b/src/game/m_font_main.c_inc
+index dc790b5..0aed650 100644
+--- a/src/game/m_font_main.c_inc
++++ b/src/game/m_font_main.c_inc
+@@ -516,13 +516,16 @@ static f32 mFont_SetLineStrings_AndSpace_new(
+   }
+ 
+   flag = 0;
+-  /* On PC, the poly glyph path has rendering issues on POLY_OPA_DISP.
+-   * Use poly mode only for FONT_DISP callers (NPC names, choices) where
+-   * the window's modelview matrix is needed for correct positioning.
+-   * POLY_OPA callers (editor keyboard) use rect mode with absolute coords. */
++  /* Aurora does not render the original texture-rectangle glyph commands.
++   * Keep each caller's display-list choice, but draw every font glyph using
++   * the polygon path. POLY_OPA callers install their own character matrix. */
++#ifdef AURORA
++  flag |= mFont_SENTENCE_FLAG_USE_POLY;
++#else
+   if (mode == mFont_MODE_FONT) {
+     flag |= mFont_SENTENCE_FLAG_USE_POLY;
+   }
++#endif
+   if (flag_revert) {
+     flag |= mFont_SENTENCE_FLAG_REVERT;
+   }
