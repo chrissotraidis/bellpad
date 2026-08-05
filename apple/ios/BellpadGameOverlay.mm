@@ -439,9 +439,13 @@ static void BellpadQueueNativeTextCommand(int command) {
 
 @interface BPNativeTextField : UITextField
 - (void)submitText;
+- (void)resetProxyText;
 @end
 
-@implementation BPNativeTextField
+@implementation BPNativeTextField {
+    BOOL _updatingProxyText;
+    BOOL _submitQueued;
+}
 
 - (BOOL)hasText {
     // Keep delete enabled while the game, rather than this proxy field, owns
@@ -450,41 +454,75 @@ static void BellpadQueueNativeTextCommand(int command) {
 }
 
 - (void)setText:(NSString *)text {
-    // Accessibility and dictation may replace the proxy value instead of
-    // calling insertText:. Route those replacements through the same queue.
-    if (text.length > 0) {
-        BellpadQueueNativeText(text);
+    NSString *replacement = text ?: @"";
+    if (_updatingProxyText) {
+        [super setText:replacement];
+        return;
     }
-    [super setText:@""];
+
+    // Dictation and accessibility can replace the complete value rather than
+    // calling insertText:. Translate the changed suffix into game operations.
+    NSString *current = [super text] ?: @"";
+    NSUInteger common = 0;
+    NSUInteger limit = std::min(current.length, replacement.length);
+    while (common < limit && [current characterAtIndex:common] ==
+                                 [replacement characterAtIndex:common]) {
+        common++;
+    }
+    for (NSUInteger index = common; index < current.length; index++) {
+        BellpadQueueNativeTextCommand(BELLPAD_NATIVE_TEXT_BACKSPACE);
+    }
+    if (common < replacement.length) {
+        BellpadQueueNativeText([replacement substringFromIndex:common]);
+    }
+    _updatingProxyText = YES;
+    [super setText:replacement];
+    _updatingProxyText = NO;
 }
 
 - (void)setAccessibilityValue:(NSString *)value {
-    // UI automation and Switch Control use the accessibility value setter.
-    // Treat it like dictation/replacement text while keeping the proxy empty.
-    BellpadQueueNativeText(value);
+    self.text = value;
 }
 
 - (void)insertText:(NSString *)text {
     if ([text isEqualToString:@"\n"] || [text isEqualToString:@"\r"]) {
-        BellpadQueueNativeTextCommand(BELLPAD_NATIVE_TEXT_ENTER);
+        [self submitText];
     } else {
         BellpadQueueNativeText(text);
+        _updatingProxyText = YES;
+        [super setText:[([super text] ?: @"") stringByAppendingString:text]];
+        _updatingProxyText = NO;
     }
 }
 
 - (void)deleteBackward {
     BellpadQueueNativeTextCommand(BELLPAD_NATIVE_TEXT_BACKSPACE);
+    NSString *current = [super text] ?: @"";
+    if (current.length > 0) {
+        NSRange last = [current rangeOfComposedCharacterSequenceAtIndex:current.length - 1];
+        _updatingProxyText = YES;
+        [super setText:[current stringByReplacingCharactersInRange:last withString:@""]];
+        _updatingProxyText = NO;
+    }
 }
 
 - (void)paste:(id)sender {
     (void)sender;
     NSString *text = UIPasteboard.generalPasteboard.string;
-    if (text.length > 0) BellpadQueueNativeText(text);
-    [super setText:@""];
+    if (text.length > 0) [self insertText:text];
 }
 
 - (void)submitText {
+    if (_submitQueued) return;
+    _submitQueued = YES;
     BellpadQueueNativeTextCommand(BELLPAD_NATIVE_TEXT_ENTER);
+}
+
+- (void)resetProxyText {
+    _submitQueued = NO;
+    _updatingProxyText = YES;
+    [super setText:@""];
+    _updatingProxyText = NO;
 }
 
 @end
@@ -675,6 +713,7 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
 - (void)scheduleGameDataChange;
 - (void)confirmGameDataRemoval;
 - (void)presentMessageWithTitle:(NSString *)title message:(NSString *)message;
+- (void)setNativeTextActive:(BOOL)active;
 @end
 
 @implementation BPGameOverlay {
@@ -682,20 +721,24 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
     BPStickView *_moveStick;
     BPStickView *_cameraStick;
     NSMutableArray<BPGameButton *> *_buttons;
-    NSMutableArray<UIPanGestureRecognizer *> *_editGestures;
+    NSMutableArray<UIGestureRecognizer *> *_editGestures;
     UIButton *_settingsButton;
     UIView *_settingsPanel;
     UIScrollView *_settingsScrollView;
     UISlider *_opacitySlider;
     UISlider *_scaleSlider;
+    UISlider *_selectedScaleSlider;
     UISegmentedControl *_renderScaleControl;
     UISwitch *_hideControlsSwitch;
     UISwitch *_editLayoutSwitch;
     CGFloat _controlOpacity;
     CGFloat _controlScale;
+    NSMutableDictionary<NSString *, NSNumber *> *_controlSizeScales;
+    __weak UIView *_selectedControl;
     BOOL _manualControlsHidden;
     BOOL _controllerConnected;
     BOOL _editingLayout;
+    BOOL _nativeTextActive;
     NSString *_loadedSettingsProfile;
     BPDocumentPickerMode _documentPickerMode;
     BOOL _documentPickerFinished;
@@ -711,6 +754,7 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
         self.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
         _buttons = [NSMutableArray array];
         _editGestures = [NSMutableArray array];
+        _controlSizeScales = [NSMutableDictionary dictionary];
         _controlOpacity = 0.76;
         _controlScale = 1.0;
         _moveStick = [self addStick:1 name:@"Move"];
@@ -848,10 +892,12 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
     NSNumber *opacity = [defaults objectForKey:[self settingsKey:@"opacity"]];
     NSNumber *scale = [defaults objectForKey:[self settingsKey:@"scale"]];
     NSNumber *hidden = [defaults objectForKey:[self settingsKey:@"hidden"]];
+    NSDictionary *sizes = [defaults dictionaryForKey:[self settingsKey:@"sizes"]];
     NSNumber *renderScale = [defaults objectForKey:[self graphicsSettingsKey:@"renderScale"]];
     _controlOpacity = std::clamp<CGFloat>(opacity ? opacity.doubleValue : 0.76, 0.25, 1.0);
     _controlScale = std::clamp<CGFloat>(scale ? scale.doubleValue : 1.0, 0.70, 1.35);
     _manualControlsHidden = hidden ? hidden.boolValue : NO;
+    _controlSizeScales = sizes ? [sizes mutableCopy] : [NSMutableDictionary dictionary];
     NSInteger renderScaleMode = std::clamp<NSInteger>(renderScale ? renderScale.integerValue : 0, 0, 4);
     _opacitySlider.value = _controlOpacity;
     _scaleSlider.value = _controlScale;
@@ -862,12 +908,19 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
 }
 
 - (void)addEditGestureToControl:(UIView *)control {
-    UIPanGestureRecognizer *gesture = [[UIPanGestureRecognizer alloc]
+    UIPanGestureRecognizer *pan = [[UIPanGestureRecognizer alloc]
         initWithTarget:self action:@selector(moveControl:)];
-    gesture.enabled = NO;
-    gesture.cancelsTouchesInView = YES;
-    [control addGestureRecognizer:gesture];
-    [_editGestures addObject:gesture];
+    pan.enabled = NO;
+    pan.cancelsTouchesInView = YES;
+    [control addGestureRecognizer:pan];
+    [_editGestures addObject:pan];
+
+    UITapGestureRecognizer *tap = [[UITapGestureRecognizer alloc]
+        initWithTarget:self action:@selector(selectControl:)];
+    tap.enabled = NO;
+    tap.cancelsTouchesInView = YES;
+    [control addGestureRecognizer:tap];
+    [_editGestures addObject:tap];
 }
 
 - (UIView *)settingsRowWithTitle:(NSString *)title control:(UIControl *)control {
@@ -940,6 +993,15 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
     _scaleSlider.accessibilityLabel = @"Control size";
     [_scaleSlider addTarget:self action:@selector(scaleChanged:) forControlEvents:UIControlEventValueChanged];
 
+    _selectedScaleSlider = [UISlider new];
+    _selectedScaleSlider.minimumValue = 0.60;
+    _selectedScaleSlider.maximumValue = 1.75;
+    _selectedScaleSlider.value = 1.0;
+    _selectedScaleSlider.enabled = NO;
+    _selectedScaleSlider.accessibilityLabel = @"Selected control size";
+    [_selectedScaleSlider addTarget:self action:@selector(selectedScaleChanged:)
+                    forControlEvents:UIControlEventValueChanged];
+
     _renderScaleControl = [[UISegmentedControl alloc] initWithItems:@[@"Native", @"1×", @"2×", @"3×", @"4×"]];
     _renderScaleControl.selectedSegmentIndex = 0;
     _renderScaleControl.accessibilityLabel = @"Render resolution";
@@ -961,7 +1023,8 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
     reset.backgroundColor = [UIColor colorWithWhite:0.18 alpha:0.88];
     reset.layer.cornerRadius = 10.0;
     reset.accessibilityLabel = @"Reset touch control layout";
-    [reset addTarget:self action:@selector(resetControlSettings) forControlEvents:UIControlEventTouchUpInside];
+    [reset addTarget:self action:@selector(confirmResetControlSettings)
+        forControlEvents:UIControlEventTouchUpInside];
 
     UIButton *data = [UIButton buttonWithType:UIButtonTypeSystem];
     [data setTitle:@"Game Data & Saves…" forState:UIControlStateNormal];
@@ -1003,7 +1066,8 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
         title,
         [self settingsRowWithTitle:@"Render" control:_renderScaleControl],
         [self settingsRowWithTitle:@"Opacity" control:_opacitySlider],
-        [self settingsRowWithTitle:@"Size" control:_scaleSlider],
+        [self settingsRowWithTitle:@"All sizes" control:_scaleSlider],
+        [self settingsRowWithTitle:@"Selected" control:_selectedScaleSlider],
         [self settingsRowWithTitle:@"Hide controls" control:_hideControlsSwitch],
         [self settingsRowWithTitle:@"Move controls" control:_editLayoutSwitch],
         reset,
@@ -1035,10 +1099,20 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
 }
 
 - (void)toggleSettings {
-    _settingsPanel.hidden = !_settingsPanel.hidden;
-    if (!_settingsPanel.hidden) {
+    if (_settingsPanel.hidden) {
+        _settingsPanel.hidden = NO;
         [self bringSubviewToFront:_settingsPanel];
         [self bringSubviewToFront:_settingsButton];
+    } else {
+        [self closeSettingsPanel];
+    }
+}
+
+- (void)closeSettingsPanel {
+    _settingsPanel.hidden = YES;
+    if (_editingLayout) {
+        _editLayoutSwitch.on = NO;
+        [self editLayoutChanged:_editLayoutSwitch];
     }
 }
 
@@ -1058,13 +1132,13 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
 - (void)scheduleGameDataChange {
     [NSUserDefaults.standardUserDefaults setBool:YES forKey:BPChangeGameDataOnNextLaunchKey];
     [NSUserDefaults.standardUserDefaults setBool:NO forKey:BPRemoveGameDataOnNextLaunchKey];
-    _settingsPanel.hidden = YES;
+    [self closeSettingsPanel];
     [self presentMessageWithTitle:@"Reimport on Next Launch"
                           message:@"Close and reopen Bellpad. Before the game starts, Files will ask for a supported ISO or GCM. Your current retained image remains available until a replacement passes validation."];
 }
 
 - (void)confirmGameDataRemoval {
-    _settingsPanel.hidden = YES;
+    [self closeSettingsPanel];
     UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"Remove Stored Game Data?"
         message:@"The private retained ISO/GCM will be removed the next time Bellpad launches, then Files will request replacement game data. Your GCI save and backups are not removed."
         preferredStyle:UIAlertControllerStyleAlert];
@@ -1091,7 +1165,7 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
     picker.delegate = self;
     picker.allowsMultipleSelection = NO;
     _documentPickerMode = BPDocumentPickerModeImportSave;
-    _settingsPanel.hidden = YES;
+    [self closeSettingsPanel];
     [self presentDocumentPickerWhileHoldingGameLoop:picker];
 }
 
@@ -1122,7 +1196,7 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
 
     _exportSnapshotURL = snapshot;
     _documentPickerMode = BPDocumentPickerModeExportSave;
-    _settingsPanel.hidden = YES;
+    [self closeSettingsPanel];
     UIDocumentPickerViewController *picker =
         [[UIDocumentPickerViewController alloc] initForExportingURLs:@[ snapshot ] asCopy:YES];
     picker.delegate = self;
@@ -1264,13 +1338,32 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
         [NSUserDefaults.standardUserDefaults setBool:NO forKey:[self settingsKey:@"hidden"]];
     }
     [self clearTouchInput];
-    for (UIPanGestureRecognizer *gesture in _editGestures) gesture.enabled = _editingLayout;
-    for (UIView *control in [self gameplayControls]) {
-        control.layer.borderColor = (_editingLayout
-            ? [UIColor colorWithRed:1.0 green:0.78 blue:0.20 alpha:0.95]
-            : [UIColor colorWithWhite:1.0 alpha:0.42]).CGColor;
+    for (UIGestureRecognizer *gesture in _editGestures) gesture.enabled = _editingLayout;
+    if (!_editingLayout) {
+        _selectedControl = nil;
+        _selectedScaleSlider.enabled = NO;
+        _selectedScaleSlider.value = 1.0;
     }
     [self updateControlAppearance];
+}
+
+- (void)confirmResetControlSettings {
+    NSString *device = self.traitCollection.userInterfaceIdiom == UIUserInterfaceIdiomPad
+        ? @"iPad" : @"iPhone";
+    UIAlertController *alert = [UIAlertController
+        alertControllerWithTitle:[NSString stringWithFormat:@"Reset %@ Touch Layout?", device]
+                         message:@"This resets every saved control position and size on this device type."
+                  preferredStyle:UIAlertControllerStyleAlert];
+    [alert addAction:[UIAlertAction actionWithTitle:@"Cancel"
+                                             style:UIAlertActionStyleCancel handler:nil]];
+    __weak BPGameOverlay *weakSelf = self;
+    [alert addAction:[UIAlertAction actionWithTitle:@"Reset Layout"
+                                             style:UIAlertActionStyleDestructive
+                                           handler:^(__kindof UIAlertAction *action) {
+        (void)action;
+        [weakSelf resetControlSettings];
+    }]];
+    [[self presentationController] presentViewController:alert animated:YES completion:nil];
 }
 
 - (void)resetControlSettings {
@@ -1278,12 +1371,17 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
     [defaults removeObjectForKey:[self settingsKey:@"centers"]];
     [defaults removeObjectForKey:[self settingsKey:@"opacity"]];
     [defaults removeObjectForKey:[self settingsKey:@"scale"]];
+    [defaults removeObjectForKey:[self settingsKey:@"sizes"]];
     [defaults removeObjectForKey:[self settingsKey:@"hidden"]];
     _controlOpacity = 0.76;
     _controlScale = 1.0;
+    _controlSizeScales = [NSMutableDictionary dictionary];
     _manualControlsHidden = NO;
     _opacitySlider.value = _controlOpacity;
     _scaleSlider.value = _controlScale;
+    _selectedScaleSlider.value = 1.0;
+    _selectedScaleSlider.enabled = NO;
+    _selectedControl = nil;
     _hideControlsSwitch.on = NO;
     _editLayoutSwitch.on = NO;
     [self editLayoutChanged:_editLayoutSwitch];
@@ -1291,18 +1389,65 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
 }
 
 - (void)updateControlAppearance {
-    BOOL hidden = _manualControlsHidden || _controllerConnected;
+    BOOL hidden = _manualControlsHidden || _controllerConnected || _nativeTextActive;
     if (hidden) [self clearTouchInput];
     for (UIView *control in [self gameplayControls]) {
         control.hidden = hidden;
         control.alpha = _controlOpacity;
         control.userInteractionEnabled = !hidden;
+        UIColor *border = [UIColor colorWithWhite:1.0 alpha:0.42];
+        if (_editingLayout) {
+            border = control == _selectedControl
+                ? [UIColor colorWithRed:0.20 green:0.78 blue:1.0 alpha:1.0]
+                : [UIColor colorWithRed:1.0 green:0.78 blue:0.20 alpha:0.95];
+        }
+        control.layer.borderColor = border.CGColor;
     }
+}
+
+- (void)setNativeTextActive:(BOOL)active {
+    if (_nativeTextActive == active) return;
+    _nativeTextActive = active;
+    if (active) [self closeSettingsPanel];
+    _settingsButton.hidden = active;
+    [self updateControlAppearance];
+}
+
+- (void)selectControlForEditing:(UIView *)control {
+    if (!_editingLayout || !control.accessibilityLabel) return;
+    _selectedControl = control;
+    NSNumber *saved = _controlSizeScales[control.accessibilityLabel];
+    _selectedScaleSlider.value = std::clamp<CGFloat>(saved ? saved.doubleValue : 1.0,
+                                                     0.60, 1.75);
+    _selectedScaleSlider.enabled = YES;
+    _selectedScaleSlider.accessibilityLabel = [NSString stringWithFormat:@"%@ size",
+                                                control.accessibilityLabel];
+    [self updateControlAppearance];
+}
+
+- (void)selectControl:(UITapGestureRecognizer *)gesture {
+    if (gesture.state == UIGestureRecognizerStateEnded) {
+        [self selectControlForEditing:gesture.view];
+    }
+}
+
+- (void)selectedScaleChanged:(UISlider *)slider {
+    UIView *control = _selectedControl;
+    NSString *identifier = control.accessibilityLabel;
+    if (!_editingLayout || !control || !identifier) return;
+    CGFloat scale = std::clamp<CGFloat>(slider.value, 0.60, 1.75);
+    _controlSizeScales[identifier] = @(scale);
+    [NSUserDefaults.standardUserDefaults setObject:_controlSizeScales
+                                            forKey:[self settingsKey:@"sizes"]];
+    [self setNeedsLayout];
 }
 
 - (void)moveControl:(UIPanGestureRecognizer *)gesture {
     if (!_editingLayout || !gesture.view) return;
     UIView *control = gesture.view;
+    if (gesture.state == UIGestureRecognizerStateBegan) {
+        [self selectControlForEditing:control];
+    }
     CGPoint translation = [gesture translationInView:self];
     CGPoint center = CGPointMake(control.center.x + translation.x, control.center.y + translation.y);
     [gesture setTranslation:CGPointZero inView:self];
@@ -1327,6 +1472,18 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
         NSMutableDictionary *centers = existing ? [existing mutableCopy] : [NSMutableDictionary dictionary];
         centers[identifier] = NSStringFromCGPoint(normalized);
         [defaults setObject:centers forKey:[self settingsKey:@"centers"]];
+    }
+}
+
+- (void)applySavedControlSizes {
+    for (UIView *control in [self gameplayControls]) {
+        NSNumber *saved = _controlSizeScales[control.accessibilityLabel];
+        CGFloat scale = std::clamp<CGFloat>(saved ? saved.doubleValue : 1.0, 0.60, 1.75);
+        if (std::abs(scale - 1.0) < 0.001) continue;
+        CGPoint center = control.center;
+        CGSize size = control.bounds.size;
+        control.bounds = CGRectMake(0.0, 0.0, size.width * scale, size.height * scale);
+        control.center = center;
     }
 }
 
@@ -1558,6 +1715,7 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
     [self button:@"▼"].frame = CGRectMake(dx + d, dy + d, d, d);
     [self button:@"◀"].frame = CGRectMake(dx, dy, d, d);
     [self button:@"▶"].frame = CGRectMake(dx + 2.0 * d, dy, d, d);
+    [self applySavedControlSizes];
     for (BPGameButton *button in _buttons) {
         button.layer.cornerRadius = std::min(button.bounds.size.width, button.bounds.size.height) * 0.5;
     }
@@ -1592,6 +1750,7 @@ static UIWindow *BellpadGameWindow(void) {
 static BPDiscImportViewController *sDiscImportController;
 static BPNativeTextField *sNativeTextField;
 static UIButton *sNativeTextDoneButton;
+static id sNativeKeyboardDisconnectObserver;
 
 static void BellpadApplyNativeTextState(BOOL active) {
     UIWindow *window = BellpadGameWindow();
@@ -1624,6 +1783,8 @@ static void BellpadApplyNativeTextState(BOOL active) {
         field.smartDashesType = UITextSmartDashesTypeNo;
         field.smartInsertDeleteType = UITextSmartInsertDeleteTypeNo;
         field.accessibilityLabel = @"Animal Crossing text input";
+        [field addTarget:field action:@selector(submitText)
+        forControlEvents:UIControlEventEditingDidEndOnExit];
         [rootView addSubview:field];
 
         UIButton *done = [UIButton buttonWithType:UIButtonTypeSystem];
@@ -1656,17 +1817,30 @@ static void BellpadApplyNativeTextState(BOOL active) {
         ]];
         sNativeTextField = field;
         sNativeTextDoneButton = done;
+        sNativeKeyboardDisconnectObserver = [NSNotificationCenter.defaultCenter
+            addObserverForName:GCKeyboardDidDisconnectNotification object:nil
+                         queue:NSOperationQueue.mainQueue
+                    usingBlock:^(NSNotification *notification) {
+            (void)notification;
+            if (!sNativeTextRequested.load(std::memory_order_acquire)) return;
+            [sNativeTextField becomeFirstResponder];
+            [sNativeTextField reloadInputViews];
+        }];
     }
 
+    BPGameOverlay *overlay = (BPGameOverlay *)[rootView viewWithTag:0x42454C4C];
+    [overlay setNativeTextActive:active];
     sNativeTextField.hidden = !active;
     sNativeTextDoneButton.hidden = !active;
     if (active) {
+        [sNativeTextField resetProxyText];
         [rootView bringSubviewToFront:sNativeTextField];
         [rootView bringSubviewToFront:sNativeTextDoneButton];
         [sNativeTextField becomeFirstResponder];
+        [sNativeTextField reloadInputViews];
     } else {
         [sNativeTextField resignFirstResponder];
-        sNativeTextField.text = @"";
+        [sNativeTextField resetProxyText];
     }
 }
 

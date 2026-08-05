@@ -15,8 +15,8 @@ As of 2026-08-04:
 - A pinned 64-bit source-port fork builds locally as a native macOS ARM64 executable.
 - The same complete game core now builds as an opt-in ARM64 `Bellpad.app`. It accepts `--disc`, presents a native picker when needed, validates GAFE01 disc 0 revision 0, packages only clean shader resources, and reaches the title loop from an arbitrary working directory.
 - The same patched source now builds with both Apple Clang 21 and GCC 16; the Apple Clang binary reaches the correctly rendered 60 FPS title screen.
-- The pinned checkout, forty-three local game-core patches, five Aurora patches, simulator/device builds, and unsigned IPA packaging are reproducible with tracked scripts. Direct product archives are content-hash pinned, and the exact shipped dependency inventory is machine-readable.
-- GitHub's Apple ARM64 runner passes the retail-data-free source-release gate from a clean checkout: tracked-content audits, all forty-three game-core patches, the native macOS shell/input test, RTC tests, NES/GX conversion tests, shell syntax, and whitespace checks.
+- The pinned checkout, forty-five local game-core patches, five Aurora patches, simulator/device builds, and unsigned IPA packaging are reproducible with tracked scripts. Direct product archives are content-hash pinned, and the exact shipped dependency inventory is machine-readable.
+- GitHub's Apple ARM64 runner passes the retail-data-free source-release gate from a clean checkout: tracked-content audits, all forty-five game-core patches, the native macOS shell/input test, RTC tests, NES/GX conversion tests, shell syntax, and whitespace checks.
 - A user-supplied `GAFE01` revision 0 image is validated and read directly without extracting or bundling its assets.
 - The desktop baseline renders the title, setup, train, and generated town at 60 FPS and starts 32 kHz stereo audio.
 - A trimmed-image aligned-read bug was identified and corrected locally.
@@ -41,8 +41,7 @@ See [STATUS.md](docs/STATUS.md), [PLAN.md](docs/PLAN.md), and [WORKLOG.md](docs/
 | Platform | Status |
 |---|---|
 | Apple Silicon macOS | Playable OpenGL `Bellpad.app` reaches a generated town; native Aurora/Metal target renders the full title and correctly displays/advances multi-line K.K. dialogue at 60 Hz |
-| iPhone Simulator/device | Simulator pass through saved-town outdoor entry; native ARM64/Metal device bundle and unsigned IPA build/audit pass; physical-device install/runtime pending |
-| iPad Simulator/device | Simulator pass through saved-town station with iPad-specific layout/settings; the same universal device bundle and unsigned IPA build/audit pass; physical-device runtime pending |
+| iPhone/iPad Simulator and iPad device | Simulator pass through the protected saved-town outdoor entry; signed native ARM64/Metal build installed and launched in place on iPad with byte-identical card-A preservation; hands-on defect acceptance remains tracked in `docs/TECH_DEBT.md` |
 | Intel macOS, Windows, Linux | Upstream-reference platforms, not Bellpad release targets |
 
 ## Game-data requirements
@@ -162,6 +161,9 @@ iPhone and iPad Simulator sessions will run sequentially, never concurrently. Th
 See [TESTING.md](docs/TESTING.md).
 
 ## Known issues
+
+The current player-visible defect register and device-safety gates are tracked
+in [TECH_DEBT.md](docs/TECH_DEBT.md).
 
 - Apple Clang compilation and a bounded ASan/UBSan title smoke are proven. The full guest-address/pointer-width inventory, broader sanitized gameplay, and legacy signed-angle cleanup are not complete.
 - Automated window-key delivery is harness-dependent. Guarded LLDB QA helpers can feed button taps, persistent left-stick values, and alphanumeric text through the same normalized APIs planned for Apple platform adapters.
