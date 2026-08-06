@@ -1,0 +1,11 @@
+diff --git a/src/static/libforest/emu64/emu64.c b/src/static/libforest/emu64/emu64.c
+--- a/src/static/libforest/emu64/emu64.c
++++ b/src/static/libforest/emu64/emu64.c
+@@ -3158,6 +3158,7 @@ void emu64::draw_rectangle(Gtexrect2* texrect) {
+ 
+     if (((this->othermode_high & G_CYC_COPY) == 0 || aflags[AFLAGS_FORCE_G_CYC_COPY] != FALSE) &&
+         aflags[AFLAGS_FORCE_G_CYC_COPY] != TRUE) {
++        GXSetNumTexGens(2);
+         GXSetTexCoordGen(GX_TEXCOORD1, GX_TG_MTX2x4, GX_TG_TEX0, GX_IDENTITY);
+         GXSetTevOrder(GX_TEVSTAGE1, GX_TEXCOORD1, (GXTexMapID)((tile + 1) & 7), GX_COLOR_NULL);
+     }

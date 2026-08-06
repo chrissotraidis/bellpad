@@ -140,6 +140,18 @@ path for every Aurora UI display list. This restores the GameCube editor grid,
 inventory and other POLY_OPA text while preserving each caller's original
 ordering and matrix. It also hides the desktop Tab-key typing status on iOS.
 
+`pc-port/0046-restore-aurora-texture-rectangle-coordinates.patch` restores
+texture-coordinate generation after UI fills. Its follow-up,
+`pc-port/0047-complete-aurora-two-texture-rectangle-setup.patch`, enables the
+second coordinate generator for the normal two-texture CI4/TLUT rectangle path
+used by inventory icons. The patch-series check verifies that source invariant
+after every clean replay.
+
+`pc-port/0048-stabilize-submenu-analog-navigation.patch` keeps low-strength
+touch-stick movement out of discrete submenu navigation and holds its first
+cardinal direction until release. It changes only the submenu's synthesized
+C-button navigation; in-world analog movement is unchanged.
+
 `aurora/0001-complete-acgc-gx-compatibility.patch` applies to Aurora commit
 `5027ed63a73dfba28de9eceed00481fb09a19c35`. It implements the five GX calls
 used by the compiled game core that the pinned Aurora library did not export:

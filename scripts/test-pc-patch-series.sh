@@ -26,4 +26,15 @@ for patch_path in "$patch_dir"/*.patch; do
 done
 
 test "$patch_count" -gt 0
+awk '
+    /^void emu64::draw_rectangle/ { in_draw_rectangle = 1; next }
+    in_draw_rectangle && /if \(\(\(this->othermode_high & G_CYC_COPY\) == 0/ { in_normal_branch = 1; next }
+    in_normal_branch && /GXSetNumTexGens\(2\)/ { restored_two_texgens = 1; next }
+    in_normal_branch && /GXSetTexCoordGen\(GX_TEXCOORD1/ {
+        if (!restored_two_texgens) exit 1
+        verified = 1
+        exit
+    }
+    END { exit(verified ? 0 : 1) }
+' "$roundtrip_dir/src/static/libforest/emu64/emu64.c"
 printf 'PC patch-series replay passed (%s patches).\n' "$patch_count"

@@ -1,0 +1,29 @@
+diff --git a/src/game/m_submenu_ovl.c b/src/game/m_submenu_ovl.c
+--- a/src/game/m_submenu_ovl.c
++++ b/src/game/m_submenu_ovl.c
+@@ -2139,11 +2139,22 @@
+ static void mSM_make_trigger_data(Submenu* submenu) {
+     static u32 add_trigger[] = { BUTTON_CRIGHT, BUTTON_CUP, BUTTON_CLEFT, BUTTON_CDOWN };
++    static const u32 stick_trigger_mask = BUTTON_CRIGHT | BUTTON_CUP | BUTTON_CLEFT | BUTTON_CDOWN;
+     int trigger = (getButton() & 0xF) | getTrigger();
+     mSM_Control_c* control = &submenu->overlay->menu_control;
+ 
+-    if (gamePT->mcon.move_pR > 0.5f) {
++    /*
++     * The touch stick reports its full continuous range, while submenu
++     * navigation is discrete. Require a deliberate corrected deflection and
++     * retain the first cardinal direction until the stick is released.
++     */
++    if (gamePT->mcon.adjusted_pR > 0.65f) {
+         u16 angle = gamePT->mcon.move_angle + DEG2SHORT_ANGLE2(45.0f);
++        u32 held_stick_trigger = control->last_trigger & stick_trigger_mask;
+ 
+-        trigger |= add_trigger[angle / DEG2SHORT_ANGLE2(90.0f)];
++        if (held_stick_trigger != 0) {
++            trigger |= held_stick_trigger;
++        } else {
++            trigger |= add_trigger[angle / DEG2SHORT_ANGLE2(90.0f)];
++        }
+     }
+ 
+     if (trigger == control->last_trigger) {
