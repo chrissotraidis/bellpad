@@ -1,9 +1,10 @@
 # Technical debt and device findings
 
-Last updated: 2026-08-05
+Last updated: 2026-08-06
 
 This document tracks player-visible defects that still require diagnosis or
-physical-device acceptance. A successful build, install, or live process is not
+physical-device acceptance, plus closed release blockers whose regression
+evidence must be retained. A successful build, install, or live process is not
 enough to close an item. User game data and saves remain outside Git. The
 approved `docs/readme/` gameplay captures are documentation images only; they
 do not contain a disc image, extracted asset, save, or playable archive.
@@ -78,26 +79,25 @@ Status: not reproduced in the corrected build; physical-touch acceptance remains
 - Required acceptance: one short A tap produces exactly one action for mailbox,
   door, fruit, dialogue advance, inventory use, and menu selection.
 
-### Missing game text, item icons, and inventory fields
+### Inventory item icons
 
-Status: shared Aurora font cause fixed; populated-inventory acceptance pending.
+Status: fixed and accepted on physical iPad on 2026-08-06.
 
-- The train keyboard shows blank character cells.
-- Inventory slots and item/name fields can appear blank or white even though the
-  surrounding UI and player model render.
-- Ordinary K.K. and Rover dialogue text renders in other scenes, so this is not
-  a universal font failure.
-- Patch 45 restores every Aurora font caller that previously used the blank
-  texture-rectangle primitive while preserving its original display-list and
-  matrix. The full GameCube keyboard grid is now visible in Simulator.
-- The exact protected save copy loaded in Simulator, and its current pocket
-  inventory is genuinely empty. That run cannot prove missing item icons; use a
-  known populated local test town to verify inventory names and icons before
-  closing this item.
-- Required comparison: the same save and scene on the OpenGL behavior oracle,
-  Aurora macOS, iPhone Simulator, iPad Simulator, and physical iPad.
-- Candidate areas include indexed textures/TLUT state, texture-cache lifetime,
-  copy/filter state, and scene-specific display-list coverage.
+- Runtime inspection proved the protected Chris/BUDAPEST save had two occupied
+  pocket slots and valid CI4 texture and RGB5A3 palette data, even though both
+  icons were absent from the inventory screen.
+- The defect was not inventory state, decoding, palette upload, cache lifetime,
+  alpha compare, viewport, or scissor state. Pocket items uniquely bypassed the
+  inventory's existing textured-quad model and used the legacy scissored
+  texture-rectangle path.
+- Patch 49 routes item icons and selection marks through the existing
+  `inv_item_model` and `inv_mark_model` polygon display lists, preserving the
+  original palette, color, shadow, animation, scale, and menu position.
+- A rebuilt iPad Simulator screenshot visibly showed both occupied icons and
+  the selected `orange` label. The same signed build was installed in place on
+  the physical iPad, where the user confirmed the corrected inventory passes.
+- Regression gate: keep a populated local save outside Git and verify visible
+  pocket icons after renderer or submenu changes.
 
 ## P1: touch and settings usability
 
@@ -193,7 +193,7 @@ Status: card semantics confirmed; test-town data and runtime proof pending.
 ## Acceptance order
 
 1. Preserve and re-verify the physical card-A backup.
-2. Reproduce text, inventory, and repeated-action defects in an isolated
+2. Reproduce remaining text and repeated-action defects in an isolated
    Simulator profile.
 3. Fix one input or rendering cause at a time with focused tests.
 4. Validate signed in-place deployment without replacing device data.
@@ -202,11 +202,11 @@ Status: card semantics confirmed; test-town data and runtime proof pending.
 
 ## Latest protected deployment
 
-- The corrected Simulator and device products built successfully on 2026-08-04.
-- An isolated iPad Simulator received byte-identical ROM and card-A copies and
-  loaded the `Chris` player in `BUDAPEST`; the physical device was not used for
-  development-state experiments.
-- The signed device app was installed in place and launched as PID 4287.
+- The corrected Simulator and device products built successfully on 2026-08-06.
+- An isolated iPad Simulator loaded the protected `Chris` player in `BUDAPEST`
+  and visibly rendered both occupied pocket icons with patch 49.
+- The signed device app was installed in place and launched as PID 5857; the
+  user confirmed the physical-iPad inventory check passes.
 - Card A matched SHA-256
   `6a91dc254f8af35e654ca28d6a40d4989a0399b907b8dbec45d4cacfec164773`
   before install, after install, after launch, and in a final readback on

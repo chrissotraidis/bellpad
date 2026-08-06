@@ -152,6 +152,12 @@ touch-stick movement out of discrete submenu navigation and holds its first
 cardinal direction until release. It changes only the submenu's synthesized
 C-button navigation; in-world analog movement is unchanged.
 
+`pc-port/0049-render-inventory-items-as-polygons.patch` routes pocket items
+and their selection marks through the inventory's existing textured-quad
+models instead of the legacy scissored texture-rectangle path. This restores
+visible item icons on Aurora/Metal while preserving the original palette,
+color, scale, shadow, mark animation, and menu position.
+
 `aurora/0001-complete-acgc-gx-compatibility.patch` applies to Aurora commit
 `5027ed63a73dfba28de9eceed00481fb09a19c35`. It implements the five GX calls
 used by the compiled game core that the pinned Aurora library did not export:
