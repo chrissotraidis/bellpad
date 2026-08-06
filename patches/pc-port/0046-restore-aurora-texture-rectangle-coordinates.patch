@@ -1,0 +1,19 @@
+diff --git a/src/static/libforest/emu64/emu64.c b/src/static/libforest/emu64/emu64.c
+--- a/src/static/libforest/emu64/emu64.c
++++ b/src/static/libforest/emu64/emu64.c
+@@ -3148,6 +3148,12 @@ void emu64::draw_rectangle(Gtexrect2* texrect) {
+ 
+     GXSetTexCoordGen(GX_TEXCOORD0, GX_TG_MTX2x4, GX_TG_TEX0, GX_IDENTITY);
+     GXSetTevOrder(GX_TEVSTAGE0, GX_TEXCOORD0, (GXTexMapID)tile, GX_COLOR_NULL);
++    /* Texture rectangles are often drawn immediately after a UI fill. The
++     * fill path deliberately disables texture-coordinate generation, so merely
++     * defining GX_TEXCOORD0 here is not enough for Aurora's shader state to
++     * sample the icon/font texture. Restore the exact number of coordinate
++     * generators used by the rectangle's one- or two-texture TEV setup. */
++    GXSetNumTexGens(1);
+ 
+     if (((this->othermode_high & G_CYC_COPY) == 0 || aflags[AFLAGS_FORCE_G_CYC_COPY] != FALSE) &&
+         aflags[AFLAGS_FORCE_G_CYC_COPY] != TRUE) {
++        GXSetNumTexGens(2);
+         GXSetTexCoordGen(GX_TEXCOORD1, GX_TG_MTX2x4, GX_TG_TEX0, GX_IDENTITY);
+         GXSetTevOrder(GX_TEVSTAGE1, GX_TEXCOORD1, (GXTexMapID)((tile + 1) & 7), GX_COLOR_NULL);
