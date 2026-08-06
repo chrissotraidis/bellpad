@@ -1,0 +1,101 @@
+diff --git a/src/game/m_submenu_ovl.c b/src/game/m_submenu_ovl.c
+--- a/src/game/m_submenu_ovl.c
++++ b/src/game/m_submenu_ovl.c
+@@ -407,18 +407,21 @@ typedef struct inventory_icon_info_s {
+     u8* tex;
+ } mSM_inventory_icon_info_c;
+ 
+-extern u8 inv_win_mark_tex[];
++extern Gfx inv_item_model[];
++extern Gfx inv_mark_model[];
+ 
+ static void mSM_set_dl_item(GRAPH* graph, f32 x, f32 y, f32 scale, mSM_inventory_icon_info_c* icon_info, u16* palette,
+                             u8 l, rgba_t* color, int draw_shadow, int draw_mark) {
+-    f32 rect_xh;
+-    f32 rect_yh;
+-    int t;
+-    int scale_factor;
++    Matrix_scale(16.0f, 16.0f, 1.0f, MTX_LOAD);
++    Matrix_translate(x, y, 140.0f, MTX_MULT);
++    Matrix_scale(scale, scale, 1.0f, MTX_MULT);
+ 
+     OPEN_POLY_OPA_DISP(graph);
+ 
+     gDPPipeSync(POLY_OPA_DISP++);
++    gSPMatrix(POLY_OPA_DISP++, _Matrix_to_Mtx_new(graph), G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
++    gSPSegment(POLY_OPA_DISP++, G_MWO_SEGMENT_9, palette);
++    gSPSegment(POLY_OPA_DISP++, G_MWO_SEGMENT_A, icon_info->tex);
+     gDPSetAlphaCompare(POLY_OPA_DISP++, G_AC_THRESHOLD);
+     gDPSetPrimColor(POLY_OPA_DISP++, 0, l, color->r, color->g, color->b, color->a);
+ 
+@@ -437,58 +440,16 @@ static void mSM_set_dl_item(GRAPH* graph, f32 x, f32 y, f32 scale, mSM_inventory
+         }
+     }
+ 
+-    gDPPipeSync(POLY_OPA_DISP++);
+-    gDPSetTextureLUT(POLY_OPA_DISP++, G_TT_RGBA16);
+-    gDPSetTexturePersp(POLY_OPA_DISP++, G_TP_NONE);
+-    gDPLoadTLUT_Dolphin(POLY_OPA_DISP++, 15, 16, 1, palette);
+-    gDPSetTextureImage_Dolphin(POLY_OPA_DISP++, G_IM_FMT_CI, G_IM_SIZ_4b, 32, 32, icon_info->tex);
+-    gDPSetTile_Dolphin(POLY_OPA_DISP++, G_DOLPHIN_TLUT_DEFAULT_MODE, G_TX_RENDERTILE, 15, GX_MIRROR, GX_MIRROR,
+-                       GX_CLAMP, GX_CLAMP);
+-
+-    t = (int)(x * 0.975f);
+-    x = (160.0f + (f32)t) - scale * 12.0f;
+-    y = (120.0f - y) - scale * 12.0f;
+-    scale_factor = (int)((1.0f / scale) * 1365.333333333f);
+-
+-    /* Draw 2D rectangle with icon texture */
+-    if (x < 320.0f) {
+-        f32 mod = scale * 24.0f;
+-
+-        rect_xh = x + mod;
+-        rect_yh = y + mod;
+-
+-        POLY_OPA_DISP = gfx_gSPScisTextureRectangle1(POLY_OPA_DISP, x * 4.0f, y * 4.0f, rect_xh * 4.0f, rect_yh * 4.0f,
+-                                                     G_TX_RENDERTILE, 0, 0, scale_factor, scale_factor);
+-    }
++    gSPDisplayList(POLY_OPA_DISP++, inv_item_model);
+ 
+     if (draw_mark) {
+         f32 frame_per = mSM_dt_triangle(40);
+ 
+         gDPPipeSync(POLY_OPA_DISP++);
+-        gDPSetTextureLUT(POLY_OPA_DISP++, G_TT_NONE);
+         gDPSetPrimColor(POLY_OPA_DISP++, 0, 0, 0, (int)(frame_per * 90.0f + 95.0f), 0, 255);
+         gDPSetEnvColor(POLY_OPA_DISP++, (int)(frame_per * 60.0f), (int)(frame_per * 45.0f + 210.0f),
+                        (int)(frame_per * 60.0f), 255);
+-        gDPSetAlphaCompare(POLY_OPA_DISP++, G_AC_NONE);
+-        gDPSetBlendColor(POLY_OPA_DISP++, 255, 255, 255, 8);
+-        gDPSetTextureLUT(POLY_OPA_DISP++, G_TT_NONE); // duplicate?
+-        gDPSetTextureImage_Dolphin(POLY_OPA_DISP++, G_IM_FMT_IA, G_IM_SIZ_8b, 16, 16, inv_win_mark_tex);
+-        gDPSetTile_Dolphin(POLY_OPA_DISP++, G_DOLPHIN_TLUT_DEFAULT_MODE, G_TX_RENDERTILE, 0, GX_MIRROR, GX_MIRROR,
+-                           GX_CLAMP, GX_CLAMP);
+-        gDPSetBlendColor(POLY_OPA_DISP++, 255, 255, 255, 254); // bug? doesn't this undo the previous blend color set?
+-        gDPSetCombineMode(POLY_OPA_DISP++, G_CC_BLENDPEDECALA, G_CC_BLENDPEDECALA);
+-
+-        /* Draw 2D rectangle with mark texture */
+-        if (x < 320.0f) {
+-            f32 mod = scale * 24.0f;
+-
+-            rect_xh = x + mod;
+-            rect_yh = y + mod;
+-
+-            POLY_OPA_DISP =
+-                gfx_gSPScisTextureRectangle1(POLY_OPA_DISP, x * 4.0f, y * 4.0f, rect_xh * 4.0f, rect_yh * 4.0f,
+-                                             G_TX_RENDERTILE, 0, 0, scale_factor, scale_factor);
+-        }
++        gSPDisplayList(POLY_OPA_DISP++, inv_mark_model);
+     }
+ 
+     gDPPipeSync(POLY_OPA_DISP++);
+@@ -1520,9 +1481,6 @@ extern u16 inv_mwin_mtegami2_pal[];
+ extern u8 inv_mwin_mtegami2_tex[];
+ extern u8 inv_mwin_pmtegami2_tex[];
+ 
+-extern Gfx inv_item_model[];
+-extern Gfx inv_mark_model[];
+-
+ static void mSM_draw_mail(GRAPH* graph, f32 pos_x, f32 pos_y, f32 scale, Mail_c* mail, int color_flag, int shadow_flag,
+                           int mark_flag) {
+     static mSM_inventory_icon_info_c letter_tex_data_table[] = {
