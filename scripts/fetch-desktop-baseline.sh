@@ -40,21 +40,9 @@ applied_count=0
 
 set -- "$repo_root"/patches/pc-port/*.patch
 
-# Older Bellpad checkouts predate the state file. If the newest patch can be
-# reversed, the complete ordered series is already present; record that state
-# without touching the worktree. This also upgrades this repository in place.
-if [ ! -f "$patch_state" ]; then
-    last_patch=""
-    for patch_path in "$@"; do
-        last_patch="$patch_path"
-    done
-    if [ -n "$last_patch" ] &&
-       git -C "$baseline_dir" apply --unidiff-zero --reverse --check "$last_patch" 2>/dev/null; then
-        for patch_path in "$@"; do
-            git hash-object "$patch_path"
-        done > "$patch_state"
-    fi
-fi
+# Check legacy checkouts patch-by-patch below. A reversible newest patch alone
+# cannot prove that every earlier patch was applied, especially if a patch
+# hunk was only partially represented in an old working tree.
 
 if [ -f "$patch_state" ]; then
     applied_count=$(wc -l < "$patch_state" | tr -d ' ')
