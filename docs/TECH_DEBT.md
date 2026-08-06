@@ -4,7 +4,9 @@ Last updated: 2026-08-05
 
 This document tracks player-visible defects that still require diagnosis or
 physical-device acceptance. A successful build, install, or live process is not
-enough to close an item. Retail screenshots and user data remain outside Git.
+enough to close an item. User game data and saves remain outside Git. The
+approved `docs/readme/` gameplay captures are documentation images only; they
+do not contain a disc image, extracted asset, save, or playable archive.
 
 ## Data-safety boundary
 
