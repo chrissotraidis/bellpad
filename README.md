@@ -34,7 +34,7 @@ boundary](docs/LEGAL.md) before using or contributing to the project.
 |---|---|---|
 | Apple Silicon macOS | **Playable baseline** | The native `Bellpad.app` reaches a generated town, creates/reloads a Dolphin-compatible GCI save, and has desktop rendering/input evidence. |
 | iPhone and iPad Simulator | **Current development target** | Files import, retained game data, Metal rendering, touch input, native name entry, save import/export, and relaunch have evidence on sequential Simulator runs. |
-| ARM64 iPhone/iPad device build | **Build and package audited** | The unsigned product builds for iOS 17.0+, and package audits exclude game data and signing material. Physical-device gameplay acceptance is still open. |
+| ARM64 iPhone/iPad device build | **Physical iPad validated** | The iOS 17.0+ product builds and packages cleanly; a locally signed in-place install launches on iPad and renders populated inventory items. Broader hardware lifecycle, keyboard, controller, and audio-route acceptance remains. |
 | GitHub release / App Store / TestFlight | **Not available** | Bellpad is currently a source release, not a downloadable or store-distributed game release. |
 
 The source-release workflow verifies the clean-room and reproducibility gates
@@ -150,10 +150,10 @@ archive is included in this repository or in Bellpad build products.
 | Area | Current evidence |
 |---|---|
 | Native core | 64-bit Apple Silicon macOS core and the complete Aurora/SDL3/Dawn game target build from pinned sources. |
-| Rendering | Desktop OpenGL is the behavior baseline; Aurora/Metal renders the title, train/station flow, dialogue, and a representative iPhone outdoor-town entry. |
+| Rendering | Desktop OpenGL is the behavior baseline; Aurora/Metal renders the title, train/station flow, dialogue, populated inventory item icons, and representative outdoor-town scenes. |
 | Saves | Canonical GCI creation/reload, atomic replacement, rolling backups, isolated Dolphin GCI-folder interchange, and Simulator import/export have evidence. |
 | Game-data flow | Raw ISO/GCM validation, private retention, reimport/removal, and retained relaunch work in the mobile app. |
-| Input | Native touch, desktop keyboard, native mobile setup text, and the normalized GameCube input boundary have focused test evidence. |
+| Input | Native touch, desktop keyboard, native mobile setup text, stabilized discrete submenu navigation, and the normalized GameCube input boundary have focused test evidence. |
 | Packaging | The unsigned ARM64 iOS package is reproducible and audited to contain no game data, save, certificate, provisioning profile, or private key. |
 
 See [STATUS.md](docs/STATUS.md) and [TESTING.md](docs/TESTING.md) for dated
@@ -162,13 +162,12 @@ evidence and [PLAN.md](docs/PLAN.md) for the remaining implementation plan.
 ## Known limitations
 
 - This is an experimental source port, not a finished commercial product.
-- Physical-device gameplay, long-session stability, audio-route behavior,
-  controller reconnect, and broad scene coverage remain acceptance gates.
-- Inventory/item rendering still needs a comparison against a known populated
-  save; the current protected test save is empty.
+- Broader physical-device lifecycle, long-session stability, audio-route
+  behavior, keyboard transitions, controller reconnect, and scene coverage
+  remain acceptance gates.
 - A reported repeated-action symptom is not reproduced in the corrected
-  Simulator traces, but doors, dialogue, inventory use, and menus still need
-  short-tap acceptance on physical touch hardware.
+  Simulator traces; broader short-tap coverage across doors, dialogue, and
+  inventory actions remains useful regression testing.
 - Interiors, broader outdoor comparison, complete editor coverage, compressed
   game-data formats, NES-furniture runtime output, and full sanitizer gameplay
   coverage remain open.

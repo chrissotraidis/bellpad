@@ -43,8 +43,9 @@ ditto "$app" "$package_dir/Payload/Bellpad.app"
 package_app="$package_dir/Payload/Bellpad.app"
 package_binary="$package_app/Bellpad"
 
-codesign --remove-signature "$package_binary" 2>/dev/null || true
+codesign --remove-signature "$package_app" 2>/dev/null || true
 rm -f "$package_app/embedded.mobileprovision"
+rm -rf "$package_app/_CodeSignature"
 
 forbidden_path_pattern='(^|/)(aram\.bin|audiorom\.img|famicom\.arc|foresta\.map|foresta\.rel\.szs|forest_1st\.arc|forest_2nd\.arc|opening\.bnr|static\.map|static\.str)$|\.(iso|gcm|ciso|rvz|wia|wbfs|gcz|gci|raw|sav|srm|p12|mobileprovision|provisionprofile|cer|key|pem)$|(^|/)\.env($|\.)'
 package_matches=$(find "$package_app" -type f -print | sed "s#^$package_dir/##" | rg -i "$forbidden_path_pattern" || true)

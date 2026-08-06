@@ -1,6 +1,6 @@
 # Building
 
-Last updated: 2026-08-04
+Last updated: 2026-08-06
 
 The repository now builds a playable macOS game-core bundle, native Aurora/Metal game targets for macOS, iOS Simulator, and ARM64 iOS devices, an audited unsigned IPA, Bellpad-owned Metal/touch integration shells, and pinned compatibility probes.
 
@@ -12,7 +12,7 @@ brew install cmake ninja ripgrep sdl2
 ./scripts/build-aurora-game-ios-simulator.sh
 ```
 
-The verification command audits tracked/release content, clones the exact pinned game core into ignored local storage, replays all forty-three patches in an isolated detached worktree, builds and runs the clean native platform tests, exercises the deterministic RTC and NES/GX conversion suites, checks every shell script, and rejects whitespace errors. It requires no retail data. The same command runs on GitHub's Apple ARM64 `macos-15` runner through the pinned [source-release workflow](https://github.com/chrissotraidis/bellpad/actions/workflows/source-release.yml); use that live workflow page as the authoritative clean-checkout result for the current `main`. The simulator build fetches pinned dependencies and may take several minutes on its first Dawn build.
+The verification command audits tracked/release content, clones the exact pinned game core into ignored local storage, replays all forty-nine patches in an isolated detached worktree, builds and runs the clean native platform tests, exercises the deterministic RTC and NES/GX conversion suites, checks every shell script, and rejects whitespace errors. It requires no retail data. The same command runs on GitHub's Apple ARM64 `macos-15` runner through the pinned [source-release workflow](https://github.com/chrissotraidis/bellpad/actions/workflows/source-release.yml); use that live workflow page as the authoritative clean-checkout result for the current `main`. The simulator build fetches pinned dependencies and may take several minutes on its first Dawn build.
 
 ## Host
 
@@ -160,7 +160,7 @@ To install the simulator bundle, use `xcrun simctl install <device-uuid> build/i
 ./scripts/build-aurora-game-ios-simulator.sh
 ```
 
-This applies the pinned forty-three-patch game series and five-patch Aurora series,
+This applies the pinned forty-nine-patch game series and five-patch Aurora series,
 builds Dawn and SDL3 for ARM64 iOS Simulator, and links the complete game core,
 Aurora GX/Metal renderer, SDL3 audio, normalized input bridge, and UIKit GameCube
 overlay into `Bellpad.app`. The script verifies the Mach-O platform, plist,
@@ -247,13 +247,13 @@ saves, credentials, certificates, keys, and provisioning material. It never
 reads or packages the ignored development disc image. Set
 `BELLPAD_SKIP_IOS_DEVICE_BUILD=1` to repackage an already audited device build.
 
-Observed 2026-08-04: the output contains exactly the executable, plist,
+Observed 2026-08-06: the output contains exactly the executable, plist,
 `Assets.car`, `AppIcon60x60@2x.png`, `AppIcon76x76@2x~ipad.png`, and the tracked
 `ThirdPartyNotices.txt`; it is 13 MiB compressed and targets ARM64 iOS 17.0
 through Metal. Source-prefix mapping keeps the checkout location out of
-Bellpad-built objects. Two final save-recovery packages produced identical bytes with
-SHA-256
-`63752da02aeed92f925d2494a49a1537308bdea2a8a0a4af6cd1e4d8a5bffb7a`.
+Bellpad-built objects. Two final inventory-fix packages produced identical
+14,137,497-byte archives with SHA-256
+`d95ef5716740081dba9eb5816b9b4037f6337ec52123f75441ad878f52e462a7`.
 
 Run the tracked-content safety check before every commit and package build:
 

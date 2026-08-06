@@ -1,6 +1,6 @@
 # Testing strategy and evidence
 
-Last updated: 2026-08-04
+Last updated: 2026-08-06
 
 No gameplay test is marked passed without a dated result, device/OS, build revision, image revision, and observable outcome.
 
@@ -10,7 +10,7 @@ No gameplay test is marked passed without a dated result, device/OS, build revis
 |---|---|
 | Clean Apple ARM64 checkout | Pass — the live [source-release workflow](https://github.com/chrissotraidis/bellpad/actions/workflows/source-release.yml) verifies current `main` on a `macos-15` ARM64 runner |
 | Retail-data exclusion | Pass — the hosted job receives no disc image, extracted asset, or save and completes the tracked/release-content audits |
-| Pinned core reconstruction | Pass — the exact `915fb86…` upstream commit is fetched and all forty-three tracked patches pass `git apply --check` and replay in an isolated detached worktree |
+| Pinned core reconstruction | Pass — the exact `915fb86…` upstream commit is fetched and all forty-nine tracked patches pass `git apply --check` and replay in an isolated detached worktree |
 | Source checks | Pass — native macOS shell and normalized-input test, deterministic RTC suite, NES/GX frame-conversion suite, shell syntax, and whitespace checks |
 
 ## Desktop baseline matrix
@@ -152,19 +152,20 @@ scene/orientation/safe-area policy and adaptive touch controls.
 | iPad data-management UI | Pass — after iPhone shutdown, the full settings panel exposed `Game Data & Saves…`; a real validated GCI export presented in the managed Files sheet, saved, dismissed, and returned to the live game |
 | iPad render resolution | Pass — the 4× choice produced a 2560×1920 internal framebuffer against the 2752×2064 iPad drawable, preserving the fixed 60 Hz simulation path |
 | iPad saved-player Metal scene | Pass through station — after the iPhone simulator was shut down, the same universal app and Bell/Cove GCI advanced through returning-player selection, train animation, Porter dialogue, and the live Cove station using production UIKit A input. The Simulator automation gesture releases the analog stick too quickly for a reliable outdoor traversal, so this row does not claim one |
+| Populated inventory rendering | Pass — 2026-08-06, iPad Simulator and physical iPad. The protected Chris/BUDAPEST save exposed two occupied pocket slots; patch 49 routes the existing item and selection-mark quads through the working polygon display-list path. Both icons rendered in the Simulator screenshot, and the same signed build passed the user's physical-iPad inventory check |
 | Original app icon | Pass — opaque full-bleed 1024×1024 source has no alpha or baked rounded corners; `actool` emitted iPhone/iPad renditions and plist metadata, the installed iPhone home screen displayed the Bellpad icon, and macOS `iconutil` round-tripped all ten 16–1024 px iconset files |
 | iPad retained startup/relaunch | Pass — earlier terminate/relaunch returned to the animated Metal title, and a fresh no-argument strict-validator launch accepted the retained image's exact size/SHA-256 and stayed live on the Metal product |
 | Cleanup | Pass — each recorded sequential run terminated the active app and shut down its simulator before the next device class; no simulator remained booted. Retail data and saves remained outside Git and every app/package artifact |
 | Lifecycle/audio wiring | Pass for three bounded iPhone Simulator cycles after fixing a reproduced second-cycle `EXC_BAD_ACCESS`: when Aurora declines a background frame, patch 29 discards queued GX data and never calls `aurora_end_frame` without a frame packet. All three Home/foreground cycles logged matched pause/resume edges and restored Metal rendering; RSS remained bounded in the short run and no new crash report appeared. Three sequential iPad Home/resume cycles also restored visible rendering. On 2026-08-04, isolated iPhone and then iPad Simulator runs opened the real SDL3 stream at 32 kHz and underwent eight-second opt-in `AVAudioSession` interruptions. Both logged sample-clocked discard, matched pause/reactivate/fresh-sample resume, no `SendStart::Mesg Full Queue`, a subsequent route-change pause/resume, and continued title frames. Real hardware routes/calls, long-session memory, and two SDL UIKit startup warnings remain |
 | RTC activation rebase | Pass — patches 30/31 rebuilt into the universal product; iPhone Home/foreground logged audio pause, `RTC synchronized after UIApplicationDidBecomeActive (adjustment 0.000 seconds)`, and audio resume. The same bundle then booted the real game on iPad only after iPhone shutdown and returned from one bounded Home/resume cycle |
 | NES GX framebuffer | Partial — deterministic tests prove visible-row cropping, fixNES-to-GX RGB565 field conversion, big-endian bytes, 4×4 tile ordering, invalid-buffer rejection, and final-pixel placement; macOS, iOS Simulator, and iOS device products compile/link the GX presenter. No local `.nes` input was available, so actual NES-furniture video remains a runtime gate |
-| ARM64 device build | Pass (static audit) — complete product links as Mach-O arm64 with `LC_BUILD_VERSION` platform `IOS`, minimum iOS 17.0, Metal, and no SDL2; physical install/runtime remains |
-| Unsigned IPA reproducibility | Pass — two final timestamp-normalized queue-safe audio packages were byte-identical with SHA-256 `d71c22426e91a357a6cd509805892a01241c739cb72f3e49413f63ad0ffccf8d`; the preceding source-release checkpoint also reproduced from an independent fresh clone |
+| ARM64 device build | Pass — complete product links as Mach-O arm64 with `LC_BUILD_VERSION` platform `IOS`, minimum iOS 17.0, Metal, and no SDL2. The inventory-fix build was locally signed, verified, installed in place on Chris' iPad Pro, launched, and observed live as PID 5857 |
+| Unsigned IPA reproducibility | Pass — two final 14,137,497-byte timestamp-normalized inventory-fix packages were byte-identical with SHA-256 `d95ef5716740081dba9eb5816b9b4037f6337ec52123f75441ad878f52e462a7` |
 | Device runtime-link audit | Pass — `otool` reports only Apple system frameworks and `/usr/lib` libraries; no `LC_RPATH` remains, and the package script independently enforces both constraints |
 | Post-static-link simulator smoke | Pass — rebuilt universal bundle installed and launched to the native no-data Files screen on iPhone 17 Pro, then after shutdown on iPad Pro 13-inch; both sessions were terminated and shut down without extended control replay |
 | Dependency/archive pins | Pass — product dependency lock covers every linked non-system library; Abseil, SDL3, source Dawn, iOS Dawn, and macOS Dawn hashes close the formerly version-only downloads, while all remaining fetched archives retain upstream SHA-256 pins |
 | Bundled license notices | Pass — the macOS baseline, universal Simulator app, device app, IPA staging tree, and final IPA carry byte-identical `ThirdPartyNotices.txt`, including SDL HIDAPI/yuv2rgb's separate BSD terms; the archive contains only that notice plus the executable, plist, `Assets.car`, and two compiled icon PNGs |
-| Unsigned IPA contents | Pass — 13 MiB archive contains only the executable, plist, `Assets.car`, two compiled icon PNGs, and `ThirdPartyNotices.txt`; no signature, provisioning profile, retail data, save, key, or certificate |
+| Unsigned IPA contents | Pass — 13 MiB archive contains only the executable, plist, `Assets.car`, two compiled icon PNGs, and `ThirdPartyNotices.txt`; staged bundle signatures and empty signature directories are removed, with no provisioning profile, retail data, save, key, or certificate |
 
 The disc-import runs above used the native Files UI and no `--disc` argument. They
 prove the raw ISO/GCM user flow and relaunch retention. The later save-management
