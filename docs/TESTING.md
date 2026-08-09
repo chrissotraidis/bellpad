@@ -10,8 +10,8 @@ No gameplay test is marked passed without a dated result, device/OS, build revis
 |---|---|
 | Clean Apple ARM64 checkout | Pass — the live [source-release workflow](https://github.com/chrissotraidis/bellpad/actions/workflows/source-release.yml) verifies current `main` on a `macos-15` ARM64 runner |
 | Retail-data exclusion | Pass — the hosted job receives no disc image, extracted asset, or save and completes the tracked/release-content audits |
-| Pinned core reconstruction | Pass — the exact `915fb86…` upstream commit is fetched and all forty-nine tracked patches pass `git apply --check` and replay in an isolated detached worktree |
-| Source checks | Pass — native macOS shell and normalized-input test, deterministic RTC suite, NES/GX frame-conversion suite, shell syntax, and whitespace checks |
+| Pinned core reconstruction | Pass — the exact `915fb86…` upstream commit is fetched and all fifty tracked patches pass `git apply --check` and replay in an isolated detached worktree |
+| Source checks | Pass — native macOS shell and normalized-input test, deterministic RTC suite, Apple disc-memory suite, NES/GX frame-conversion suite, shell syntax, and whitespace checks |
 
 ## Desktop baseline matrix
 

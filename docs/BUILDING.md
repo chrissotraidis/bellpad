@@ -12,7 +12,7 @@ brew install cmake ninja ripgrep sdl2
 ./scripts/build-aurora-game-ios-simulator.sh
 ```
 
-The verification command audits tracked/release content, clones the exact pinned game core into ignored local storage, replays all forty-nine patches in an isolated detached worktree, builds and runs the clean native platform tests, exercises the deterministic RTC and NES/GX conversion suites, checks every shell script, and rejects whitespace errors. It requires no retail data. The same command runs on GitHub's Apple ARM64 `macos-15` runner through the pinned [source-release workflow](https://github.com/chrissotraidis/bellpad/actions/workflows/source-release.yml); use that live workflow page as the authoritative clean-checkout result for the current `main`. The simulator build fetches pinned dependencies and may take several minutes on its first Dawn build.
+The verification command audits tracked/release content, clones the exact pinned game core into ignored local storage, replays all fifty patches in an isolated detached worktree, builds and runs the clean native platform tests, exercises the deterministic RTC, Apple disc-memory, and NES/GX conversion suites, checks every shell script, and rejects whitespace errors. It requires no retail data. The same command runs on GitHub's Apple ARM64 `macos-15` runner through the pinned [source-release workflow](https://github.com/chrissotraidis/bellpad/actions/workflows/source-release.yml); use that live workflow page as the authoritative clean-checkout result for the current `main`. The simulator build fetches pinned dependencies and may take several minutes on its first Dawn build.
 
 ## Host
 
@@ -91,7 +91,9 @@ multi-hour sanitizer certification.
 open ref/upstream/acgc-64bit/pc/build-bellpad-app/bin/Bellpad.app
 ```
 
-This opt-in build packages the actual compiled game core as an ARM64 app bundle. If no image was selected with `--disc PATH` and none is found by the legacy search, it presents a native `NSOpenPanel`. The core accepts only GAFE01 disc 0 revision 0 and reads the selected image in place. The bundle contains its clean GLSL shaders, executable, and plist only; it never copies the selected image.
+This opt-in build packages the actual compiled game core as an ARM64 app bundle. If no image was selected with `--disc PATH`, none is remembered from an earlier launch, and none is found by the legacy search, it presents a native `NSOpenPanel`. The core accepts only GAFE01 disc 0 revision 0 and reads the selected image in place. The bundle contains its clean GLSL shaders, executable, and plist only; it never copies the selected image.
+
+A picked image is remembered as `disc.alias` inside the data directory, so later launches start straight into the game. The alias is a local path reference, not a copy, so a renamed or moved image still resolves. Failure is split deliberately: a reference that resolves to a file the core rejects is deleted, while one that does not resolve at all is kept, so an image on a temporarily unmounted volume recovers on a later launch instead of needing to be picked again. Both cases fall through to the legacy search and then the picker for that run, and a successful pick overwrites the stored reference. `--disc PATH` selects an image for a single run without replacing the remembered one, and `--choose-disc` forgets it and asks. `./scripts/test-pc-apple-disc-memory.sh` covers store, resolve-after-rename, stale, forget, and buffer-boundary behavior against a generated placeholder file. Because the bundle is unsandboxed, macOS may still ask once for access to the folder holding the image if it lives under Desktop, Documents, or Downloads.
 
 The current bundle is an honest Milestone 1 product baseline, not the final architecture: rendering remains SDL2/OpenGL. On macOS it creates and enters `~/Library/Application Support/Bellpad` before loading settings, keybindings, or `save/card_a`. Set `BELLPAD_DATA_HOME` to an isolated absolute directory for development tests. GCI writes use a durable sibling temp file, three rolling backups, atomic rename, and parent-directory synchronization on Apple/POSIX hosts. An isolated Bell/Cove run created a canonical GCI through the live game-facing routine, closed normally, and loaded it in a fresh process. The tracked button, stick, sequence, and text QA helpers accept either the historical executable name or `Bellpad.app/Contents/MacOS/Bellpad`.
 
@@ -160,7 +162,7 @@ To install the simulator bundle, use `xcrun simctl install <device-uuid> build/i
 ./scripts/build-aurora-game-ios-simulator.sh
 ```
 
-This applies the pinned forty-nine-patch game series and five-patch Aurora series,
+This applies the pinned fifty-patch game series and five-patch Aurora series,
 builds Dawn and SDL3 for ARM64 iOS Simulator, and links the complete game core,
 Aurora GX/Metal renderer, SDL3 audio, normalized input bridge, and UIKit GameCube
 overlay into `Bellpad.app`. The script verifies the Mach-O platform, plist,
