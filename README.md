@@ -85,6 +85,12 @@ supported compatibility target is the original US revision:
 |---|---|---|---|
 | `GAFE01` | USA | 0 | Validated raw ISO/GCM at the verified full or trimmed size |
 
+On macOS, the app asks for the image once with a native file chooser and
+remembers it, so later launches start straight into the game. Run it with
+`--choose-disc` to pick a different image, or `--disc PATH` to use one for a
+single run. Bellpad stores only a local reference to the file you picked; it
+never copies the image into the app or the data directory.
+
 On iPhone and iPad, select the file in Files. Bellpad validates the header,
 revision, size, and streamed fingerprint; stages a private Application Support
 copy; validates it again; then installs it atomically for subsequent launches.

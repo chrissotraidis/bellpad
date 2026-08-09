@@ -158,6 +158,16 @@ models instead of the legacy scissored texture-rectangle path. This restores
 visible item icons on Aurora/Metal while preserving the original palette,
 color, scale, shadow, mark animation, and menu position.
 
+`pc-port/0050-remember-macos-disc-selection.patch` stores an alias to the image
+the player chose in Bellpad's Application Support directory and reuses it on
+later launches, so the native picker no longer opens on every start. A moved or
+renamed image still resolves. An image that resolves but is no longer supported
+is dropped, while an unresolvable reference is kept so an offline volume
+recovers on a later launch; either way the picker opens again for that run.
+`--disc PATH` selects an image for a single run
+without replacing the remembered one, and `--choose-disc` forgets it and asks.
+The alias records only a local path reference; no retail data is copied.
+
 `aurora/0001-complete-acgc-gx-compatibility.patch` applies to Aurora commit
 `5027ed63a73dfba28de9eceed00481fb09a19c35`. It implements the five GX calls
 used by the compiled game core that the pinned Aurora library did not export:

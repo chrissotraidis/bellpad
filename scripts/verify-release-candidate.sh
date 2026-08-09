@@ -10,6 +10,7 @@ cd "$repo_root"
 "$script_dir/test-pc-patch-series.sh"
 "$script_dir/build-apple-shell.sh" macos
 "$script_dir/test-pc-rtc-clock.sh"
+"$script_dir/test-pc-apple-disc-memory.sh"
 "$script_dir/test-pc-nes-gx-frame.sh"
 
 for script in "$script_dir"/*.sh; do
