@@ -23,10 +23,19 @@ Aurora, SDL3, and Dawn.
 
 This repository contains source, original Bellpad integration, reproducible
 build scripts, and documentation. It does **not** contain Animal Crossing, a
-GameCube image, extracted game assets, saves, or an installable public IPA.
-You supply your own legally obtained, supported game data locally after
-building or installing Bellpad. Read the scoped [legal and clean-room
-boundary](docs/LEGAL.md) before using or contributing to the project.
+GameCube image, extracted game assets, or saves. You supply your own legally
+obtained, supported game data locally after building or installing Bellpad.
+Read the scoped [legal and clean-room boundary](docs/LEGAL.md) before using or
+contributing to the project.
+
+## Download
+
+[**Download Bellpad 0.1.0 Preview 1 for iPhone and iPad (.ipa)**](https://github.com/chrissotraidis/bellpad/releases/download/v0.1.0-preview.1/Bellpad-0.1.0-preview.1-unsigned.ipa)
+
+This is an experimental, unsigned, ROM-free preview for ARM64 devices running
+iOS or iPadOS 17.0 or later. You must sign it with your own Apple identity
+before installation and provide your own supported game data after launch. It
+is not an App Store or TestFlight release.
 
 ## Release status
 
@@ -35,7 +44,8 @@ boundary](docs/LEGAL.md) before using or contributing to the project.
 | Apple Silicon macOS | **Playable baseline** | The native `Bellpad.app` reaches a generated town, creates/reloads a Dolphin-compatible GCI save, and has desktop rendering/input evidence. |
 | iPhone and iPad Simulator | **Current development target** | Files import, retained game data, Metal rendering, touch input, native name entry, save import/export, and relaunch have evidence on sequential Simulator runs. |
 | ARM64 iPhone/iPad device build | **Physical iPad validated** | The iOS 17.0+ product builds and packages cleanly; a locally signed in-place install launches on iPad and renders populated inventory items. Broader hardware lifecycle, keyboard, controller, and audio-route acceptance remains. |
-| GitHub release / App Store / TestFlight | **Not available** | Bellpad is currently a source release, not a downloadable or store-distributed game release. |
+| GitHub release | **Unsigned preview available** | Download the ROM-free IPA above, sign it with your own Apple identity, and provide your own supported game data after launch. |
+| App Store / TestFlight | **Not available** | Bellpad is not store-distributed. |
 
 The source-release workflow verifies the clean-room and reproducibility gates
 on Apple ARM64. It is not a substitute for hands-on hardware gameplay,
@@ -74,7 +84,7 @@ For the native macOS baseline, run:
 For the unsigned ARM64 device product, use
 `./scripts/build-aurora-game-ios-device.sh`; packaging is described in
 [BUILDING.md](docs/BUILDING.md). A device build is not a generally installable
-download: it needs your own signing and hardware validation.
+download without your own signing and hardware validation.
 
 ## First launch and game data
 
