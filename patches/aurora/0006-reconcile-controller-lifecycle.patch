@@ -1,0 +1,304 @@
+diff --git a/lib/controller_reconcile.hpp b/lib/controller_reconcile.hpp
+new file mode 100644
+index 0000000..797750c
+--- /dev/null
++++ b/lib/controller_reconcile.hpp
+@@ -0,0 +1,70 @@
++#pragma once
++
++#include <algorithm>
++#include <cstdint>
++#include <vector>
++
++namespace aurora::input::detail {
++
++struct ControllerSnapshot {
++  uint32_t instance = 0;
++  int32_t player = -1;
++  bool connected = false;
++};
++
++struct ControllerAssignment {
++  uint32_t instance = 0;
++  int32_t player = -1;
++};
++
++struct ControllerReconcilePlan {
++  std::vector<uint32_t> close;
++  std::vector<uint32_t> open;
++  std::vector<ControllerAssignment> assign;
++};
++
++inline ControllerReconcilePlan plan_controller_reconciliation(
++    const std::vector<ControllerSnapshot>& stored, const std::vector<uint32_t>& current, int32_t maxPlayers) {
++  ControllerReconcilePlan plan;
++  std::vector<bool> occupied(static_cast<size_t>(std::max(maxPlayers, 0)), false);
++
++  const auto isCurrent = [&current](uint32_t instance) {
++    return std::find(current.begin(), current.end(), instance) != current.end();
++  };
++  const auto isStoredAndValid = [&stored](uint32_t instance) {
++    return std::any_of(stored.begin(), stored.end(), [instance](const ControllerSnapshot& controller) {
++      return controller.instance == instance && controller.connected;
++    });
++  };
++
++  for (const auto& controller : stored) {
++    if (!controller.connected || !isCurrent(controller.instance)) {
++      plan.close.push_back(controller.instance);
++      continue;
++    }
++    if (controller.player >= 0 && controller.player < maxPlayers) {
++      occupied[static_cast<size_t>(controller.player)] = true;
++    }
++  }
++
++  for (uint32_t instance : current) {
++    if (!isStoredAndValid(instance)) {
++      plan.open.push_back(instance);
++    }
++  }
++
++  for (uint32_t instance : plan.open) {
++    const auto freePlayer = std::find(occupied.begin(), occupied.end(), false);
++    const int32_t player = freePlayer == occupied.end()
++                               ? -1
++                               : static_cast<int32_t>(std::distance(occupied.begin(), freePlayer));
++    if (player >= 0) {
++      occupied[static_cast<size_t>(player)] = true;
++    }
++    plan.assign.push_back({instance, player});
++  }
++
++  return plan;
++}
++
++} // namespace aurora::input::detail
+diff --git a/lib/input.cpp b/lib/input.cpp
+index d4d196f..9b8fe81 100644
+--- a/lib/input.cpp
++++ b/lib/input.cpp
+@@ -1,4 +1,5 @@
+ #include "input.hpp"
++#include "controller_reconcile.hpp"
+ #include "device.hpp"
+ #include "internal.hpp"
+ 
+@@ -14,6 +15,7 @@
+ #include <array>
+ #include <string>
+ #include <utility>
++#include <vector>
+ 
+ using namespace std::string_view_literals;
+ 
+@@ -334,7 +336,8 @@ void apply_port_preferences() noexcept {
+ 
+ GameController* get_controller_for_player(uint32_t player) noexcept {
+   for (auto& [which, controller] : g_GameControllers) {
+-    if (player_index(which) == player) {
++    if (SDL_GamepadConnected(controller.m_controller) && SDL_GetGamepadID(controller.m_controller) == which &&
++        player_index(which) == player) {
+       return &controller;
+     }
+   }
+@@ -362,7 +365,8 @@ GameController* get_controller_for_player(uint32_t player) noexcept {
+ 
+ Sint32 get_instance_for_player(uint32_t player) noexcept {
+   for (const auto& [which, controller] : g_GameControllers) {
+-    if (player_index(which) == player) {
++    if (SDL_GamepadConnected(controller.m_controller) && SDL_GetGamepadID(controller.m_controller) == which &&
++        player_index(which) == player) {
+       return which;
+     }
+   }
+@@ -371,6 +375,9 @@ Sint32 get_instance_for_player(uint32_t player) noexcept {
+ }
+ 
+ SDL_JoystickID add_controller(SDL_JoystickID which) noexcept {
++  if (g_GameControllers.contains(which)) {
++    return which;
++  }
+   auto* ctrl = SDL_OpenGamepad(which);
+   if (ctrl != nullptr) {
+     GameController controller;
+@@ -400,10 +407,11 @@ SDL_JoystickID add_controller(SDL_JoystickID which) noexcept {
+     return instance;
+   }
+ 
++  Log.error("Failed to open controller instance {}: {}", which, SDL_GetError());
+   return -1;
+ }
+ 
+-void remove_controller(Uint32 instance) noexcept {
++static bool close_controller(Uint32 instance) noexcept {
+   if (auto it = g_GameControllers.find(instance); it != g_GameControllers.end()) {
+     Log.info("Removed controller '{}' (instance {})",
+              SDL_GetGamepadName(it->second.m_controller) != nullptr ? SDL_GetGamepadName(it->second.m_controller)
+@@ -411,10 +419,73 @@ void remove_controller(Uint32 instance) noexcept {
+              instance);
+     SDL_CloseGamepad(it->second.m_controller);
+     g_GameControllers.erase(it);
++    return true;
++  }
++  return false;
++}
++
++void remove_controller(Uint32 instance) noexcept {
++  if (close_controller(instance)) {
+     apply_port_preferences();
+   }
+ }
+ 
++void reconcile_controllers(const char* reason) noexcept {
++  int count = 0;
++  SDL_ClearError();
++  SDL_JoystickID* listed = SDL_GetGamepads(&count);
++  if (listed == nullptr) {
++    Log.warn("Controller reconciliation '{}' could not enumerate current gamepads: {}", reason, SDL_GetError());
++    return;
++  }
++
++  std::vector<uint32_t> current(listed, listed + count);
++  SDL_free(listed);
++  std::vector<detail::ControllerSnapshot> stored;
++  stored.reserve(g_GameControllers.size());
++  for (const auto& [instance, controller] : g_GameControllers) {
++    const bool connected = SDL_GamepadConnected(controller.m_controller) &&
++                           SDL_GetGamepadID(controller.m_controller) == instance;
++    stored.push_back({instance, SDL_GetGamepadPlayerIndex(controller.m_controller), connected});
++  }
++
++  const auto plan = detail::plan_controller_reconciliation(stored, current, PAD_MAX_CONTROLLERS);
++  if (!plan.close.empty() || !plan.open.empty() || reason != "active poll"sv) {
++    Log.info("Controller reconciliation '{}' found {} stored and {} current gamepad(s)", reason, stored.size(),
++             current.size());
++  }
++
++  for (uint32_t instance : plan.close) {
++    const auto it = g_GameControllers.find(instance);
++    if (it == g_GameControllers.end()) {
++      continue;
++    }
++    const int32_t player = SDL_GetGamepadPlayerIndex(it->second.m_controller);
++    Log.info("Releasing stale controller '{}' (instance {}, player {}) during '{}'",
++             SDL_GetGamepadName(it->second.m_controller) != nullptr ? SDL_GetGamepadName(it->second.m_controller)
++                                                                    : "unknown",
++             instance, player, reason);
++    close_controller(instance);
++  }
++
++  for (const auto& assignment : plan.assign) {
++    const SDL_JoystickID instance = add_controller(assignment.instance);
++    if (instance < 0) {
++      continue;
++    }
++    auto it = g_GameControllers.find(instance);
++    if (it == g_GameControllers.end()) {
++      continue;
++    }
++    SDL_SetGamepadPlayerIndex(it->second.m_controller, assignment.player);
++    Log.info("Assigned controller '{}' (instance {}) to player {} during '{}'",
++             SDL_GetGamepadName(it->second.m_controller) != nullptr ? SDL_GetGamepadName(it->second.m_controller)
++                                                                    : "unknown",
++             instance, assignment.player, reason);
++  }
++  apply_port_preferences();
++}
++
+ bool is_gamecube(Uint32 instance) noexcept {
+   if (auto it = g_GameControllers.find(instance); it != g_GameControllers.end()) {
+     return it->second.m_isGameCube;
+@@ -495,6 +566,7 @@ void initialize() noexcept {
+    * as expected */
+   AURORA_ASSERT(SDL_Init(SDL_INIT_HAPTIC | SDL_INIT_JOYSTICK | SDL_INIT_GAMEPAD | SDL_INIT_SENSOR),
+          "Failed to initialize SDL subsystems: {}", SDL_GetError());
++  reconcile_controllers("startup");
+ }
+ 
+ struct MouseScrollStatus {
+diff --git a/lib/input.hpp b/lib/input.hpp
+index 572ddee..1247955 100644
+--- a/lib/input.hpp
++++ b/lib/input.hpp
+@@ -48,6 +48,7 @@ GameController* get_controller_for_player(uint32_t player) noexcept;
+ Sint32 get_instance_for_player(uint32_t player) noexcept;
+ SDL_JoystickID add_controller(SDL_JoystickID which) noexcept;
+ void remove_controller(Uint32 instance) noexcept;
++void reconcile_controllers(const char* reason) noexcept;
+ Sint32 player_index(Uint32 instance) noexcept;
+ void set_player_index(Uint32 instance, Sint32 index) noexcept;
+ std::string controller_name(Uint32 instance) noexcept;
+diff --git a/lib/window.cpp b/lib/window.cpp
+index 1420e14..b610908 100644
+--- a/lib/window.cpp
++++ b/lib/window.cpp
+@@ -14,6 +14,7 @@
+ #include <SDL3/SDL_properties.h>
+ #include <SDL3/SDL_render.h>
+ #include <SDL3/SDL_surface.h>
++#include <SDL3/SDL_timer.h>
+ #include <SDL3/SDL_video.h>
+ #include <SDL3/SDL_init.h>
+ #include <SDL3/SDL_hints.h>
+@@ -52,6 +53,8 @@ std::atomic_bool g_surfaceReady = true;
+ #endif
+ bool g_lastPaused = false;
+ bool g_gotFocus = false;
++std::atomic_bool g_controllerReconcileRequested = false;
++Uint64 g_lastControllerReconcile = 0;
+ 
+ bool operator==(const AuroraWindowSize& lhs, const AuroraWindowSize& rhs) {
+   return lhs.width == rhs.width && lhs.height == rhs.height && lhs.fb_width == rhs.fb_width &&
+@@ -131,6 +133,9 @@ bool SDLCALL lifecycle_event_watch(void*, SDL_Event* event) {
+       g_backgrounded.store(false, std::memory_order_relaxed);
+       break;
+ #endif
++    case SDL_EVENT_DID_ENTER_FOREGROUND:
++      g_controllerReconcileRequested.store(true, std::memory_order_release);
++      break;
+     default:
+       break;
+     }
+@@ -194,21 +200,25 @@ void process_event(SDL_Event& event) {
+     break;
+   }
+   case SDL_EVENT_GAMEPAD_ADDED: {
++    input::reconcile_controllers("gamepad added event");
+     auto instance = input::add_controller(event.gdevice.which);
+     g_events.push_back(AuroraEvent{
+         .type = AURORA_CONTROLLER_ADDED,
+         .controller = instance,
+     });
+     break;
+   }
+   case SDL_EVENT_GAMEPAD_REMOVED: {
+-    input::remove_controller(event.gdevice.which);
++    input::reconcile_controllers("gamepad removed event");
+     g_events.push_back(AuroraEvent{
+         .type = AURORA_CONTROLLER_REMOVED,
+         .controller = event.gdevice.which,
+     });
+     break;
+   }
++  case SDL_EVENT_GAMEPAD_REMAPPED:
++    input::reconcile_controllers("gamepad remapped event");
++    break;
+   case SDL_EVENT_MOUSE_WHEEL:
+     if (primaryWindow) {
+       input::set_mouse_scroll(event.wheel.x, event.wheel.y);
+@@ -260,6 +270,14 @@ const AuroraEvent* poll_events() {
+   SDL_Event event;
+   // Clear out the previous scroll values to prevent ghost input
+   input::set_mouse_scroll(0, 0);
++  const Uint64 now = SDL_GetTicks();
++  if (g_controllerReconcileRequested.exchange(false, std::memory_order_acq_rel)) {
++    input::reconcile_controllers("foreground resume");
++    g_lastControllerReconcile = now;
++  } else if (now - g_lastControllerReconcile >= 1000) {
++    input::reconcile_controllers("active poll");
++    g_lastControllerReconcile = now;
++  }
+   if (is_paused()) {
+     ZoneScopedN("SDL_WaitEvent (paused)");
+     if (SDL_WaitEvent(&event)) {

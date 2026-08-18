@@ -1,6 +1,6 @@
 # Status
 
-Last updated: 2026-08-06
+Last updated: 2026-08-18
 
 Current phase: public source release and cross-machine test handoff. Simulator/device compilation, input wiring, populated inventory rendering, the top-right settings menu, render scaling, native GCI persistence and recovery, RTC synchronization, reproducible packaging, and original Apple-platform branding are established. This does not claim App Store or production completion.
 
@@ -16,6 +16,7 @@ Near-term finish order is deliberately narrow: representative train/station Meta
 - The current upstream PC port remains deliberately 32-bit.
 - A separate 64-bit migration at commit `915fb86…` documents and has community validation for macOS ARM64, Windows/Linux 64-bit, audio, GCI save, and reload.
 - Aurora supports macOS/iOS/tvOS, Metal through Dawn/WebGPU, SDL3, nod-backed disc images including RVZ, controller input, RTC fixes for iOS, and GCI/raw-card storage.
+- Aurora's SDL3 controller manager now validates stored handles and instance IDs against current gamepads, closes stale ownership before opening returns, preserves valid player slots and saved mappings, and reconciles on startup, add/remove/remap, foreground resume, and a one-second active check. The UIKit overlay no longer duplicates physical controller input into player 1; it uses GameController only for touch-overlay visibility.
 - Pinned Aurora commit `5027ed63…` now builds and runs its GX example natively on macOS ARM64 through Dawn's Metal backend. Runtime logs identify the Apple M2 Metal adapter and the visible example framebuffer renders correctly.
 - A compiled-object coverage audit inspects 3,905 game-core objects and finds 112 required GX/GD symbols. Bellpad's pinned Aurora patch implements the five former gaps (`GXAbortFrame`, `GXReadXfRasMetric`, `GXSetCopyClamp`, `GXSetCurrentGXThread`, and `GXSetScissorBoxOffset`); patched `libaurora_gx.a` provides all 112 with zero missing.
 - A compiled ABI probe proves all GX value types match size/alignment. The core's opaque texture storage exceeds Aurora's requirement, and patch 13 expands PC-only `GXTlutObj` storage from 16 to 40 bytes to prevent an Aurora palette-object overwrite. The full 3,361-step incremental macOS app rebuild and link passed afterward.
@@ -97,6 +98,17 @@ Near-term finish order is deliberately narrow: representative train/station Meta
   inventory: both occupied pocket icons render through patch 49's existing
   polygon-model path. Broader physical lifecycle, keyboard, controller,
   audio-route, performance, and long-session evidence remains open.
+- BellPad 0.1.0 build 2 was signed and installed in place on the physical iPad.
+  It logged SDL3 startup/foreground controller reconciliation, selected Metal,
+  found the retained GAFE01 image, loaded the canonical GCI, and reached the
+  press-start title. Readback proved the game image, canonical save, backup,
+  controller settings, and touch preferences byte-identical. No physical
+  controller was connected, so Bluetooth, wired, natural-sleep, full mapping,
+  held-release, and two-controller acceptance remain open.
+- Preview 2 is version 0.1.0 build 2. The unsigned, ROM-free release asset is
+  `Bellpad-0.1.0-preview.2-unsigned.ipa`, SHA-256
+  `d9e9ebd5d17fa360de1775cf60deaccd8ca5b196b09842ea633a8ad353a8aaea`;
+  it is for self-signing and is neither App Store nor TestFlight distributed.
 
 ## Requested completion criteria
 

@@ -44,7 +44,7 @@ else()
         MACOSX_BUNDLE_BUNDLE_NAME "Bellpad"
         MACOSX_BUNDLE_GUI_IDENTIFIER "dev.bellpad.app"
         MACOSX_BUNDLE_SHORT_VERSION_STRING "0.1.0"
-        MACOSX_BUNDLE_BUNDLE_VERSION "1"
+        MACOSX_BUNDLE_BUNDLE_VERSION "2"
     )
     target_link_libraries(Bellpad PRIVATE
         bellpad_platform_core

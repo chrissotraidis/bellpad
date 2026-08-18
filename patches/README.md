@@ -190,3 +190,12 @@ front faces for the WebGPU render target. A controlled title-scene comparison
 showed that Aurora's clockwise setting culled the visible side of the game's
 geometry; disabling culling restored the scene, and the corrected winding
 restored it while preserving the game's requested front/back cull modes.
+
+`aurora/0006-reconcile-controller-lifecycle.patch` keeps Aurora's SDL3
+controller ownership authoritative. It validates stored handles and instance
+IDs against `SDL_GetGamepads()`, closes stale slots before opening returns,
+preserves valid player assignments and saved port preferences, rejects stale
+gameplay reads, and reconciles on startup, add/remove/remap events, foreground
+resume, and a one-second active check. The retail-data-free regression covers
+missed removal with held input, neutral release, player-1 reclamation,
+next-free assignment, two-controller preservation, and foreground resume.

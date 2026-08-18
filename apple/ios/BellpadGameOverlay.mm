@@ -782,7 +782,7 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
         __weak BPGameOverlay *weakSelf = self;
         _connectObserver = [center addObserverForName:GCControllerDidConnectNotification object:nil
                                                queue:NSOperationQueue.mainQueue usingBlock:^(NSNotification *note) {
-            [weakSelf configureController:note.object];
+            (void)note;
             [weakSelf refreshControllerVisibility];
         }];
         _disconnectObserver = [center addObserverForName:GCControllerDidDisconnectNotification object:nil
@@ -816,7 +816,6 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
 #if TARGET_OS_SIMULATOR
         BellpadScheduleAudioSessionSelfTest();
 #endif
-        for (GCController *controller in GCController.controllers) [self configureController:controller];
         [self refreshControllerVisibility];
     }
     return self;
@@ -1566,6 +1565,8 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
     if (sWasInactive.exchange(false, std::memory_order_acq_rel)) {
         sDidBecomeActive.store(true, std::memory_order_release);
     }
+    BellpadClearInputState(BellpadInputSource::Controller);
+    [self refreshControllerVisibility];
 }
 
 - (void)willResignActive:(NSNotification *)notification {
@@ -1637,35 +1638,6 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
     NSLog(@"[AudioSession] Media services reset");
 }
 
-- (void)configureController:(GCController *)controller {
-    GCExtendedGamepad *gamepad = controller.extendedGamepad;
-    if (!gamepad) return;
-    gamepad.valueChangedHandler = ^(GCExtendedGamepad *pad, GCControllerElement *element) {
-        (void)element;
-        BellpadPadState state;
-        if (pad.buttonA.isPressed) state.buttons |= BellpadButtonA;
-        if (pad.buttonB.isPressed) state.buttons |= BellpadButtonB;
-        if (pad.buttonX.isPressed) state.buttons |= BellpadButtonX;
-        if (pad.buttonY.isPressed) state.buttons |= BellpadButtonY;
-        if (pad.leftShoulder.isPressed) state.buttons |= BellpadButtonL;
-        if (pad.rightShoulder.isPressed) state.buttons |= BellpadButtonZ;
-        if (pad.buttonMenu.isPressed) state.buttons |= BellpadButtonStart;
-        if (pad.dpad.up.isPressed) state.buttons |= BellpadButtonDPadUp;
-        if (pad.dpad.down.isPressed) state.buttons |= BellpadButtonDPadDown;
-        if (pad.dpad.left.isPressed) state.buttons |= BellpadButtonDPadLeft;
-        if (pad.dpad.right.isPressed) state.buttons |= BellpadButtonDPadRight;
-        state.stickX = static_cast<std::int8_t>(std::lround(pad.leftThumbstick.xAxis.value * 127.0f));
-        state.stickY = static_cast<std::int8_t>(std::lround(pad.leftThumbstick.yAxis.value * 127.0f));
-        state.cStickX = static_cast<std::int8_t>(std::lround(pad.rightThumbstick.xAxis.value * 127.0f));
-        state.cStickY = static_cast<std::int8_t>(std::lround(pad.rightThumbstick.yAxis.value * 127.0f));
-        state.triggerL = static_cast<std::uint8_t>(std::lround(pad.leftTrigger.value * 255.0f));
-        state.triggerR = static_cast<std::uint8_t>(std::lround(pad.rightTrigger.value * 255.0f));
-        if (state.triggerL > 30) state.buttons |= BellpadButtonL;
-        if (state.triggerR > 30) state.buttons |= BellpadButtonR;
-        BellpadSetInputState(BellpadInputSource::Controller, state);
-    };
-}
-
 - (void)refreshControllerVisibility {
     BOOL connected = NO;
 #if !TARGET_OS_SIMULATOR
@@ -1674,6 +1646,7 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
     }
 #endif
     if (connected) [self clearTouchInput];
+    else BellpadClearInputState(BellpadInputSource::Controller);
     _controllerConnected = connected;
     [self updateControlAppearance];
 }
