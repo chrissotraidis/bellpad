@@ -1,6 +1,6 @@
 # Testing strategy and evidence
 
-Last updated: 2026-08-06
+Last updated: 2026-08-18
 
 No gameplay test is marked passed without a dated result, device/OS, build revision, image revision, and observable outcome.
 
@@ -11,7 +11,8 @@ No gameplay test is marked passed without a dated result, device/OS, build revis
 | Clean Apple ARM64 checkout | Pass — the live [source-release workflow](https://github.com/chrissotraidis/bellpad/actions/workflows/source-release.yml) verifies current `main` on a `macos-15` ARM64 runner |
 | Retail-data exclusion | Pass — the hosted job receives no disc image, extracted asset, or save and completes the tracked/release-content audits |
 | Pinned core reconstruction | Pass — the exact `915fb86…` upstream commit is fetched and all fifty tracked patches pass `git apply --check` and replay in an isolated detached worktree |
-| Source checks | Pass — native macOS shell and normalized-input test, deterministic RTC suite, Apple disc-memory suite, NES/GX frame-conversion suite, shell syntax, and whitespace checks |
+| Source checks | Pass — native macOS shell and normalized-input test, deterministic SDL3 controller-reconnect and RTC suites, Apple disc-memory suite, NES/GX frame-conversion suite, shell syntax, and whitespace checks |
+| SDL3 controller lifecycle | Pass — a fresh pinned-Aurora replay simulates missed removal with held buttons/sticks/triggers, stale player-1 release and neutral input, sole return to player 1, additional assignment to player 2, two-controller preservation/replacement, and foreground reconciliation |
 
 ## Desktop baseline matrix
 
@@ -159,9 +160,11 @@ scene/orientation/safe-area policy and adaptive touch controls.
 | Lifecycle/audio wiring | Pass for three bounded iPhone Simulator cycles after fixing a reproduced second-cycle `EXC_BAD_ACCESS`: when Aurora declines a background frame, patch 29 discards queued GX data and never calls `aurora_end_frame` without a frame packet. All three Home/foreground cycles logged matched pause/resume edges and restored Metal rendering; RSS remained bounded in the short run and no new crash report appeared. Three sequential iPad Home/resume cycles also restored visible rendering. On 2026-08-04, isolated iPhone and then iPad Simulator runs opened the real SDL3 stream at 32 kHz and underwent eight-second opt-in `AVAudioSession` interruptions. Both logged sample-clocked discard, matched pause/reactivate/fresh-sample resume, no `SendStart::Mesg Full Queue`, a subsequent route-change pause/resume, and continued title frames. Real hardware routes/calls, long-session memory, and two SDL UIKit startup warnings remain |
 | RTC activation rebase | Pass — patches 30/31 rebuilt into the universal product; iPhone Home/foreground logged audio pause, `RTC synchronized after UIApplicationDidBecomeActive (adjustment 0.000 seconds)`, and audio resume. The same bundle then booted the real game on iPad only after iPhone shutdown and returned from one bounded Home/resume cycle |
 | NES GX framebuffer | Partial — deterministic tests prove visible-row cropping, fixNES-to-GX RGB565 field conversion, big-endian bytes, 4×4 tile ordering, invalid-buffer rejection, and final-pixel placement; macOS, iOS Simulator, and iOS device products compile/link the GX presenter. No local `.nes` input was available, so actual NES-furniture video remains a runtime gate |
-| ARM64 device build | Pass — complete product links as Mach-O arm64 with `LC_BUILD_VERSION` platform `IOS`, minimum iOS 17.0, Metal, and no SDL2. The inventory-fix build was locally signed, verified, installed in place on Chris' iPad Pro, launched, and observed live as PID 5857 |
-| Unsigned IPA reproducibility | Pass — two final 14,137,497-byte timestamp-normalized inventory-fix packages were byte-identical with SHA-256 `d95ef5716740081dba9eb5816b9b4037f6337ec52123f75441ad878f52e462a7` |
+| ARM64 device build | Pass — 2026-08-18, version 0.1.0 build 2 links as Mach-O arm64 with `LC_BUILD_VERSION` platform `IOS`, minimum iOS 17.0, Metal, and no SDL2. The exact app was locally signed with concrete `VKDH2T9UTF.dev.bellpad.app` entitlement, verified `--deep --strict`, installed in place, reached the press-start title with retained game data and readable GCI, logged startup/foreground reconciliation, and remained live as PID 773 after final launch |
+| In-place data preservation | Pass — separate pre-install and post-launch `Documents`/`Library` copies proved the retained game image, canonical GCI, `.bak1`, `settings.ini`, and `dev.bellpad.app.plist` byte-identical. No uninstall, container reset, `--remove-existing-content`, or data migration was used |
+| Unsigned IPA reproducibility | Pass — two timestamp-normalized Preview 2 packages were byte-identical with SHA-256 `d9e9ebd5d17fa360de1775cf60deaccd8ca5b196b09842ea633a8ad353a8aaea` |
 | Device runtime-link audit | Pass — `otool` reports only Apple system frameworks and `/usr/lib` libraries; no `LC_RPATH` remains, and the package script independently enforces both constraints |
+| Physical controller acceptance | Open — no controller was connected during the captured iPad run. Bluetooth reconnect, wired-controller reconnect, natural sleep/wake, active and background/foreground reconnect, held-input release, overlay restoration, full mapping, and two-controller slot preservation are not claimed |
 | Post-static-link simulator smoke | Pass — rebuilt universal bundle installed and launched to the native no-data Files screen on iPhone 17 Pro, then after shutdown on iPad Pro 13-inch; both sessions were terminated and shut down without extended control replay |
 | Dependency/archive pins | Pass — product dependency lock covers every linked non-system library; Abseil, SDL3, source Dawn, iOS Dawn, and macOS Dawn hashes close the formerly version-only downloads, while all remaining fetched archives retain upstream SHA-256 pins |
 | Bundled license notices | Pass — the macOS baseline, universal Simulator app, device app, IPA staging tree, and final IPA carry byte-identical `ThirdPartyNotices.txt`, including SDL HIDAPI/yuv2rgb's separate BSD terms; the archive contains only that notice plus the executable, plist, `Assets.car`, and two compiled icon PNGs |

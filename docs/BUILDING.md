@@ -12,7 +12,7 @@ brew install cmake ninja ripgrep sdl2
 ./scripts/build-aurora-game-ios-simulator.sh
 ```
 
-The verification command audits tracked/release content, clones the exact pinned game core into ignored local storage, replays all fifty patches in an isolated detached worktree, builds and runs the clean native platform tests, exercises the deterministic RTC, Apple disc-memory, and NES/GX conversion suites, checks every shell script, and rejects whitespace errors. It requires no retail data. The same command runs on GitHub's Apple ARM64 `macos-15` runner through the pinned [source-release workflow](https://github.com/chrissotraidis/bellpad/actions/workflows/source-release.yml); use that live workflow page as the authoritative clean-checkout result for the current `main`. The simulator build fetches pinned dependencies and may take several minutes on its first Dawn build.
+The verification command audits tracked/release content, clones the exact pinned game core and Aurora revisions into ignored local storage, replays all fifty core patches and six Aurora patches in isolated detached worktrees, builds and runs the clean native platform tests, exercises the deterministic controller-reconnect, RTC, Apple disc-memory, and NES/GX conversion suites, checks every shell script, and rejects whitespace errors. It requires no retail data. The same command runs on GitHub's Apple ARM64 `macos-15` runner through the pinned [source-release workflow](https://github.com/chrissotraidis/bellpad/actions/workflows/source-release.yml); use that live workflow page as the authoritative clean-checkout result for the current `main`. The simulator build fetches pinned dependencies and may take several minutes on its first Dawn build.
 
 ## Host
 
@@ -233,6 +233,9 @@ save, or provisioning files in `Bellpad.app`. Mobile third-party libraries are
 linked statically; Apple system frameworks and `/usr/lib` libraries remain
 dynamic. This is an unsigned build; installation still requires a user-owned
 signing identity and provisioning profile outside the repository.
+The script removes stale development signatures and profiles from only its
+generated bundle before auditing, so an incremental build cannot be mistaken
+for an unsigned release input.
 
 Direct Abseil, SDL3, Dawn source, and Apple Dawn package downloads are now
 SHA-256 verified in addition to their exact version/commit pins; the remaining
@@ -249,13 +252,18 @@ saves, credentials, certificates, keys, and provisioning material. It never
 reads or packages the ignored development disc image. Set
 `BELLPAD_SKIP_IOS_DEVICE_BUILD=1` to repackage an already audited device build.
 
-Observed 2026-08-06: the output contains exactly the executable, plist,
+Observed 2026-08-18 for Preview 2: the output contains exactly the executable, plist,
 `Assets.car`, `AppIcon60x60@2x.png`, `AppIcon76x76@2x~ipad.png`, and the tracked
-`ThirdPartyNotices.txt`; it is 13 MiB compressed and targets ARM64 iOS 17.0
-through Metal. Source-prefix mapping keeps the checkout location out of
-Bellpad-built objects. Two final inventory-fix packages produced identical
-14,137,497-byte archives with SHA-256
-`d95ef5716740081dba9eb5816b9b4037f6337ec52123f75441ad878f52e462a7`.
+`ThirdPartyNotices.txt`; it targets ARM64 iOS 17.0 through Metal and is unsigned
+for user self-signing, not App Store or TestFlight distribution. Source-prefix
+mapping keeps the checkout location out of Bellpad-built objects. Two packages
+were byte-identical with SHA-256
+`d9e9ebd5d17fa360de1775cf60deaccd8ca5b196b09842ea633a8ad353a8aaea`.
+The exact asset is `Bellpad-0.1.0-preview.2-unsigned.ipa`; its adjacent
+`.sha256` manifest verifies with `shasum -a 256 -c`. The existing unsigned,
+self-signable package contains no `PrivacyInfo.xcprivacy` and makes no App
+Store/TestFlight claim; any future store distribution requires a fresh privacy
+manifest and SDK-policy review.
 
 Run the tracked-content safety check before every commit and package build:
 

@@ -30,12 +30,15 @@ contributing to the project.
 
 ## Download
 
-[**Download Bellpad 0.1.0 Preview 1 for iPhone and iPad (.ipa)**](https://github.com/chrissotraidis/bellpad/releases/download/v0.1.0-preview.1/Bellpad-0.1.0-preview.1-unsigned.ipa)
+[**Download Bellpad 0.1.0 Preview 2 for iPhone and iPad (.ipa)**](https://github.com/chrissotraidis/bellpad/releases/download/v0.1.0-preview.2/Bellpad-0.1.0-preview.2-unsigned.ipa)
 
 This is an experimental, unsigned, ROM-free preview for ARM64 devices running
 iOS or iPadOS 17.0 or later. You must sign it with your own Apple identity
 before installation and provide your own supported game data after launch. It
 is not an App Store or TestFlight release.
+
+Preview 2 asset: `Bellpad-0.1.0-preview.2-unsigned.ipa`, SHA-256
+`d9e9ebd5d17fa360de1775cf60deaccd8ca5b196b09842ea633a8ad353a8aaea`.
 
 ## Release status
 
@@ -43,7 +46,7 @@ is not an App Store or TestFlight release.
 |---|---|---|
 | Apple Silicon macOS | **Playable baseline** | The native `Bellpad.app` reaches a generated town, creates/reloads a Dolphin-compatible GCI save, and has desktop rendering/input evidence. |
 | iPhone and iPad Simulator | **Current development target** | Files import, retained game data, Metal rendering, touch input, native name entry, save import/export, and relaunch have evidence on sequential Simulator runs. |
-| ARM64 iPhone/iPad device build | **Physical iPad validated** | The iOS 17.0+ product builds and packages cleanly; a locally signed in-place install launches on iPad and renders populated inventory items. Broader hardware lifecycle, keyboard, controller, and audio-route acceptance remains. |
+| ARM64 iPhone/iPad device build | **Physical iPad validated** | Version 0.1.0 build 2 was signed, installed in place, and reached the retained-image/save-backed title on iPad. Game data, saves, controller settings, and touch preferences were byte-identical after readback. Physical controller scenarios remain acceptance gates. |
 | GitHub release | **Unsigned preview available** | Download the ROM-free IPA above, sign it with your own Apple identity, and provide your own supported game data after launch. |
 | App Store / TestFlight | **Not available** | Bellpad is not store-distributed. |
 
@@ -129,9 +132,12 @@ layouts, respects safe areas, and can be adjusted from the gear menu.
   move controls, and reset the active device-class layout.
 - **Render scale:** choose Native, 1×, 2×, 3×, or 4× internal rendering.
   This changes sharpness, not the fixed 60 Hz game simulation.
-- **Controllers:** GameController input is merged with touch input; touch
-  controls automatically hide while a physical controller is connected on a
-  device. Reconnect and model-specific hardware testing remain open.
+- **Controllers:** Aurora's SDL3 manager owns physical controllers and stable
+  player slots; touch remains a separate virtual input for player 1. Stored
+  handles are reconciled against current devices on events, foreground resume,
+  and a bounded active check. Deterministic sleep/reconnect coverage passes;
+  Bluetooth, wired, natural-sleep, mapping, and two-controller hardware tests
+  remain open.
 - **Text entry:** the native UIKit editor bridges typed text, Backspace, paste,
   and Done to the game thread. Simulator coverage exists; physical keyboard
   transitions still need acceptance testing.
@@ -169,7 +175,7 @@ archive is included in this repository or in Bellpad build products.
 | Rendering | Desktop OpenGL is the behavior baseline; Aurora/Metal renders the title, train/station flow, dialogue, populated inventory item icons, and representative outdoor-town scenes. |
 | Saves | Canonical GCI creation/reload, atomic replacement, rolling backups, isolated Dolphin GCI-folder interchange, and Simulator import/export have evidence. |
 | Game-data flow | Raw ISO/GCM validation, private retention, reimport/removal, and retained relaunch work in the mobile app. |
-| Input | Native touch, desktop keyboard, native mobile setup text, stabilized discrete submenu navigation, and the normalized GameCube input boundary have focused test evidence. |
+| Input | Native touch, desktop keyboard, native mobile setup text, stabilized discrete submenu navigation, and SDL3 controller slot/reconnect reconciliation have focused test evidence. |
 | Packaging | The unsigned ARM64 iOS package is reproducible and audited to contain no game data, save, certificate, provisioning profile, or private key. |
 
 See [STATUS.md](docs/STATUS.md) and [TESTING.md](docs/TESTING.md) for dated
@@ -179,8 +185,8 @@ evidence and [PLAN.md](docs/PLAN.md) for the remaining implementation plan.
 
 - This is an experimental source port, not a finished commercial product.
 - Broader physical-device lifecycle, long-session stability, audio-route
-  behavior, keyboard transitions, controller reconnect, and scene coverage
-  remain acceptance gates.
+  behavior, keyboard transitions, physical controller sleep/reconnect/mapping,
+  and scene coverage remain acceptance gates.
 - A reported repeated-action symptom is not reproduced in the corrected
   Simulator traces; broader short-tap coverage across doors, dialogue, and
   inventory actions remains useful regression testing.

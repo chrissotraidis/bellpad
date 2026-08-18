@@ -103,14 +103,20 @@ Status: fixed and accepted on physical iPad on 2026-08-06.
 
 ### Physical controller support needs hands-on acceptance
 
-Status: implementation present; physical-device mapping proof pending.
+Status: stale-handle/slot repair and deterministic regression pass; physical-controller acceptance pending.
 
-- Bellpad already consumes extended GameController profiles and maps both
-  sticks, A/B/X/Y, D-pad, Start, Z, analog L/R, and digital shoulder presses.
-- A connected controller hides touch controls on a physical device; disconnect
-  must clear controller state and restore touch without leaving a held input.
-- Required acceptance: connect, launch, navigate, play, suspend/resume,
-  disconnect/reconnect, and verify every GameCube input on the physical iPad.
+- Aurora's SDL3 manager owns physical-device enumeration, instance IDs, saved
+  port mappings, and player slots. It now rejects disconnected handles,
+  reconciles against `SDL_GetGamepads()` at events/resume and once per second,
+  closes stale ownership, and assigns returns only after valid slots are kept.
+- The native GameController observer controls touch-overlay visibility only; it
+  no longer collapses every physical controller into the player-1 virtual pad.
+- Deterministic coverage proves neutral held input after missed removal,
+  player-1 reclamation, next-free-slot assignment, two-controller stability,
+  and foreground reconciliation.
+- Required physical acceptance: Bluetooth and wired disconnect/reconnect,
+  natural sleep/wake, active and foreground return, held-input release, touch
+  overlay restoration, complete mapping, and two-controller slot preservation.
 
 ### Controls cannot be resized individually
 

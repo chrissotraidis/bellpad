@@ -45,6 +45,10 @@ app="$build_dir/bin/Bellpad.app"
 binary="$app/Bellpad"
 plist="$app/Info.plist"
 
+codesign --remove-signature "$app" 2>/dev/null || true
+rm -f "$app/embedded.mobileprovision"
+rm -rf "$app/_CodeSignature"
+
 "$script_dir/install-ios-app-icon.sh" "$app" iphoneos
 "$script_dir/install-third-party-notices.sh" "$app" ios
 
