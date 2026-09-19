@@ -131,3 +131,48 @@ controls and the native menu, retaining existing features. Build 4 is a separate
 feature candidate described in [DIAGNOSTICS_AND_CONTROLS.md](DIAGNOSTICS_AND_CONTROLS.md).
 The behavior-preserving migration checkpoint remains available independently;
 these later changes must not be described as part of its tree-parity proof.
+
+
+## Build 4 qualification and hardware update
+
+Code/artifact commit: `b8b9622031cf343c63ce4a2669fe5c3a04eda7ac`.
+PC pin: `f918823fd8743bf2e1dc67830a161469844cc020`; Aurora pin:
+`5a0b160e4bcc0a37316f55a02c0bb4a7e3ddfd67`. Upstream bases are unchanged.
+
+| Local artifact (not published) | SHA-256 |
+|---|---|
+| `Bellpad-0.1.0-build4-unsigned.ipa` | `537bcdb72adf76ff02da3da292c0c07c69eef7ec32311b605b0f1867f17c9bd9` |
+| `Bellpad-build4-source.tar.gz` | `112390059d53d25afaa96772ff5fb3c1b976fc30d919229e151eb51cbd76c848` |
+
+The complete source suite, diagnostics failure/privacy/rotation tests, isolated
+UIKit overlay checks and device/Simulator builds pass. Two source archives match
+byte-for-byte; all 6,960 exported files restore and verify without Git/network.
+[Apple ARM64 CI](https://github.com/chrissotraidis/bellpad/actions/runs/35411517177)
+passes at the code commit. This later documentation checkpoint does not change
+those artifact identities.
+
+The existing iPad was updated in place to `dev.bellpad.app`, 0.1.0/build 4, using
+the exact original development certificate/profile and installed entitlements.
+Strict signature validation passes. Signing preserves all 35 Mach-O code/data
+sections and bundle resources; signed/unsigned executable bytes naturally differ.
+The signed package/profile and device identifiers remain private.
+
+Before installation, two 26-file container copies matched; a separate local
+restore matched. After startup, the ISO, canonical GCI, backup GCI, settings INI
+and app preferences remain byte-identical. Changed original files are rendering
+caches and OS launch snapshots; diagnostics is newly added. No uninstall, reset,
+bundle change or replacement of user data was performed.
+
+Live-process evidence and the wired physical screen confirm the title screen with
+the new three-dot button. On-device persistent logging confirms version/build,
+exact source commit, successful save preparation and retained-disc validation.
+Physical menu taps, report sharing destinations, controller/haptic scenarios and
+new gameplay acceptance are not claimed. The isolated UIKit test is not a
+substitute for those checks. Issue #10 remains open pending reporter evidence.
+
+The original checkout/main/public Preview 2 remain untouched. PR #11 is open.
+Private backups, manifests, signed build 3/Preview 2 rollback apps and exact
+in-place recovery commands remain in the task's external backup directory; they
+are on the same physical disk. Source rollback is rehearsed in a disposable
+checkout; a device downgrade has not been attempted. No binary release was
+published or authorized, and the existing rights boundaries remain unresolved.
