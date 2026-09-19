@@ -50,7 +50,7 @@ Preview 2 asset: `Bellpad-0.1.0-preview.2-unsigned.ipa`, SHA-256
 |---|---|---|
 | Apple Silicon macOS | **Playable baseline** | The native `Bellpad.app` reaches a generated town, creates/reloads a Dolphin-compatible GCI save, and has desktop rendering/input evidence. |
 | iPhone and iPad Simulator | **Current development target** | Files import, retained game data, Metal rendering, touch input, native name entry, save import/export, and relaunch have evidence on sequential Simulator runs. |
-| ARM64 iPhone/iPad device build | **Physical iPad validated** | Version 0.1.0 build 2 was signed, installed in place, and reached the retained-image/save-backed title on iPad. Game data, saves, controller settings, and touch preferences were byte-identical after readback. Physical controller scenarios remain acceptance gates. |
+| ARM64 iPhone/iPad device build | **Physical iPad validated** | Local version 0.1.0 build 5 was signed, installed in place, and reached the retained-image/save-backed title on iPad. The public download remains build 2. Game data, saves, controller settings, and touch preferences were byte-identical after readback. Physical controller scenarios remain acceptance gates. |
 | GitHub release | **Unsigned preview available** | Download the ROM-free IPA above, sign it with your own Apple identity, and provide your own supported game data after launch. |
 | App Store / TestFlight | **Not available** | BellPad is not store-distributed. |
 

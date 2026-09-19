@@ -176,3 +176,48 @@ in-place recovery commands remain in the task's external backup directory; they
 are on the same physical disk. Source rollback is rehearsed in a disposable
 checkout; a device downgrade has not been attempted. No binary release was
 published or authorized, and the existing rights boundaries remain unresolved.
+
+## Build 5 reporting and display-name refinement
+
+Owner-requested refinement on 19 September: one **Report a Problem…** entry
+replaces the separate diagnostics/support actions. Its shared prompt offers
+**Share Report…** and **Report on GitHub**, with a prefilled issue draft and
+manual attachment. The import screen uses the same flow. Nothing submits
+automatically. Visible app/README names use **BellPad**, including the macOS
+picker, window and bundle name; executable, bundle ID, preferences, game/save
+and Aurora cache paths retain their existing identities.
+
+Code/artifact commit: `f0d1e34719fddbc18dfd60c49c3531405488a286`.
+PC pin: `dbbb789e3404c94fe17520fb7ad3f048a3870cdc`; Aurora remains
+`5a0b160e4bcc0a37316f55a02c0bb4a7e3ddfd67`. The PC changes after build 4
+only update visible Apple names, keeping upstream versions and storage paths.
+Bundled notices now name the actual selected PC commit.
+
+| Local artifact (not published) | SHA-256 |
+|---|---|
+| `BellPad-0.1.0-build5-unsigned.ipa` | `291aeb91d1e7a9a21f7befebaec84ca4644d29bd247bda3a36f4ba09469ddd01` |
+| `BellPad-build5-source.tar.gz` | `4c00287301f5c0241e0da5deb1ad340b2d4614fb6cbc372255b76c55a94102c6` |
+
+Source-release and diagnostics tests pass, including issue-draft encoding,
+redaction, session correlation and oversized Unicode input. The isolated UIKit
+harness verifies the unified prompt and retained menu/data/input behaviors.
+macOS baseline/Aurora and iOS device/Simulator builds pass; the final macOS
+bundle name is verified. All 6,960 delivered source files restore/verify offline.
+[Code-commit Apple ARM64 CI passes](https://github.com/chrissotraidis/bellpad/actions/runs/35413935660).
+
+The final build 5 package installed in place with the exact original certificate,
+profile, entitlements and bundle identity; installed display name is BellPad.
+Before final installation, two 27-file full-container copies matched, as did a
+separate restore. After startup, all five durable files (ISO, canonical and backup
+GCI, settings INI, preferences) remain byte-identical. Only diagnostics, rendering
+caches and OS snapshots changed among previous files. Persistent logs verify
+build 5, the exact artifact commit, retained-disc validation and save preparation;
+the live process and wired screen confirm the title screen. Physical report
+sharing/GitHub interaction, controllers/haptics and new gameplay acceptance remain
+unverified. No public release, merge or rights-resolution claim is made.
+
+Private backup/recovery remains outside the checkout on the same physical disk:
+`/Users/chrissotraidis/.codex/backups/bellpad-20260919/RECOVERY.md`.
+The prior exact-signed build 4 is available for in-place rollback. Local restore
+was verified; a device downgrade was not attempted. PR #11 and this worktree
+remain available for review; original main and public Preview 2 are unchanged.
