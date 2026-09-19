@@ -221,3 +221,44 @@ Private backup/recovery remains outside the checkout on the same physical disk:
 The prior exact-signed build 4 is available for in-place rollback. Local restore
 was verified; a device downgrade was not attempted. PR #11 and this worktree
 remain available for review; original main and public Preview 2 are unchanged.
+
+## Build 6 floating movement stick
+
+Owner-requested touch refinement, 19 September: the movement stick stays hidden
+until a thumb touches empty space in the left 45% / lower 60% of the safe area.
+Its neutral origin is that contact. It tracks that thumb beyond the region, hides
+on release/cancel, and preserves button priority, multitouch and the fixed camera
+stick. Menus, native text, hiding controls, controller auto-hide, backgrounding
+and geometry changes release movement. Ordinary layout preserves the origin.
+Existing size/dead-zone/opacity settings apply; stored positions are not rewritten.
+
+Code/artifact commit: `b5d3358cc493d9134c0d91f9a7479afa2f824640`.
+PC/Aurora pins remain `dbbb789e3404c94fe17520fb7ad3f048a3870cdc` /
+`5a0b160e4bcc0a37316f55a02c0bb4a7e3ddfd67`; no dependency upgrade or change.
+
+| Local artifact (not published) | SHA-256 |
+|---|---|
+| `BellPad-0.1.0-build6-unsigned.ipa` | `7ea5c1c437ec223e691150ddbf597e8cbf1e8a4ce79cd3e6487e0873e73021a1` |
+| `BellPad-build6-source.tar.gz` | `882120a23724f5d6c8d497c00be0b7bef4b3a0840dc54703db4b092dc506b51c` |
+
+The real UIKit event handlers pass synthetic-touch checks for neutral touchdown,
+thumb ownership, second-finger exclusion, simultaneous buttons, region bounds,
+dead zone, drag outside the region, release/cancel, layout stability, resize,
+controller auto-hide, native text and background clearing. Existing menu/layout
+tests also pass on iPhone/iPad-sized bounds. Device and Simulator builds, full
+source/diagnostics suite, package/signature audits and [artifact-commit CI](https://github.com/chrissotraidis/bellpad/actions/runs/35414933583)
+pass. All 6,960 delivered source files restore and verify offline.
+
+Build 6 installed on the existing iPad with exact original signer/profile,
+entitlements and bundle ID. Before installation, two full 27-file container
+backups and a separate local restore matched. After launch, all five durable
+ISO/GCI/backup/settings/preferences files match; changes are diagnostic logs,
+caches and OS snapshots. Live process and persistent logs verify build/commit,
+retained-image validation and save preparation. Another app window overlays the
+physical preview; it was left untouched. No new physical gesture/gameplay
+acceptance is claimed. User thumb-feel acceptance remains separate from tests.
+
+Prior exact-signed build 5 is retained for in-place rollback; commands and
+manifests are in the same private external backup's `RECOVERY.md`. Local restore
+was verified; no device downgrade performed. PR #11 remains open, main/public
+Preview 2 unchanged, and rights/reporter follow-up remains as previously recorded.
