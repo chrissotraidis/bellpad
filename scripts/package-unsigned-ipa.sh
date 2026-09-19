@@ -14,6 +14,7 @@ fi
 
 binary="$app/Bellpad"
 test -x "$binary"
+python3 "$script_dir/audit-ios-deployment.py" "$app"
 cmp -s "$repo_root/THIRD_PARTY_NOTICES.txt" "$app/ThirdPartyNotices.txt"
 platform=$(xcrun vtool -show-build "$binary" | awk '$1 == "platform" { print $2; exit }')
 if [ "$platform" != "IOS" ]; then
@@ -60,6 +61,7 @@ if otool -l "$package_binary" | rg -q 'LC_CODE_SIGNATURE'; then
     exit 1
 fi
 cmp -s "$repo_root/THIRD_PARTY_NOTICES.txt" "$package_app/ThirdPartyNotices.txt"
+python3 "$script_dir/audit-ios-deployment.py" "$package_app"
 
 find "$package_dir/Payload" -exec touch -h -t 202001010000 {} +
 mkdir -p "$(dirname -- "$output")"

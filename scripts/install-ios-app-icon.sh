@@ -56,6 +56,7 @@ xcrun actool \
 /usr/libexec/PlistBuddy -c "Delete :CFBundleIcons" "$plist" 2>/dev/null || true
 /usr/libexec/PlistBuddy -c "Delete :CFBundleIcons~ipad" "$plist" 2>/dev/null || true
 /usr/libexec/PlistBuddy -c "Merge $partial_plist" "$plist"
+python3 "$script_dir/audit-ios-deployment.py" --write "$app"
 plutil -lint "$plist" >/dev/null
 test -f "$app/Assets.car"
 
