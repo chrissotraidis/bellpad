@@ -206,7 +206,7 @@ The full, player-visible list is maintained in [TECH_DEBT.md](docs/TECH_DEBT.md)
 
 | Path | Purpose |
 |---|---|
-| [`scripts/verify-release-candidate.sh`](scripts/verify-release-candidate.sh) | Source-release audit: tracked content, pins, patch replay, tests, shell syntax, and whitespace. |
+| [`scripts/verify-release-candidate.sh`](scripts/verify-release-candidate.sh) | Source-release audit: tracked content, maintained pins, tests, shell syntax, and whitespace. |
 | [`scripts/build-playable-macos-app.sh`](scripts/build-playable-macos-app.sh) | Native Apple Silicon macOS game baseline. |
 | [`scripts/build-aurora-game-ios-simulator.sh`](scripts/build-aurora-game-ios-simulator.sh) | Native iPhone/iPad Simulator product build. |
 | [`scripts/build-aurora-game-ios-device.sh`](scripts/build-aurora-game-ios-device.sh) | ARM64 iPhone/iPad device product build. |

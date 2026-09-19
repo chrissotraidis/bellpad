@@ -10,13 +10,16 @@ PRODUCT DEPENDENCY INVENTORY
 - Animal Crossing decompilation and PC port: ACreTeam/ac-decomp provenance,
   carried by birabittoh/ACGC-PC-Port commit
   915fb86ba9a6c2144dabda9143d93af7a3f92be7. CC0-1.0 game code; MIT PC
-  compatibility layer and FixNES. Bellpad applies its tracked pc-port patch
-  series and incorporates the resulting game core.
+  compatibility layer and FixNES. Bellpad maintains its existing changes in
+  https://github.com/chrissotraidis/ACGC-PC-Port at commit
+  771f9348f1d1193f970c763d63ad73faa21a3723 (sources.lock.json).
 - bc7decomp: Richard Geldreich, Jr., 2020. MIT or public domain; Bellpad uses
   the MIT alternative through the pinned PC-port tree for texture decoding.
 - Aurora: encounter/aurora commit
-  5027ed63a73dfba28de9eceed00481fb09a19c35, MIT. Bellpad applies its tracked
-  Aurora patch series and incorporates GX, core, OS, PAD, CARD, SI, VI, MTX,
+  5027ed63a73dfba28de9eceed00481fb09a19c35, MIT. Bellpad maintains its changes
+  in https://github.com/chrissotraidis/aurora at commit
+  5a0b160e4bcc0a37316f55a02c0bb4a7e3ddfd67 and incorporates
+  GX, core, OS, PAD, CARD, SI, VI, MTX,
   SDL3, and Dawn/Metal integration.
 - Dawn/Tint: encounter/dawn commit
   266c1cf8de969a364afa4fa49311631fc99a881e, prebuilt Apple ARM64 release
@@ -45,8 +48,11 @@ CC0 applies only to rights its affirmers could waive. It does not grant rights
 to Nintendo assets, trademarks, patents, or other third-party material.
 
 The exact source URLs, hashes, upstream purpose, changes, and disposition are
-also recorded in docs/RESEARCH.md, docs/LEGAL.md, upstreams.lock.json, and the
-tracked patch directories.
+also recorded in docs/RESEARCH.md, docs/LEGAL.md, upstreams.lock.json, and
+sources.lock.json. Historical patches map to maintained source commits in
+docs/source-maintenance/migration.json. Original Bellpad additions retain the
+existing no-outbound-license terms unless a file or contribution states otherwise;
+upstream license texts below remain unchanged.
 
 
 ===============================================================================
