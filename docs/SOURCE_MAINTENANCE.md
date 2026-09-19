@@ -10,7 +10,7 @@ Aurora convergence/probe executables are development targets.
 
 | Component | Upstream base | Maintained source |
 |---|---|---|
-| Game and PC layer | [birabittoh/ACGC-PC-Port](https://github.com/birabittoh/ACGC-PC-Port) `915fb86ba9a6c2144dabda9143d93af7a3f92be7` | [chrissotraidis/ACGC-PC-Port](https://github.com/chrissotraidis/ACGC-PC-Port/tree/bellpad/apple), `source/acgc-64bit`, `771f9348f1d1193f970c763d63ad73faa21a3723` |
+| Game and PC layer | [birabittoh/ACGC-PC-Port](https://github.com/birabittoh/ACGC-PC-Port) `915fb86ba9a6c2144dabda9143d93af7a3f92be7` | [chrissotraidis/ACGC-PC-Port](https://github.com/chrissotraidis/ACGC-PC-Port/tree/bellpad/diagnostics-controls), `source/acgc-64bit`, `f918823fd8743bf2e1dc67830a161469844cc020` |
 | Aurora | [encounter/aurora](https://github.com/encounter/aurora) `5027ed63a73dfba28de9eceed00481fb09a19c35` | [chrissotraidis/aurora](https://github.com/chrissotraidis/aurora/tree/bellpad/apple), `source/aurora`, `5a0b160e4bcc0a37316f55a02c0bb4a7e3ddfd67` |
 
 Both fork-parent relationships were verified through GitHub. The PC port retains
@@ -25,8 +25,12 @@ All 50 PC-port and six Aurora patches map to ordinary source commits in
 [source-maintenance/migration.json](source-maintenance/migration.json).
 `python3 scripts/verify-migration.py` independently replays the historical patches
 in temporary repositories and checks Git tree hashes, including file modes.
-The selected commits add only `BELLPAD.md` and build-output ignore rules to those
-prepared trees. The previous local PC checkout contained one extra blank line
+The migration checkpoint commits add only `BELLPAD.md` and build-output ignore
+rules to those prepared trees. A later, separately authorized iOS controls and
+diagnostics pass advances the PC pin by one ordinary commit: CMake adds the
+product diagnostics implementation, and the existing Aurora log callback and
+frame loop call its diagnostics bridge. No upstream revision or game algorithm
+changes. Aurora remains at the parity checkpoint. The previous local PC checkout contained one extra blank line
 in `emu64.c`; this is recorded and excluded from the reproducible baseline.
 The old ignored checkouts are preserved and no longer consumed by builds.
 

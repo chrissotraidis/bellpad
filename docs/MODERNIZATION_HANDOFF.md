@@ -4,8 +4,8 @@
 
 App baseline/public Preview 2: `c2bcbdedb1aa9b512c41f4a213716d1e085fb446`.
 This change keeps that upstream version and the existing product. Source migration
-is proposed for review; no merge, binary publication or physical installation is
-part of this task. The fork pins, licensing boundaries, source export and rollback
+is proposed for review; no merge or binary publication is part of this task.
+Later owner-authorized hardware and controls/diagnostics scope is recorded below. The fork pins, licensing boundaries, source export and rollback
 procedure are in [SOURCE_MAINTENANCE.md](SOURCE_MAINTENANCE.md).
 
 ## Verified evidence
@@ -115,4 +115,19 @@ settings and preferences, were copied twice using independent transfer paths.
 Hashes match and a separate local restore matches. Existing signing/team,
 application identity and keychain groups are preserved; the matching profile
 covers this hardware. No app uninstall or container replacement is needed.
-Installation/readback results will be recorded after the candidate is verified.
+Build 3 (`e3961c237cdfa4b35d91b0b2a27aa94df746e4aa`) installed in place.
+Installed certificate, bundle identity, keychain groups and entitlements match the
+prior app exactly. Post-startup readback keeps the ISO, both GCI files, settings
+and preferences byte-identical; changed files are Dawn caches and iOS scene state.
+The physical screen shows rendered game dialogue. This is startup evidence,
+not new controller/gameplay acceptance. Its unsigned IPA SHA-256 is
+`fc7023bf17719f3be8d00ce5eed5437a4d4519bfa860bd3b4b8b19cfdf4d63d1`;
+source archive SHA-256 is
+`10f83d302ab5bef6286482f3a883a08219a4bb802420fe1eddb4c33c2f0d58de`.
+Two differently named exports match, and all 6,953 files restore offline.
+
+The owner then explicitly expanded scope to improve persistent diagnostics,
+controls and the native menu, retaining existing features. Build 4 is a separate
+feature candidate described in [DIAGNOSTICS_AND_CONTROLS.md](DIAGNOSTICS_AND_CONTROLS.md).
+The behavior-preserving migration checkpoint remains available independently;
+these later changes must not be described as part of its tree-parity proof.

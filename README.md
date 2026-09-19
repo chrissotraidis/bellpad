@@ -132,10 +132,15 @@ issues, pull requests, documentation, CI artifacts, app bundles, or packages.
 
 Bellpad's native mobile layout includes the left and C sticks, D-pad,
 A/B/X/Y, Z/L/R, and Start. It adapts between compact iPhone and larger iPad
-layouts, respects safe areas, and can be adjusted from the gear menu.
+layouts and respects safe areas. The reviewed build 4 candidate uses a native
+three-dot menu with Display, Controls, Game Data & Saves and diagnostics. These
+changes are not in the public Preview 2 download yet.
 
 - **Controls:** hide/show gameplay controls, adjust opacity and global size,
-  move controls, and reset the active device-class layout.
+  move controls, resize an individual selected control, and reset the active
+  device-class layout. The candidate adds a touch-stick dead zone, optional
+  button haptics and a choice to retain touch controls with a controller attached.
+  Existing positions/preferences and default stick response are preserved.
 - **Render scale:** choose Native, 1×, 2×, 3×, or 4× internal rendering.
   This changes sharpness, not the fixed 60 Hz game simulation.
 - **Controllers:** Aurora's SDL3 manager owns physical controllers and stable
@@ -147,6 +152,13 @@ layouts, respects safe areas, and can be adjusted from the gear menu.
 - **Text entry:** the native UIKit editor bridges typed text, Backspace, paste,
   and Done to the game thread. Simulator coverage exists; physical keyboard
   transitions still need acceptance testing.
+
+The candidate's **Share Diagnostic Report** includes the app/source build, bounded
+current/previous session logs, repeated runtime warning counts, import/save/audio
+and lifecycle breadcrumbs, frame-loop health and current technical settings. It
+is also available before import. No automatic upload occurs; game images, save
+contents, typed game text and signing material are excluded. See
+[diagnostics and controls](docs/DIAGNOSTICS_AND_CONTROLS.md) for limits and tests.
 
 The desktop baseline also supports keyboard mappings; see
 [BUILDING.md](docs/BUILDING.md) for the complete control, signing, product-path,
