@@ -39,6 +39,9 @@ def main():
                         raise SystemExit(f"Unsupported archive entry: {prefix}{member.name}")
                     contents = archive.extractfile(member).read()
                     member.name = prefix + member.name
+                    # Git tracks the executable bit, not group-write permissions.
+                    # Normalize modes so extraction under umask 022 is identical.
+                    member.mode = 0o755 if member.mode & 0o111 else 0o644
                     member.uid = member.gid = 0
                     member.uname = member.gname = ""
                     out.addfile(member, io.BytesIO(contents))
