@@ -84,7 +84,7 @@ static BellpadPadState BellpadStateFromGamepad(GCExtendedGamepad *gamepad) {
                                                    NSWindowStyleMaskMiniaturizable | NSWindowStyleMaskResizable
                                            backing:NSBackingStoreBuffered
                                              defer:NO];
-    _window.title = @"Bellpad — Native Apple shell";
+    _window.title = @"BellPad — Native Apple shell";
     [_window center];
 
     id<MTLDevice> device = MTLCreateSystemDefaultDevice();
@@ -96,7 +96,7 @@ static BellpadPadState BellpadStateFromGamepad(GCExtendedGamepad *gamepad) {
     _renderer = [[BellpadMetalRenderer alloc] initWithDevice:device];
     metalView.delegate = _renderer;
 
-    NSTextField *title = [NSTextField labelWithString:@"Bellpad native macOS shell"];
+    NSTextField *title = [NSTextField labelWithString:@"BellPad native macOS shell"];
     title.font = [NSFont systemFontOfSize:26 weight:NSFontWeightSemibold];
     title.textColor = NSColor.whiteColor;
     title.translatesAutoresizingMaskIntoConstraints = NO;

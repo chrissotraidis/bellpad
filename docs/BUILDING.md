@@ -12,7 +12,12 @@ brew install cmake ninja ripgrep sdl2
 ./scripts/build-aurora-game-ios-simulator.sh
 ```
 
-The verification command audits tracked/release content, clones the exact pinned game core and Aurora revisions into ignored local storage, replays all fifty core patches and six Aurora patches in isolated detached worktrees, builds and runs the clean native platform tests, exercises the deterministic controller-reconnect, RTC, Apple disc-memory, and NES/GX conversion suites, checks every shell script, and rejects whitespace errors. It requires no retail data. The same command runs on GitHub's Apple ARM64 `macos-15` runner through the pinned [source-release workflow](https://github.com/chrissotraidis/bellpad/actions/workflows/source-release.yml); use that live workflow page as the authoritative clean-checkout result for the current `main`. The simulator build fetches pinned dependencies and may take several minutes on its first Dawn build.
+The verification command checks the maintained source pins and clean dependency
+worktrees, builds the native platform tests, and exercises controller reconnect,
+RTC, Apple disc memory, and NES/GX conversion. It requires no retail data.
+Normal builds no longer replay patches. The [source maintenance guide](SOURCE_MAINTENANCE.md)
+documents the optional historical parity check and complete modified-source archive.
+The Simulator's first source-built Dawn compilation may take several minutes.
 
 ## Host
 
@@ -36,7 +41,10 @@ BELLPAD_DISC_IMAGE="/absolute/path/to/your/Animal Crossing.iso" \
   ./scripts/build-desktop-baseline.sh
 ```
 
-The fetch script checks out commit `915fb86ba9a6c2144dabda9143d93af7a3f92be7` under ignored `ref/upstream/`, verifies the exact revision, and idempotently applies the ordered compatibility patches. Applied patch hashes are recorded under the ignored checkout's `.git/` directory so later patches may safely modify files introduced by earlier ones; changed historical patches require a clean checkout. The build script uses Apple Clang by default and verifies that the result is an ARM64 Mach-O. Override `BELLPAD_CC`, `BELLPAD_CXX`, and `BELLPAD_BUILD_DIR` for an independent compiler/configuration.
+The fetch script initializes the immutable `source/acgc-64bit` gitlink and
+verifies it against `sources.lock.json`. Existing dirty or mismatched sources
+stop the build without deleting edits. The Apple Clang build verifies ARM64 output.
+Override `BELLPAD_CC`, `BELLPAD_CXX`, and `BELLPAD_BUILD_DIR` for an independent build.
 
 Optional GCC compatibility build:
 
@@ -44,7 +52,7 @@ Optional GCC compatibility build:
 brew install gcc
 BELLPAD_CC="$(command -v gcc-16)" \
 BELLPAD_CXX="$(command -v g++-16)" \
-BELLPAD_BUILD_DIR="$PWD/ref/upstream/acgc-64bit/pc/build-macos-arm64-gcc" \
+BELLPAD_BUILD_DIR="$PWD/source/acgc-64bit/pc/build-macos-arm64-gcc" \
   ./scripts/build-desktop-baseline.sh
 ```
 
@@ -52,7 +60,7 @@ BELLPAD_BUILD_DIR="$PWD/ref/upstream/acgc-64bit/pc/build-macos-arm64-gcc" \
 
 Observed result on 2026-08-03: both Apple Clang 21.0.0 and GCC 16.1.0 compile all 4,000 build units and link ARM64 Mach-O executables from independent build directories. The Apple Clang executable reaches a correctly rendered 60 FPS title screen. The binaries use SDL2 and macOS OpenGL/Cocoa/IOKit; GCC additionally uses libstdc++. This is a development baseline, not a distributable bundle and not the intended Metal production path.
 
-The tracked DVD patch handles trimmed images correctly: JSystem requests aligned reads, so the compatibility layer reads through the declared file length and zero-fills only the request tail. Without that correction, boot stalls forever while loading the last 56-byte file. A second patch queues short keyboard button-down edges in the `SDL_KEYDOWN` case and retains them across the JUT and pad-manager reads that make up one game input update. A third patch removes the blanket 64-bit Clang ban and repairs compiler-diagnosed native-width callback, task-copy, heap, archive, ARAM, retrace-message, allocation, and Famicom pointer paths without widening serialized formats. A fourth ports current upstream's padded structure-actor pool design with a 64-bit-safe slot: `STRUCTURE_ACTOR` is 832 bytes on this host while `SHRINE_ACTOR` is 840 bytes, so the former array stride corrupts the next actor during title scenes. A fifth separates editor begin/end, UTF-8 commit, and editor commands from SDL events so UIKit can target a narrow native text API. A sixth adds persistent normalized virtual-pad state and merges it with physical input using ORed buttons, strongest axes, and maximum analog triggers. A seventh validates the optional e-Reader payload and handles scene-arena allocation failure safely. An eighth restores the NPC-house door approach on the host with a narrow, north-facing fallback rather than widening global interaction distance. A ninth replaces speculative macOS executable bounds with the exact loaded Mach-O range and rejects unrecoverable low texture/TLUT pointers before they can be dereferenced.
+The maintained DVD fix handles trimmed images correctly: JSystem requests aligned reads, so the compatibility layer reads through the declared file length and zero-fills only the request tail. Without that correction, boot stalls forever while loading the last 56-byte file. A second patch queues short keyboard button-down edges in the `SDL_KEYDOWN` case and retains them across the JUT and pad-manager reads that make up one game input update. A third patch removes the blanket 64-bit Clang ban and repairs compiler-diagnosed native-width callback, task-copy, heap, archive, ARAM, retrace-message, allocation, and Famicom pointer paths without widening serialized formats. A fourth ports current upstream's padded structure-actor pool design with a 64-bit-safe slot: `STRUCTURE_ACTOR` is 832 bytes on this host while `SHRINE_ACTOR` is 840 bytes, so the former array stride corrupts the next actor during title scenes. A fifth separates editor begin/end, UTF-8 commit, and editor commands from SDL events so UIKit can target a narrow native text API. A sixth adds persistent normalized virtual-pad state and merges it with physical input using ORed buttons, strongest axes, and maximum analog triggers. A seventh validates the optional e-Reader payload and handles scene-arena allocation failure safely. An eighth restores the NPC-house door approach on the host with a narrow, north-facing fallback rather than widening global interaction distance. A ninth replaces speculative macOS executable bounds with the exact loaded Mach-O range and rejects unrecoverable low texture/TLUT pointers before they can be dereferenced.
 
 The scripts were tested from a fresh ignored checkout on 2026-08-03. The resulting executable indexed the supported local image, loaded 14,495 assets, mounted all three archives, opened 32 kHz stereo audio, and entered the title loop. A later packaged-app run closed normally through its macOS window; mobile lifecycle remains an explicit test item.
 
@@ -88,7 +96,7 @@ multi-hour sanitizer certification.
 
 ```sh
 ./scripts/build-playable-macos-app.sh
-open ref/upstream/acgc-64bit/pc/build-bellpad-app/bin/Bellpad.app
+open source/acgc-64bit/pc/build-bellpad-app/bin/Bellpad.app
 ```
 
 This opt-in build packages the actual compiled game core as an ARM64 app bundle. If no image was selected with `--disc PATH`, none is remembered from an earlier launch, and none is found by the legacy search, it presents a native `NSOpenPanel`. The core accepts only GAFE01 disc 0 revision 0 and reads the selected image in place. The bundle contains its clean GLSL shaders, executable, and plist only; it never copies the selected image.
@@ -103,14 +111,14 @@ The current bundle is an honest Milestone 1 product baseline, not the final arch
 ./scripts/build-aurora-game-macos.sh
 ```
 
-This fetches the pinned game and Aurora trees, applies their tracked patches,
+This verifies the maintained game and Aurora source pins,
 builds the complete game at the proven unoptimized core setting, and links an
 ARM64 `BellpadAurora` executable against SDL3 and Metal. The script rejects a
 binary that links the legacy SDL2 runtime. It contains no game image or extracted
 asset; launch it only with a private supported file:
 
 ```sh
-ref/upstream/acgc-64bit/pc/build-bellpad-aurora-game-macos/bin/BellpadAurora \
+source/acgc-64bit/pc/build-bellpad-aurora-game-macos/bin/BellpadAurora \
   --disc /absolute/private/path/to/game.iso
 ```
 
@@ -162,7 +170,7 @@ To install the simulator bundle, use `xcrun simctl install <device-uuid> build/i
 ./scripts/build-aurora-game-ios-simulator.sh
 ```
 
-This applies the pinned fifty-patch game series and five-patch Aurora series,
+This consumes the maintained game and Aurora sources,
 builds Dawn and SDL3 for ARM64 iOS Simulator, and links the complete game core,
 Aurora GX/Metal renderer, SDL3 audio, normalized input bridge, and UIKit GameCube
 overlay into `Bellpad.app`. The script verifies the Mach-O platform, plist,
@@ -286,7 +294,8 @@ ARM64. They are not Bellpad product targets and do not run Animal Crossing.
 ```
 
 Both commands verify pinned Aurora commit
-`5027ed63a73dfba28de9eceed00481fb09a19c35`. The macOS probe uses Aurora's
+`5a0b160e4bcc0a37316f55a02c0bb4a7e3ddfd67` (base
+`5027ed63a73dfba28de9eceed00481fb09a19c35`). The macOS probe uses Aurora's
 prebuilt Darwin ARM64 Dawn package. The iOS Simulator probe builds Dawn and SDL3
 from pinned source dependencies with Ninja because Aurora's released iOS Dawn
 archive is device-only. A first simulator build compiles roughly 1,100 units and
@@ -305,3 +314,12 @@ GX example. The ARM64 `IOSSIMULATOR` executable selected the Apple iOS simulator
 GPU through Metal and rendered on an iPhone 17 Pro simulator, then an iPad Pro
 13-inch simulator after the phone was stopped. The iPad used a resizable window,
 which correctly exposes product window/layout work still to be implemented.
+
+
+Preview 3 (0.1.0/build 6) is the exact reviewed artifact from
+`b5d3358cc493d9134c0d91f9a7479afa2f824640`, published under
+`v0.1.0-preview.3`. Its release includes `BellPad-0.1.0-preview.3-source.tar.gz`,
+`SourceProvenance.json`, `ThirdPartyNotices.txt` and `SHA256SUMS.txt`. The source
+archive includes both maintained component trees and verifies offline with
+`python3 scripts/maintained-sources.py verify`; builds still require Xcode and
+external pinned dependencies. See the release for the exact IPA/source checksums.

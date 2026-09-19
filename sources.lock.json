@@ -1,0 +1,30 @@
+{
+  "schema": 1,
+  "baseline": "c2bcbdedb1aa9b512c41f4a213716d1e085fb446",
+  "components": [
+    {
+      "name": "acgc-64bit",
+      "path": "source/acgc-64bit",
+      "url": "https://github.com/chrissotraidis/ACGC-PC-Port.git",
+      "upstream": "https://github.com/birabittoh/ACGC-PC-Port.git",
+      "base": "915fb86ba9a6c2144dabda9143d93af7a3f92be7",
+      "commit": "dbbb789e3404c94fe17520fb7ad3f048a3870cdc",
+      "tree": "130329cc866c5e59f79982615e266161b4d2a89c",
+      "preparedTree": "9e158781cfdc52dbc97dac4f0892d00558564309",
+      "branch": "bellpad/diagnostics-controls",
+      "license": "Upstream LICENSE and per-file notices; Bellpad additions retain existing no-outbound-license terms (BELLPAD.md)"
+    },
+    {
+      "name": "aurora",
+      "path": "source/aurora",
+      "url": "https://github.com/chrissotraidis/aurora.git",
+      "upstream": "https://github.com/encounter/aurora.git",
+      "base": "5027ed63a73dfba28de9eceed00481fb09a19c35",
+      "commit": "5a0b160e4bcc0a37316f55a02c0bb4a7e3ddfd67",
+      "tree": "5e4a904a362fcbc7dfdf01d63bccec32828a917d",
+      "preparedTree": "11edea7d78583e936c919c1f7aefae4c0136ea71",
+      "branch": "bellpad/apple",
+      "license": "Upstream LICENSE and per-file notices; Bellpad additions retain existing no-outbound-license terms (BELLPAD.md)"
+    }
+  ]
+}

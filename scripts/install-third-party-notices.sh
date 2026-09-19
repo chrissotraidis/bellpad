@@ -31,3 +31,5 @@ esac
 mkdir -p "$resource_dir"
 install -m 0644 "$source_notice" "$resource_dir/ThirdPartyNotices.txt"
 cmp -s "$source_notice" "$resource_dir/ThirdPartyNotices.txt"
+
+python3 "$script_dir/build-provenance.py" "$resource_dir/SourceProvenance.json"

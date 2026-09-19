@@ -358,7 +358,7 @@ static BellpadPadState BellpadStateFromGamepad(GCExtendedGamepad *gamepad) {
     [self.view addSubview:_metalView];
 
     _titleLabel = [UILabel new];
-    _titleLabel.text = @"Bellpad native Apple shell";
+    _titleLabel.text = @"BellPad native Apple shell";
     _titleLabel.textColor = UIColor.whiteColor;
     _titleLabel.font = [UIFont systemFontOfSize:22 weight:UIFontWeightSemibold];
     [self.view addSubview:_titleLabel];
@@ -425,7 +425,7 @@ static BellpadPadState BellpadStateFromGamepad(GCExtendedGamepad *gamepad) {
     CGFloat left = insets.left + 22.0 * chromeScale;
     CGFloat top = insets.top + 16.0 * chromeScale;
     CGFloat available = std::max<CGFloat>(240.0, self.view.bounds.size.width - left - insets.right - 170.0);
-    _titleLabel.text = self.view.bounds.size.width < 700.0 ? @"Bellpad" : @"Bellpad native Apple shell";
+    _titleLabel.text = self.view.bounds.size.width < 700.0 ? @"BellPad" : @"BellPad native Apple shell";
     if (_discStatus != nil) {
         _statusLabel.text = _discStatus;
     } else {

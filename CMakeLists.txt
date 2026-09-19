@@ -41,7 +41,7 @@ else()
     )
     set_target_properties(Bellpad PROPERTIES
         MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/apple/macos/Info.plist"
-        MACOSX_BUNDLE_BUNDLE_NAME "Bellpad"
+        MACOSX_BUNDLE_BUNDLE_NAME "BellPad"
         MACOSX_BUNDLE_GUI_IDENTIFIER "dev.bellpad.app"
         MACOSX_BUNDLE_SHORT_VERSION_STRING "0.1.0"
         MACOSX_BUNDLE_BUNDLE_VERSION "2"

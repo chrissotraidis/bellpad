@@ -1,4 +1,6 @@
 #import "BellpadGameOverlay.h"
+#import "BellpadDiagnostics.h"
+#include <SDL3/SDL_log.h>
 
 #import <AVFAudio/AVAudioSession.h>
 #import <GameController/GameController.h>
@@ -29,7 +31,9 @@
 
 @interface BPStickView : UIView
 @property(nonatomic, weak) id<BPStickDelegate> delegate;
+@property(nonatomic) CGFloat deadzone;
 - (void)reset;
+- (void)updatePoint:(CGPoint)point;
 @end
 
 @implementation BPStickView {
@@ -61,8 +65,7 @@
     _thumb.layer.cornerRadius = diameter * 0.5;
 }
 
-- (void)update:(UITouch *)touch {
-    CGPoint point = [touch locationInView:self];
+- (void)updatePoint:(CGPoint)point {
     CGPoint center = CGPointMake(CGRectGetMidX(self.bounds), CGRectGetMidY(self.bounds));
     CGFloat radius = std::max<CGFloat>(1.0, std::min(self.bounds.size.width, self.bounds.size.height) * 0.5);
     CGFloat x = (point.x - center.x) / radius;
@@ -74,6 +77,9 @@
     }
     CGFloat travel = std::max<CGFloat>(0.0, radius - _thumb.bounds.size.width * 0.5 - 4.0);
     _thumb.center = CGPointMake(center.x + x * travel, center.y + y * travel);
+    CGFloat magnitude = std::min<CGFloat>(1.0, length);
+    CGFloat output = magnitude > self.deadzone ? (magnitude - self.deadzone) / (1.0 - self.deadzone) : 0;
+    if (magnitude > 0) { x *= output / magnitude; y *= output / magnitude; }
     [self.delegate stick:self.tag
                 changedX:static_cast<std::int8_t>(std::lround(x * 127.0))
                        y:static_cast<std::int8_t>(std::lround(-y * 127.0))];
@@ -84,8 +90,8 @@
     [self.delegate stick:self.tag changedX:0 y:0];
 }
 
-- (void)touchesBegan:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event { (void)event; [self update:touches.anyObject]; }
-- (void)touchesMoved:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event { (void)event; [self update:touches.anyObject]; }
+- (void)touchesBegan:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event { (void)event; [self updatePoint:[touches.anyObject locationInView:self]]; }
+- (void)touchesMoved:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event { (void)event; [self updatePoint:[touches.anyObject locationInView:self]]; }
 - (void)touchesEnded:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event { (void)touches; (void)event; [self reset]; }
 - (void)touchesCancelled:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event { [self touchesEnded:touches withEvent:event]; }
 
@@ -130,25 +136,25 @@ static BOOL BellpadConfigureAudioSession(NSString *reason) {
                                     options:AVAudioSessionCategoryOptionMixWithOthers
                                       error:&categoryError];
     if (!categorySet) {
-        NSLog(@"[AudioSession] Could not set category after %@: %@", reason,
+        BellpadLog(@"[AudioSession] Could not set category after %@: %@", reason,
               categoryError.localizedDescription);
         return NO;
     }
 
     NSError *rateError = nil;
     if (![session setPreferredSampleRate:32000.0 error:&rateError]) {
-        NSLog(@"[AudioSession] Could not request 32 kHz after %@: %@", reason,
+        BellpadLog(@"[AudioSession] Could not request 32 kHz after %@: %@", reason,
               rateError.localizedDescription);
     }
 
     NSError *activeError = nil;
     BOOL active = [session setActive:YES error:&activeError];
     if (!active) {
-        NSLog(@"[AudioSession] Could not activate after %@: %@", reason,
+        BellpadLog(@"[AudioSession] Could not activate after %@: %@", reason,
               activeError.localizedDescription);
         return NO;
     }
-    NSLog(@"[AudioSession] Active after %@ (sample rate %.0f Hz, outputs %lu)",
+    BellpadLog(@"[AudioSession] Active after %@ (sample rate %.0f Hz, outputs %lu)",
           reason, session.sampleRate, (unsigned long)session.currentRoute.outputs.count);
     return YES;
 }
@@ -160,10 +166,10 @@ static void BellpadScheduleAudioSessionSelfTest(void) {
 
     AVAudioSession *session = AVAudioSession.sharedInstance;
     NSNotificationCenter *center = NSNotificationCenter.defaultCenter;
-    NSLog(@"[AudioSessionTest] Scheduling interruption and route-change notifications");
+    BellpadLog(@"[AudioSessionTest] Scheduling interruption and route-change notifications");
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(6.0 * NSEC_PER_SEC)),
                    dispatch_get_main_queue(), ^{
-        NSLog(@"[AudioSessionTest] Posting interruption began");
+        BellpadLog(@"[AudioSessionTest] Posting interruption began");
         [center postNotificationName:AVAudioSessionInterruptionNotification
                               object:session
                             userInfo:@{AVAudioSessionInterruptionTypeKey:
@@ -171,7 +177,7 @@ static void BellpadScheduleAudioSessionSelfTest(void) {
     });
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(14.0 * NSEC_PER_SEC)),
                    dispatch_get_main_queue(), ^{
-        NSLog(@"[AudioSessionTest] Posting interruption ended");
+        BellpadLog(@"[AudioSessionTest] Posting interruption ended");
         [center postNotificationName:AVAudioSessionInterruptionNotification
                               object:session
                             userInfo:@{
@@ -183,7 +189,7 @@ static void BellpadScheduleAudioSessionSelfTest(void) {
     });
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(17.0 * NSEC_PER_SEC)),
                    dispatch_get_main_queue(), ^{
-        NSLog(@"[AudioSessionTest] Posting old-device-unavailable route change");
+        BellpadLog(@"[AudioSessionTest] Posting old-device-unavailable route change");
         [center postNotificationName:AVAudioSessionRouteChangeNotification
                               object:session
                             userInfo:@{AVAudioSessionRouteChangeReasonKey:
@@ -276,7 +282,7 @@ static void BellpadApplyPendingSaveImport(void) {
     NSString *validationError = BellpadLoadValidatedGCI(pending, &data);
     NSFileManager *files = NSFileManager.defaultManager;
     if (validationError) {
-        NSLog(@"[Save] Discarding invalid pending GCI: %@", validationError);
+        BellpadLog(@"[Save] Discarding invalid pending GCI: %@", validationError);
         [files removeItemAtURL:pending error:nil];
         return;
     }
@@ -305,16 +311,16 @@ static void BellpadApplyPendingSaveImport(void) {
         if (error) [files removeItemAtURL:staging error:nil];
     }
     if (error) {
-        NSLog(@"[Save] Pending GCI import failed and was retained: %@", error.localizedDescription);
+        BellpadLog(@"[Save] Pending GCI import failed and was retained: %@", error.localizedDescription);
         return;
     }
     NSError *syncError = nil;
     if (!BellpadSynchronizeFileAndDirectory(destination, &syncError)) {
-        NSLog(@"[Save] Imported GCI is visible but metadata synchronization failed: %@",
+        BellpadLog(@"[Save] Imported GCI is visible but metadata synchronization failed: %@",
               syncError.localizedDescription);
     }
     [files removeItemAtURL:pending error:nil];
-    NSLog(@"[Save] Installed validated pending GCI before game startup");
+    BellpadLog(@"[Save] Installed validated pending GCI before game startup");
 }
 
 static void BellpadSetSaveRecoveryNotice(NSString *title, NSString *message) {
@@ -366,21 +372,21 @@ static BOOL BellpadRecoverCanonicalSaveIfNeeded(void) {
         NSError *error = nil;
         [files moveItemAtURL:destination toURL:quarantine error:&error];
         if (error) {
-            NSLog(@"[Save] Invalid canonical GCI could not be quarantined: %@", error.localizedDescription);
+            BellpadLog(@"[Save] Invalid canonical GCI could not be quarantined: %@", error.localizedDescription);
             BellpadSetSaveRecoveryNotice(@"Save Needs Attention",
-                @"The active GCI is invalid and no valid backup was found. Bellpad could not move it aside, so the game was not started. Export the app container before retrying.");
+                @"The active GCI is invalid and no valid backup was found. BellPad could not move it aside, so the game was not started. Export the app container before retrying.");
             return NO;
         }
         NSError *syncError = nil;
         if (!BellpadSynchronizeFileAndDirectory(quarantine, &syncError)) {
-            NSLog(@"[Save] Quarantined GCI metadata synchronization failed: %@",
+            BellpadLog(@"[Save] Quarantined GCI metadata synchronization failed: %@",
                   syncError.localizedDescription);
         }
-        NSLog(@"[Save] Quarantined invalid canonical GCI as %@; no valid backup was found",
+        BellpadLog(@"[Save] Quarantined invalid canonical GCI as %@; no valid backup was found",
               quarantine.lastPathComponent);
         BellpadSetSaveRecoveryNotice(@"Save Quarantined",
             [NSString stringWithFormat:
-                @"The active GCI was invalid and no valid backup was found. Bellpad preserved it as %@ and started without loading the damaged file. You can import a valid Dolphin GCI from Settings.",
+                @"The active GCI was invalid and no valid backup was found. BellPad preserved it as %@ and started without loading the damaged file. You can import a valid Dolphin GCI from Settings.",
                 quarantine.lastPathComponent]);
         return YES;
     }
@@ -398,25 +404,25 @@ static BOOL BellpadRecoverCanonicalSaveIfNeeded(void) {
     }
     if (error) {
         [files removeItemAtURL:staging error:nil];
-        NSLog(@"[Save] Could not recover invalid canonical GCI from %@: %@",
+        BellpadLog(@"[Save] Could not recover invalid canonical GCI from %@: %@",
               recoveryName, error.localizedDescription);
         BellpadSetSaveRecoveryNotice(@"Save Recovery Failed",
             [NSString stringWithFormat:
-                @"The active GCI is invalid. A valid backup (%@) was found, but Bellpad could not install it: %@",
+                @"The active GCI is invalid. A valid backup (%@) was found, but BellPad could not install it: %@",
                 recoveryName, error.localizedDescription]);
         return NO;
     }
 
     NSError *syncError = nil;
     if (!BellpadSynchronizeFileAndDirectory(destination, &syncError)) {
-        NSLog(@"[Save] Recovered GCI metadata synchronization failed: %@",
+        BellpadLog(@"[Save] Recovered GCI metadata synchronization failed: %@",
               syncError.localizedDescription);
     }
-    NSLog(@"[Save] Recovered invalid canonical GCI from %@; preserved damaged file as %@",
+    BellpadLog(@"[Save] Recovered invalid canonical GCI from %@; preserved damaged file as %@",
           recoveryName, quarantine.lastPathComponent);
     BellpadSetSaveRecoveryNotice(@"Save Recovered",
         [NSString stringWithFormat:
-            @"Bellpad restored the newest valid backup (%@). The damaged GCI was preserved as %@.",
+            @"BellPad restored the newest valid backup (%@). The damaged GCI was preserved as %@.",
             recoveryName, quarantine.lastPathComponent]);
     return YES;
 }
@@ -527,6 +533,74 @@ static void BellpadQueueNativeTextCommand(int command) {
 
 @end
 
+// The menu and first-run importer use the same problem-report flow.
+static UIAlertController *BPProblemReportPrompt(UIViewController *presenter, UIView *anchor,
+                                                NSString *technicalContext) {
+    UIAlertController *prompt = [UIAlertController alertControllerWithTitle:@"Report a Problem"
+        message:@"Describe the problem and BellPad will add technical details. Share the diagnostic file or open a prefilled GitHub report. Attach the file on GitHub before submitting. Game images, saves and typed game text are excluded; GitHub reports are public. Nothing is submitted automatically."
+        preferredStyle:UIAlertControllerStyleAlert];
+    static NSArray<NSString *> *draft = @[@"", @"", @""];
+    NSArray *placeholders = @[@"What went wrong?", @"What were you doing? (optional)", @"Every time, sometimes, once, or not sure?"];
+    for (NSUInteger index = 0; index < placeholders.count; ++index) {
+        [prompt addTextFieldWithConfigurationHandler:^(UITextField *field) {
+            field.placeholder = placeholders[index];
+            field.text = draft[index];
+            field.clearButtonMode = UITextFieldViewModeWhileEditing;
+        }];
+    }
+    [prompt addAction:[UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleCancel handler:nil]];
+    __weak UIAlertController *weakPrompt = prompt;
+    __weak UIViewController *weakPresenter = presenter;
+    __weak UIView *weakAnchor = anchor;
+    for (NSNumber *destination in @[@NO, @YES]) {
+        BOOL openGitHub = destination.boolValue;
+        [prompt addAction:[UIAlertAction actionWithTitle:openGitHub ? @"Report on GitHub" : @"Share Report…"
+            style:UIAlertActionStyleDefault handler:^(__kindof UIAlertAction *action) {
+            (void)action;
+            UIAlertController *answers = weakPrompt;
+            UIViewController *owner = weakPresenter;
+            if (!answers || !owner) return;
+            NSString *summary = answers.textFields[0].text ?: @"";
+            NSString *steps = answers.textFields[1].text ?: @"";
+            NSString *frequency = answers.textFields[2].text ?: @"";
+            draft = @[summary, steps, frequency];
+            NSString *context = [NSString stringWithFormat:@"Steps: %@\nFrequency: %@\n%@", steps, frequency, technicalContext];
+            BellpadLog(@"problem report requested destination=%@", openGitHub ? @"github-draft" : @"share-sheet");
+            NSError *error = nil;
+            NSURL *report = BellpadDiagnosticsReport(summary, context, &error);
+            if (!report) {
+                UIAlertController *failure = [UIAlertController alertControllerWithTitle:@"Report Unavailable"
+                    message:@"The report could not be written. Check available storage and try again."
+                    preferredStyle:UIAlertControllerStyleAlert];
+                [failure addAction:[UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:nil]];
+                [owner presentViewController:failure animated:YES completion:nil];
+                return;
+            }
+            if (openGitHub) {
+                NSURL *url = BellpadDiagnosticsIssueURL(summary, steps, frequency);
+                [UIApplication.sharedApplication openURL:url options:@{} completionHandler:^(BOOL success) {
+                    if (success) return;
+                    dispatch_async(dispatch_get_main_queue(), ^{
+                        UIAlertController *failure = [UIAlertController alertControllerWithTitle:@"Could Not Open GitHub"
+                            message:@"Your diagnostic report is still available. Use Report a Problem → Share Report to save or share it."
+                            preferredStyle:UIAlertControllerStyleAlert];
+                        [failure addAction:[UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:nil]];
+                        [owner presentViewController:failure animated:YES completion:nil];
+                    });
+                }];
+            } else {
+                UIActivityViewController *share = [[UIActivityViewController alloc] initWithActivityItems:@[report] applicationActivities:nil];
+                UIView *source = weakAnchor ?: owner.view;
+                share.popoverPresentationController.sourceView = source;
+                share.popoverPresentationController.sourceRect = source.bounds;
+                [owner presentViewController:share animated:YES completion:nil];
+            }
+        }]];
+    }
+    prompt.preferredAction = prompt.actions.lastObject;
+    return prompt;
+}
+
 @interface BPDiscImportViewController : UIViewController <UIDocumentPickerDelegate>
 @property(nonatomic, copy) void (^completion)(NSURL *retainedURL);
 @property(nonatomic, strong) NSURL *applicationSupportURL;
@@ -552,7 +626,7 @@ static void BellpadQueueNativeTextCommand(int command) {
 
     UILabel *detail = [UILabel new];
     detail.translatesAutoresizingMaskIntoConstraints = NO;
-    detail.text = @"Bellpad requires a legally obtained Animal Crossing GAFE01 revision 0 ISO or GCM. The selected file is validated and copied to private Application Support. It is never added to the app bundle.";
+    detail.text = @"BellPad requires a legally obtained Animal Crossing GAFE01 revision 0 ISO or GCM. The selected file is validated and copied to private Application Support. It is never added to the app bundle.";
     detail.numberOfLines = 0;
     detail.textColor = [UIColor colorWithWhite:1.0 alpha:0.76];
     detail.font = [UIFont systemFontOfSize:16.0 weight:UIFontWeightRegular];
@@ -584,6 +658,11 @@ static void BellpadQueueNativeTextCommand(int command) {
     _activityIndicator.hidesWhenStopped = YES;
     [self.view addSubview:_activityIndicator];
 
+    UIButton *diagnostics = [UIButton buttonWithType:UIButtonTypeSystem];
+    diagnostics.translatesAutoresizingMaskIntoConstraints = NO;
+    [diagnostics setTitle:@"Report a Problem…" forState:UIControlStateNormal];
+    [diagnostics addTarget:self action:@selector(shareImportDiagnostics) forControlEvents:UIControlEventTouchUpInside];
+    [self.view addSubview:diagnostics];
     UILayoutGuide *safe = self.view.safeAreaLayoutGuide;
     [NSLayoutConstraint activateConstraints:@[
         [title.centerXAnchor constraintEqualToAnchor:safe.centerXAnchor],
@@ -602,11 +681,23 @@ static void BellpadQueueNativeTextCommand(int command) {
         [_chooseButton.widthAnchor constraintEqualToConstant:220.0],
         [_chooseButton.heightAnchor constraintEqualToConstant:50.0],
         [_activityIndicator.centerXAnchor constraintEqualToAnchor:safe.centerXAnchor],
-        [_activityIndicator.topAnchor constraintEqualToAnchor:_chooseButton.bottomAnchor constant:16.0],
+        [_activityIndicator.topAnchor constraintEqualToAnchor:_chooseButton.bottomAnchor constant:8.0],
+        [diagnostics.bottomAnchor constraintEqualToAnchor:safe.bottomAnchor constant:-4.0],
+        [diagnostics.trailingAnchor constraintEqualToAnchor:safe.trailingAnchor constant:-16.0],
+        [diagnostics.heightAnchor constraintEqualToConstant:44.0],
     ]];
 }
 
+- (void)shareImportDiagnostics {
+    [self presentViewController:BPProblemReportPrompt(self, _chooseButton, @"Game data setup") animated:YES completion:nil];
+}
+
+- (void)documentPickerWasCancelled:(UIDocumentPickerViewController *)controller {
+    (void)controller; BellpadLog(@"disc picker cancelled");
+}
+
 - (void)chooseGameData {
+    BellpadLog(@"disc picker presented");
     UIDocumentPickerViewController *picker =
         [[UIDocumentPickerViewController alloc] initForOpeningContentTypes:@[ UTTypeData ] asCopy:NO];
     picker.delegate = self;
@@ -624,6 +715,7 @@ static void BellpadQueueNativeTextCommand(int command) {
 }
 
 - (void)finishWithError:(NSString *)message {
+    BellpadLog(@"disc import failed: %@", message);
     [self setBusy:NO status:message];
     _statusLabel.textColor = [UIColor colorWithRed:1.0 green:0.58 blue:0.58 alpha:1.0];
 }
@@ -634,6 +726,7 @@ static void BellpadQueueNativeTextCommand(int command) {
     NSURL *sourceURL = urls.firstObject;
     if (!sourceURL) return;
 
+    BellpadLog(@"disc picker returned selection; validation started");
     [self setBusy:YES status:@"Validating and importing game data…"];
     __weak BPDiscImportViewController *weakSelf = self;
     dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
@@ -687,7 +780,8 @@ static void BellpadQueueNativeTextCommand(int command) {
         }
 
         dispatch_async(dispatch_get_main_queue(), ^{
-            [strongSelf setBusy:NO status:@"Supported game data imported. Starting Bellpad…"];
+            [strongSelf setBusy:NO status:@"Supported game data imported. Starting BellPad…"];
+            BellpadLog(@"disc import validated and committed");
             if (strongSelf.completion) strongSelf.completion(destination);
         });
     });
@@ -719,11 +813,24 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
 @implementation BPGameOverlay {
     BellpadPadState _state;
     BPStickView *_moveStick;
+    UITouch *_moveTouch; // Only the initiating thumb owns the floating stick.
+    CGRect _moveStickRestingFrame;
+    CGRect _floatingMoveSafeRect;
     BPStickView *_cameraStick;
     NSMutableArray<BPGameButton *> *_buttons;
     NSMutableArray<UIGestureRecognizer *> *_editGestures;
     UIButton *_settingsButton;
     UIView *_settingsPanel;
+    CGPoint _settingsPanelOffset;
+    UIMenu *_dataMenu;
+    UILabel *_selectionLabel;
+    UILabel *_fpsLabel;
+    NSTimer *_diagnosticsTimer;
+    NSUInteger _diagnosticsTicks;
+    BOOL _autoHideControls;
+    BOOL _hapticsEnabled;
+    UISlider *_deadzoneSlider;
+    UIImpactFeedbackGenerator *_feedback;
     UIScrollView *_settingsScrollView;
     UISlider *_opacitySlider;
     UISlider *_scaleSlider;
@@ -817,11 +924,27 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
         BellpadScheduleAudioSessionSelfTest();
 #endif
         [self refreshControllerVisibility];
+        _fpsLabel = [UILabel new];
+        _fpsLabel.font = [UIFont monospacedDigitSystemFontOfSize:12 weight:UIFontWeightSemibold];
+        _fpsLabel.textColor = UIColor.whiteColor;
+        _fpsLabel.backgroundColor = [UIColor colorWithWhite:0 alpha:0.65];
+        _fpsLabel.textAlignment = NSTextAlignmentCenter;
+        _fpsLabel.layer.cornerRadius = 8;
+        _fpsLabel.clipsToBounds = YES;
+        _fpsLabel.userInteractionEnabled = NO;
+        [self addSubview:_fpsLabel];
+        _feedback = [[UIImpactFeedbackGenerator alloc] initWithStyle:UIImpactFeedbackStyleLight];
+        _diagnosticsTimer = [NSTimer scheduledTimerWithTimeInterval:1 repeats:YES block:^(NSTimer *timer) {
+            (void)timer;
+            [weakSelf updateDiagnostics];
+        }];
+        [self updateDiagnostics];
     }
     return self;
 }
 
 - (void)dealloc {
+    [_diagnosticsTimer invalidate];
     NSNotificationCenter *center = NSNotificationCenter.defaultCenter;
     if (_connectObserver) [center removeObserver:_connectObserver];
     if (_disconnectObserver) [center removeObserver:_disconnectObserver];
@@ -891,6 +1014,12 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
     NSNumber *opacity = [defaults objectForKey:[self settingsKey:@"opacity"]];
     NSNumber *scale = [defaults objectForKey:[self settingsKey:@"scale"]];
     NSNumber *hidden = [defaults objectForKey:[self settingsKey:@"hidden"]];
+    NSNumber *autoHide = [defaults objectForKey:[self settingsKey:@"autoHide"]];
+    _autoHideControls = autoHide ? autoHide.boolValue : YES;
+    _hapticsEnabled = [defaults boolForKey:[self settingsKey:@"haptics"]];
+    CGFloat deadzone = std::clamp<CGFloat>([defaults doubleForKey:[self settingsKey:@"deadzone"]], 0, 0.30);
+    _moveStick.deadzone = _cameraStick.deadzone = deadzone;
+    _deadzoneSlider.value = deadzone;
     NSDictionary *sizes = [defaults dictionaryForKey:[self settingsKey:@"sizes"]];
     NSNumber *renderScale = [defaults objectForKey:[self graphicsSettingsKey:@"renderScale"]];
     _controlOpacity = std::clamp<CGFloat>(opacity ? opacity.doubleValue : 0.76, 0.25, 1.0);
@@ -904,6 +1033,7 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
     sFrameBufferScaleMode.store(static_cast<int>(renderScaleMode), std::memory_order_relaxed);
     _hideControlsSwitch.on = _manualControlsHidden;
     [self updateControlAppearance];
+    [self refreshMenu];
 }
 
 - (void)addEditGestureToControl:(UIView *)control {
@@ -954,17 +1084,107 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
     return row;
 }
 
+- (void)menuWillOpen {
+    [self clearTouchInput];
+    [self closeSettingsPanel];
+    BellpadLog(@"menu opened");
+}
+
+- (void)refreshMenu {
+    if (!_dataMenu) return;
+    __weak BPGameOverlay *weakSelf = self;
+    NSMutableArray *resolutions = [NSMutableArray array];
+    NSArray *names = @[@"Device Native", @"1×", @"2×", @"3×", @"4×"];
+    for (NSInteger i = 0; i < 5; ++i) {
+        UIAction *action = [UIAction actionWithTitle:names[i] image:nil identifier:nil handler:^(__kindof UIAction *a) {
+            (void)a;
+            BPGameOverlay *owner = weakSelf;
+            if (!owner) return;
+            owner->_renderScaleControl.selectedSegmentIndex = i;
+            [owner renderScaleChanged:owner->_renderScaleControl];
+        }];
+        action.state = sFrameBufferScaleMode.load() == i ? UIMenuElementStateOn : UIMenuElementStateOff;
+        [resolutions addObject:action];
+    }
+    UIAction *fps = [UIAction actionWithTitle:@"Show Frame Rate" image:[UIImage systemImageNamed:@"speedometer"] identifier:nil handler:^(__kindof UIAction *a) {
+        (void)a;
+        NSUserDefaults *defaults = NSUserDefaults.standardUserDefaults;
+        [defaults setBool:![defaults boolForKey:@"Bellpad.ShowFPS"] forKey:@"Bellpad.ShowFPS"];
+        [weakSelf refreshMenu];
+    }];
+    fps.state = [NSUserDefaults.standardUserDefaults boolForKey:@"Bellpad.ShowFPS"] ? UIMenuElementStateOn : UIMenuElementStateOff;
+    UIMenu *display = [UIMenu menuWithTitle:@"Display" image:[UIImage systemImageNamed:@"display"] identifier:nil options:0 children:@[
+        [UIMenu menuWithTitle:@"Render Resolution" children:resolutions], fps]];
+    UIAction *touch = [UIAction actionWithTitle:@"Touch Control Settings…" image:[UIImage systemImageNamed:@"hand.draw"] identifier:nil handler:^(__kindof UIAction *a) {
+        (void)a; [weakSelf toggleSettings];
+    }];
+    UIAction *autoHide = [UIAction actionWithTitle:@"Hide Touch Controls with Controller" image:nil identifier:nil handler:^(__kindof UIAction *a) {
+        (void)a;
+        BPGameOverlay *owner = weakSelf; if (!owner) return;
+        owner->_autoHideControls = !owner->_autoHideControls;
+        [NSUserDefaults.standardUserDefaults setBool:owner->_autoHideControls forKey:[owner settingsKey:@"autoHide"]];
+        [owner updateControlAppearance]; [owner refreshMenu];
+    }];
+    autoHide.state = _autoHideControls ? UIMenuElementStateOn : UIMenuElementStateOff;
+    UIAction *haptics = [UIAction actionWithTitle:@"Touch Button Haptics" image:nil identifier:nil handler:^(__kindof UIAction *a) {
+        (void)a;
+        BPGameOverlay *owner = weakSelf; if (!owner) return;
+        owner->_hapticsEnabled = !owner->_hapticsEnabled;
+        [NSUserDefaults.standardUserDefaults setBool:owner->_hapticsEnabled forKey:[owner settingsKey:@"haptics"]];
+        [owner refreshMenu];
+    }];
+    haptics.state = _hapticsEnabled ? UIMenuElementStateOn : UIMenuElementStateOff;
+    UIAction *help = [UIAction actionWithTitle:@"Controller & Keyboard Help" image:[UIImage systemImageNamed:@"keyboard"] identifier:nil handler:^(__kindof UIAction *a) {
+        (void)a;
+        [weakSelf presentMessageWithTitle:@"Controls" message:[NSString stringWithFormat:@"%lu controller(s) connected. Controllers reconnect automatically. Touch controls can stay visible alongside a controller.\n\nKeyboard: WASD moves; arrow keys control the C-stick. Space = A, Shift = B, X/Y = X/Y, Return = Start, Z = Z, Q/E = L/R, I/J/K/L = D-pad.\n\nPlace your thumb in an empty part of the lower-left area to reveal the movement stick. Lift to hide it; the camera stick stays fixed.\n\nTouch layout and sizes are saved separately for iPhone and iPad. Editing a layout does not send game input. Haptics require supported hardware.", (unsigned long)GCController.controllers.count]];
+    }];
+    UIMenu *controls = [UIMenu menuWithTitle:@"Controls" image:[UIImage systemImageNamed:@"gamecontroller"] identifier:nil options:0 children:@[touch, autoHide, haptics, help]];
+    UIAction *report = [UIAction actionWithTitle:@"Report a Problem…" image:[UIImage systemImageNamed:@"doc.text.magnifyingglass"] identifier:nil handler:^(__kindof UIAction *a) {
+        (void)a; [weakSelf shareDiagnostics];
+    }];
+    UIAction *about = [UIAction actionWithTitle:@"About This Build" image:[UIImage systemImageNamed:@"info.circle"] identifier:nil handler:^(__kindof UIAction *a) {
+        (void)a;
+        NSBundle *bundle = NSBundle.mainBundle;
+        [weakSelf presentMessageWithTitle:@"BellPad" message:[NSString stringWithFormat:@"Version %@ (build %@)\n\nNative Apple integration of birabittoh/ACGC-PC-Port, ACreTeam/ac-decomp and encounter/aurora. Source provenance and third-party notices are included with this build.\n\nDiagnostic logs stay on this device until you choose to share them. No game images, saves, text input or signing material are attached.", [bundle objectForInfoDictionaryKey:@"CFBundleShortVersionString"], [bundle objectForInfoDictionaryKey:@"CFBundleVersion"]]];
+    }];
+    _settingsButton.menu = [UIMenu menuWithTitle:@"BellPad" children:@[display, controls, _dataMenu, report, about]];
+}
+
+- (void)deadzoneChanged:(UISlider *)slider {
+    _moveStick.deadzone = _cameraStick.deadzone = slider.value;
+    slider.accessibilityValue = [NSString stringWithFormat:@"%.0f percent", slider.value * 100];
+    [NSUserDefaults.standardUserDefaults setDouble:slider.value forKey:[self settingsKey:@"deadzone"]];
+}
+
+- (void)updateDiagnostics {
+    double fps = bellpad_diagnostics_fps();
+    _fpsLabel.hidden = ![NSUserDefaults.standardUserDefaults boolForKey:@"Bellpad.ShowFPS"] || _nativeTextActive;
+    _fpsLabel.text = [NSString stringWithFormat:@"%.0f FPS", fps];
+    if (++_diagnosticsTicks % 60 == 0)
+        BellpadLog(@"health frame-loop=%.1fHz thermal=%ld active=%d controllers=%lu render=%d", fps, (long)NSProcessInfo.processInfo.thermalState, UIApplication.sharedApplication.applicationState == UIApplicationStateActive, (unsigned long)GCController.controllers.count, sFrameBufferScaleMode.load());
+}
+
+- (void)shareDiagnostics {
+    [self clearTouchInput];
+    NSString *context = [NSString stringWithFormat:@"Controllers=%lu renderScale=%d thermal=%ld layout=%@ autoHide=%d", (unsigned long)GCController.controllers.count, sFrameBufferScaleMode.load(), (long)NSProcessInfo.processInfo.thermalState, [self settingsProfile], _autoHideControls];
+    UIViewController *presenter = [self presentationController];
+    [presenter presentViewController:BPProblemReportPrompt(presenter, _settingsButton, context) animated:YES completion:nil];
+}
+
 - (void)buildSettingsPanel {
     _settingsButton = [UIButton buttonWithType:UIButtonTypeSystem];
-    [_settingsButton setTitle:@"⚙︎" forState:UIControlStateNormal];
+    [_settingsButton setImage:[UIImage systemImageNamed:@"ellipsis"] forState:UIControlStateNormal];
     [_settingsButton setTitleColor:UIColor.whiteColor forState:UIControlStateNormal];
     _settingsButton.titleLabel.font = [UIFont systemFontOfSize:24.0 weight:UIFontWeightSemibold];
     _settingsButton.backgroundColor = [UIColor colorWithWhite:0.06 alpha:0.72];
-    _settingsButton.layer.cornerRadius = 20.0;
+    _settingsButton.layer.cornerRadius = 24.0;
     _settingsButton.layer.borderWidth = 1.0;
     _settingsButton.layer.borderColor = [UIColor colorWithWhite:1.0 alpha:0.30].CGColor;
-    _settingsButton.accessibilityLabel = @"Touch control settings";
-    [_settingsButton addTarget:self action:@selector(toggleSettings) forControlEvents:UIControlEventTouchUpInside];
+    _settingsButton.accessibilityLabel = @"BellPad menu";
+    _settingsButton.accessibilityIdentifier = @"bellpad.menu";
+    _settingsButton.tintColor = UIColor.whiteColor;
+    _settingsButton.showsMenuAsPrimaryAction = YES;
+    [_settingsButton addTarget:self action:@selector(menuWillOpen) forControlEvents:UIControlEventMenuActionTriggered];
     [self addSubview:_settingsButton];
 
     _settingsPanel = [UIView new];
@@ -976,7 +1196,11 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
     [self addSubview:_settingsPanel];
 
     UILabel *title = [UILabel new];
-    title.text = @"Bellpad Settings";
+    title.text = @"Touch Controls";
+    title.accessibilityHint = @"Drag this title to move the panel away from controls.";
+    title.translatesAutoresizingMaskIntoConstraints = NO;
+    title.userInteractionEnabled = YES;
+    [title addGestureRecognizer:[[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(moveSettingsPanel:)]];
     title.textColor = UIColor.whiteColor;
     title.font = [UIFont systemFontOfSize:18.0 weight:UIFontWeightBold];
 
@@ -1015,6 +1239,20 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
     _editLayoutSwitch.accessibilityLabel = @"Edit touch control positions";
     [_editLayoutSwitch addTarget:self action:@selector(editLayoutChanged:) forControlEvents:UIControlEventValueChanged];
 
+    _deadzoneSlider = [UISlider new];
+    _deadzoneSlider.minimumValue = 0;
+    _deadzoneSlider.maximumValue = 0.30;
+    _deadzoneSlider.accessibilityLabel = @"Touch stick dead zone";
+    [_deadzoneSlider addTarget:self action:@selector(deadzoneChanged:) forControlEvents:UIControlEventValueChanged];
+    _selectionLabel = [UILabel new];
+    _selectionLabel.text = @"Enable Move Controls, then tap or drag a control to adjust it.";
+    _selectionLabel.numberOfLines = 0;
+    _selectionLabel.textColor = UIColor.lightGrayColor;
+    _selectionLabel.font = [UIFont preferredFontForTextStyle:UIFontTextStyleFootnote];
+    UIButton *done = [UIButton buttonWithType:UIButtonTypeSystem];
+    [done setTitle:@"Done" forState:UIControlStateNormal];
+    done.accessibilityIdentifier = @"bellpad.controls.done";
+    [done addTarget:self action:@selector(closeSettingsPanel) forControlEvents:UIControlEventTouchUpInside];
     UIButton *reset = [UIButton buttonWithType:UIButtonTypeSystem];
     [reset setTitle:@"Reset This Device Layout" forState:UIControlStateNormal];
     [reset setTitleColor:UIColor.whiteColor forState:UIControlStateNormal];
@@ -1060,17 +1298,17 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
         }],
     ]];
     data.showsMenuAsPrimaryAction = YES;
+    _dataMenu = data.menu;
 
     UIStackView *stack = [[UIStackView alloc] initWithArrangedSubviews:@[
-        title,
-        [self settingsRowWithTitle:@"Render" control:_renderScaleControl],
         [self settingsRowWithTitle:@"Opacity" control:_opacitySlider],
         [self settingsRowWithTitle:@"All sizes" control:_scaleSlider],
-        [self settingsRowWithTitle:@"Selected" control:_selectedScaleSlider],
+        [self settingsRowWithTitle:@"Selected size" control:_selectedScaleSlider],
+        [self settingsRowWithTitle:@"Stick dead zone" control:_deadzoneSlider],
+        _selectionLabel,
         [self settingsRowWithTitle:@"Hide controls" control:_hideControlsSwitch],
         [self settingsRowWithTitle:@"Move controls" control:_editLayoutSwitch],
         reset,
-        data,
     ]];
     stack.translatesAutoresizingMaskIntoConstraints = NO;
     stack.axis = UILayoutConstraintAxisVertical;
@@ -1080,12 +1318,15 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
     _settingsScrollView.translatesAutoresizingMaskIntoConstraints = NO;
     _settingsScrollView.alwaysBounceVertical = NO;
     _settingsScrollView.showsVerticalScrollIndicator = YES;
+    [_settingsPanel addSubview:title];
+    done.translatesAutoresizingMaskIntoConstraints = NO;
+    [_settingsPanel addSubview:done];
     [_settingsPanel addSubview:_settingsScrollView];
     [_settingsScrollView addSubview:stack];
     [NSLayoutConstraint activateConstraints:@[
         [_settingsScrollView.leadingAnchor constraintEqualToAnchor:_settingsPanel.leadingAnchor],
         [_settingsScrollView.trailingAnchor constraintEqualToAnchor:_settingsPanel.trailingAnchor],
-        [_settingsScrollView.topAnchor constraintEqualToAnchor:_settingsPanel.topAnchor],
+        [_settingsScrollView.topAnchor constraintEqualToAnchor:_settingsPanel.topAnchor constant:44.0],
         [_settingsScrollView.bottomAnchor constraintEqualToAnchor:_settingsPanel.bottomAnchor],
         [stack.leadingAnchor constraintEqualToAnchor:_settingsScrollView.contentLayoutGuide.leadingAnchor constant:16.0],
         [stack.trailingAnchor constraintEqualToAnchor:_settingsScrollView.contentLayoutGuide.trailingAnchor constant:-16.0],
@@ -1093,13 +1334,30 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
         [stack.bottomAnchor constraintEqualToAnchor:_settingsScrollView.contentLayoutGuide.bottomAnchor constant:-8.0],
         [stack.widthAnchor constraintEqualToAnchor:_settingsScrollView.frameLayoutGuide.widthAnchor constant:-32.0],
         [reset.heightAnchor constraintEqualToConstant:40.0],
-        [data.heightAnchor constraintEqualToConstant:40.0],
+        [title.leadingAnchor constraintEqualToAnchor:_settingsPanel.leadingAnchor constant:16.0],
+        [title.centerYAnchor constraintEqualToAnchor:done.centerYAnchor],
+        [title.trailingAnchor constraintLessThanOrEqualToAnchor:done.leadingAnchor constant:-8.0],
+        [done.topAnchor constraintEqualToAnchor:_settingsPanel.topAnchor],
+        [done.trailingAnchor constraintEqualToAnchor:_settingsPanel.trailingAnchor constant:-8.0],
+        [done.widthAnchor constraintEqualToConstant:60.0],
+        [done.heightAnchor constraintEqualToConstant:44.0],
     ]];
+    [self refreshMenu];
+}
+
+- (void)moveSettingsPanel:(UIPanGestureRecognizer *)gesture {
+    CGPoint delta = [gesture translationInView:self];
+    _settingsPanelOffset.x += delta.x;
+    _settingsPanelOffset.y += delta.y;
+    [gesture setTranslation:CGPointZero inView:self];
+    [self setNeedsLayout];
 }
 
 - (void)toggleSettings {
     if (_settingsPanel.hidden) {
+        [self clearTouchInput];
         _settingsPanel.hidden = NO;
+        BellpadLog(@"touch settings opened");
         [self bringSubviewToFront:_settingsPanel];
         [self bringSubviewToFront:_settingsButton];
     } else {
@@ -1133,13 +1391,13 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
     [NSUserDefaults.standardUserDefaults setBool:NO forKey:BPRemoveGameDataOnNextLaunchKey];
     [self closeSettingsPanel];
     [self presentMessageWithTitle:@"Reimport on Next Launch"
-                          message:@"Close and reopen Bellpad. Before the game starts, Files will ask for a supported ISO or GCM. Your current retained image remains available until a replacement passes validation."];
+                          message:@"Close and reopen BellPad. Before the game starts, Files will ask for a supported ISO or GCM. Your current retained image remains available until a replacement passes validation."];
 }
 
 - (void)confirmGameDataRemoval {
     [self closeSettingsPanel];
     UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"Remove Stored Game Data?"
-        message:@"The private retained ISO/GCM will be removed the next time Bellpad launches, then Files will request replacement game data. Your GCI save and backups are not removed."
+        message:@"The private retained ISO/GCM will be removed the next time BellPad launches, then Files will request replacement game data. Your GCI save and backups are not removed."
         preferredStyle:UIAlertControllerStyleAlert];
     [alert addAction:[UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleCancel handler:nil]];
     [alert addAction:[UIAlertAction actionWithTitle:@"Remove on Relaunch"
@@ -1153,9 +1411,10 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
 }
 
 - (void)beginSaveImport {
+    BellpadLog(@"save import requested");
     if (!BellpadResolvedApplicationSupportURL()) {
         [self presentMessageWithTitle:@"Save Import Unavailable"
-                              message:@"Bellpad has not finished preparing Application Support yet."];
+                              message:@"BellPad has not finished preparing Application Support yet."];
         return;
     }
     UTType *gciType = [UTType typeWithFilenameExtension:@"gci"] ?: UTTypeData;
@@ -1169,6 +1428,7 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
 }
 
 - (void)beginSaveExport {
+    BellpadLog(@"save export requested");
     NSURL *source = BellpadCanonicalSaveURL();
     if (!source || ![NSFileManager.defaultManager fileExistsAtPath:source.path]) {
         [self presentMessageWithTitle:@"No Save to Export"
@@ -1184,7 +1444,7 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
     }
 
     NSURL *snapshot = [NSFileManager.defaultManager.temporaryDirectory
-        URLByAppendingPathComponent:@"Bellpad-Dolphin-Save.gci"];
+        URLByAppendingPathComponent:@"BellPad-Dolphin-Save.gci"];
     [NSFileManager.defaultManager removeItemAtURL:snapshot error:nil];
     NSError *error = nil;
     [data writeToURL:snapshot options:NSDataWritingAtomic error:&error];
@@ -1208,7 +1468,7 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
         if (_documentPickerMode == BPDocumentPickerModeExportSave) [self clearExportSnapshot];
         _documentPickerMode = BPDocumentPickerModeNone;
         [self presentMessageWithTitle:@"Files Unavailable"
-                              message:@"Bellpad could not present the system Files browser."];
+                              message:@"BellPad could not present the system Files browser."];
         return;
     }
 
@@ -1273,7 +1533,7 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
 
         NSURL *pending = BellpadPendingSaveURL();
         NSError *error = nil;
-        if (!message && !pending) message = @"Bellpad could not resolve its save-import directory.";
+        if (!message && !pending) message = @"BellPad could not resolve its save-import directory.";
         if (!message) {
             [NSFileManager.defaultManager createDirectoryAtURL:pending.URLByDeletingLastPathComponent
                                    withIntermediateDirectories:YES attributes:nil error:&error];
@@ -1291,7 +1551,7 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
                 [strongSelf presentMessageWithTitle:@"Save Import Failed" message:message];
             } else {
                 [strongSelf presentMessageWithTitle:@"Save Ready to Import"
-                    message:@"The validated GCI will replace the active town before the next launch, and the current file will be retained as a pre-import backup. Close Bellpad without saving again, then reopen it now."];
+                    message:@"The validated GCI will replace the active town before the next launch, and the current file will be retained as a pre-import backup. Close BellPad without saving again, then reopen it now."];
             }
         });
     });
@@ -1316,6 +1576,8 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
     [NSUserDefaults.standardUserDefaults setInteger:mode
                                              forKey:[self graphicsSettingsKey:@"renderScale"]];
     sFrameBufferScaleMode.store(static_cast<int>(mode), std::memory_order_relaxed);
+    BellpadLog(@"render scale selected=%ld", (long)mode);
+    [self refreshMenu];
 }
 
 - (void)hiddenChanged:(UISwitch *)toggle {
@@ -1336,10 +1598,12 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
         _hideControlsSwitch.on = NO;
         [NSUserDefaults.standardUserDefaults setBool:NO forKey:[self settingsKey:@"hidden"]];
     }
+    BellpadLog(@"touch layout editing=%@", _editingLayout ? @"on" : @"off");
     [self clearTouchInput];
     for (UIGestureRecognizer *gesture in _editGestures) gesture.enabled = _editingLayout;
     if (!_editingLayout) {
         _selectedControl = nil;
+        _selectionLabel.text = @"Enable Move Controls, then tap or drag a control to adjust it.";
         _selectedScaleSlider.enabled = NO;
         _selectedScaleSlider.value = 1.0;
     }
@@ -1388,12 +1652,13 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
 }
 
 - (void)updateControlAppearance {
-    BOOL hidden = _manualControlsHidden || _controllerConnected || _nativeTextActive;
+    BOOL hidden = _nativeTextActive || (!_editingLayout && (_manualControlsHidden || (_controllerConnected && _autoHideControls)));
     if (hidden) [self clearTouchInput];
     for (UIView *control in [self gameplayControls]) {
-        control.hidden = hidden;
+        control.hidden = hidden || (control == _moveStick && !_editingLayout && !_moveTouch);
         control.alpha = _controlOpacity;
-        control.userInteractionEnabled = !hidden;
+        // Movement touches belong to the overlay region, not the moving artwork.
+        control.userInteractionEnabled = !hidden && (control != _moveStick || _editingLayout);
         UIColor *border = [UIColor colorWithWhite:1.0 alpha:0.42];
         if (_editingLayout) {
             border = control == _selectedControl
@@ -1415,6 +1680,9 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
 - (void)selectControlForEditing:(UIView *)control {
     if (!_editingLayout || !control.accessibilityLabel) return;
     _selectedControl = control;
+    _selectionLabel.text = control == _moveStick
+        ? @"Move preview — Selected Size resizes the floating stick. In play, it appears at your thumb in the lower-left area."
+        : [NSString stringWithFormat:@"Editing %@ — drag to move; use Selected Size to resize.", control.accessibilityLabel];
     NSNumber *saved = _controlSizeScales[control.accessibilityLabel];
     _selectedScaleSlider.value = std::clamp<CGFloat>(saved ? saved.doubleValue : 1.0,
                                                      0.60, 1.75);
@@ -1508,6 +1776,58 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
     }
 }
 
+// Only empty space in the lower-left safe area starts a movement gesture.
+// Buttons, the camera stick and settings retain first priority in hitTest.
+- (CGRect)floatingMoveRegion {
+    CGRect safe = UIEdgeInsetsInsetRect(self.bounds, self.safeAreaInsets);
+    return CGRectMake(CGRectGetMinX(safe), CGRectGetMinY(safe) + safe.size.height * 0.40,
+                      safe.size.width * 0.45, safe.size.height * 0.60);
+}
+
+- (BOOL)floatingMoveEnabled {
+    return !_editingLayout && !_nativeTextActive && !_manualControlsHidden &&
+           !(_controllerConnected && _autoHideControls) && _settingsPanel.hidden;
+}
+
+- (void)endFloatingMove {
+    _moveTouch = nil;
+    _moveStick.frame = _moveStickRestingFrame;
+    [_moveStick reset];
+    _moveStick.hidden = !_editingLayout;
+}
+
+- (void)touchesBegan:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
+    if (_moveTouch || ![self floatingMoveEnabled]) return;
+    for (UITouch *touch in touches) {
+        CGPoint point = [touch locationInView:self];
+        if ([self hitTest:point withEvent:event] != self) continue;
+        _moveTouch = touch;
+        _floatingMoveSafeRect = UIEdgeInsetsInsetRect(self.bounds, self.safeAreaInsets);
+        _moveStick.center = point; // No movement on touchdown, including near an edge.
+        _moveStick.hidden = NO;
+        [_moveStick layoutIfNeeded];
+        [_moveStick reset];
+        break;
+    }
+}
+
+- (void)touchesMoved:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
+    (void)event;
+    if (!_moveTouch || ![touches containsObject:_moveTouch]) return;
+    if (![self floatingMoveEnabled]) { [self endFloatingMove]; return; }
+    // Keep tracking this thumb outside the activation region; never hand off.
+    [_moveStick updatePoint:[_moveTouch locationInView:_moveStick]];
+}
+
+- (void)touchesEnded:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
+    (void)event;
+    if (_moveTouch && [touches containsObject:_moveTouch]) [self endFloatingMove];
+}
+
+- (void)touchesCancelled:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
+    [self touchesEnded:touches withEvent:event];
+}
+
 - (UIView *)hitTest:(CGPoint)point withEvent:(UIEvent *)event {
     if (self.hidden || self.alpha < 0.01 || !self.userInteractionEnabled) return nil;
     for (UIView *child in [self.subviews reverseObjectEnumerator]) {
@@ -1515,11 +1835,12 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
         UIView *hit = [child hitTest:local withEvent:event];
         if (hit) return hit;
     }
-    return nil;
+    return [self floatingMoveEnabled] && CGRectContainsPoint([self floatingMoveRegion], point) ? self : nil;
 }
 
 - (void)buttonDown:(BPGameButton *)button {
     if (_editingLayout) return;
+    if (_hapticsEnabled) [_feedback impactOccurred];
     _state.buttons |= button.inputMask;
     if (button.inputMask == BellpadButtonL) _state.triggerL = 255;
     if (button.inputMask == BellpadButtonR) _state.triggerR = 255;
@@ -1547,7 +1868,7 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
     _state = {};
     BellpadClearInputState(BellpadInputSource::Touch);
     for (BPGameButton *button in _buttons) button.transform = CGAffineTransformIdentity;
-    [_moveStick reset];
+    [self endFloatingMove];
     [_cameraStick reset];
 }
 
@@ -1570,6 +1891,7 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
 }
 
 - (void)willResignActive:(NSNotification *)notification {
+    BellpadLog(@"application resigning active; touch input cleared");
     (void)notification;
     [self clearInput];
     sAudioAppActive.store(false, std::memory_order_release);
@@ -1590,7 +1912,7 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
         sAudioInterrupted.store(true, std::memory_order_release);
         sAudioSessionReady.store(false, std::memory_order_release);
         sAudioInterruptionBegan.store(true, std::memory_order_release);
-        NSLog(@"[AudioSession] Interruption began");
+        BellpadLog(@"[AudioSession] Interruption began");
         return;
     }
 
@@ -1602,7 +1924,7 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
         BellpadConfigureAudioSession(@"interruption end");
     sAudioSessionReady.store(ready, std::memory_order_release);
     sAudioInterruptionEnded.store(true, std::memory_order_release);
-    NSLog(@"[AudioSession] Interruption ended (resume %@)", shouldResume ? @"allowed" : @"deferred");
+    BellpadLog(@"[AudioSession] Interruption ended (resume %@)", shouldResume ? @"allowed" : @"deferred");
 }
 
 - (void)audioRouteChanged:(NSNotification *)notification {
@@ -1615,7 +1937,7 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
         !sAudioInterrupted.load(std::memory_order_acquire) && session.currentRoute.outputs.count > 0;
     sAudioSessionReady.store(ready, std::memory_order_release);
     sAudioRouteChanged.store(true, std::memory_order_release);
-    NSLog(@"[AudioSession] Route changed (reason %lu, outputs %lu)",
+    BellpadLog(@"[AudioSession] Route changed (reason %lu, outputs %lu)",
           (unsigned long)reason, (unsigned long)session.currentRoute.outputs.count);
 }
 
@@ -1624,7 +1946,7 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
     sAudioInterrupted.store(true, std::memory_order_release);
     sAudioSessionReady.store(false, std::memory_order_release);
     sAudioInterruptionBegan.store(true, std::memory_order_release);
-    NSLog(@"[AudioSession] Media services lost");
+    BellpadLog(@"[AudioSession] Media services lost");
 }
 
 - (void)audioMediaServicesReset:(NSNotification *)notification {
@@ -1635,7 +1957,7 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
     sAudioSessionReady.store(ready, std::memory_order_release);
     sAudioInterruptionEnded.store(true, std::memory_order_release);
     sAudioRouteChanged.store(true, std::memory_order_release);
-    NSLog(@"[AudioSession] Media services reset");
+    BellpadLog(@"[AudioSession] Media services reset");
 }
 
 - (void)refreshControllerVisibility {
@@ -1647,13 +1969,17 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
 #endif
     if (connected) [self clearTouchInput];
     else BellpadClearInputState(BellpadInputSource::Controller);
+    if (_controllerConnected != connected) BellpadLog(@"controller connection=%@ count=%lu", connected ? @"connected" : @"disconnected", (unsigned long)GCController.controllers.count);
     _controllerConnected = connected;
+    [self refreshMenu];
     [self updateControlAppearance];
 }
 
 - (void)layoutSubviews {
     [super layoutSubviews];
     CGRect safe = UIEdgeInsetsInsetRect(self.bounds, self.safeAreaInsets);
+    CGPoint floatingCenter = _moveStick.center;
+    CGSize previousStickSize = _moveStick.bounds.size;
     [self loadSettingsForCurrentProfile];
     BOOL pad = self.traitCollection.userInterfaceIdiom == UIUserInterfaceIdiomPad && safe.size.width >= 1000.0;
     CGFloat baseScale = pad ? 1.0 : std::min<CGFloat>(1.0, std::min(safe.size.width / 800.0, safe.size.height / 380.0));
@@ -1693,16 +2019,33 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
         button.layer.cornerRadius = std::min(button.bounds.size.width, button.bounds.size.height) * 0.5;
     }
     [self applySavedControlCentersInSafeRect:safe];
+    _moveStickRestingFrame = _moveStick.frame;
+    if (_moveTouch) {
+        if (CGRectEqualToRect(safe, _floatingMoveSafeRect) &&
+            CGSizeEqualToSize(previousStickSize, _moveStick.bounds.size)) {
+            _moveStick.center = floatingCenter;
+        } else {
+            // Rotation, resizing or a size change must not leave movement held.
+            [self endFloatingMove];
+        }
+    }
 
-    CGFloat settingsSide = 40.0;
+    CGFloat settingsSide = 48.0;
     _settingsButton.frame = CGRectMake(CGRectGetMaxX(safe) - settingsSide,
                                        CGRectGetMinY(safe) + 8.0,
                                        settingsSide, settingsSide);
     CGFloat panelWidth = std::min<CGFloat>(360.0, std::max<CGFloat>(300.0, safe.size.width - 24.0));
-    CGFloat panelHeight = std::min<CGFloat>(390.0, safe.size.height - 62.0);
+    CGFloat panelHeight = std::min<CGFloat>(470.0, safe.size.height - 70.0);
+    _fpsLabel.frame = CGRectMake(CGRectGetMinX(safe) + 8, CGRectGetMinY(safe) + 8, 96, 28);
     _settingsPanel.frame = CGRectMake(CGRectGetMaxX(safe) - panelWidth,
                                       CGRectGetMinY(safe) + 54.0,
                                       panelWidth, panelHeight);
+    CGRect panelFrame = _settingsPanel.frame;
+    CGFloat originX = panelFrame.origin.x, originY = panelFrame.origin.y;
+    panelFrame.origin.x = std::clamp<CGFloat>(originX + _settingsPanelOffset.x, CGRectGetMinX(safe), CGRectGetMaxX(safe) - panelWidth);
+    panelFrame.origin.y = std::clamp<CGFloat>(originY + _settingsPanelOffset.y, CGRectGetMinY(safe), CGRectGetMaxY(safe) - panelHeight);
+    _settingsPanelOffset = CGPointMake(panelFrame.origin.x - originX, panelFrame.origin.y - originY);
+    _settingsPanel.frame = panelFrame;
     [self updateControlAppearance];
     [self bringSubviewToFront:_settingsPanel];
     [self bringSubviewToFront:_settingsButton];
@@ -1826,7 +2169,16 @@ static BOOL BellpadCopyPath(NSString *path, char *outputPath, size_t outputCapac
     return YES;
 }
 
+static void BellpadSDLLog(void *userdata, int category, SDL_LogPriority priority, const char *message) {
+    (void)userdata;
+    if (priority >= SDL_LOG_PRIORITY_WARN)
+        bellpad_log_runtime((int)priority - 2, "SDL", message, message ? strlen(message) : 0);
+    (void)category;
+}
+
 void bellpad_install_game_overlay(void) {
+    bellpad_diagnostics_start();
+    SDL_SetLogOutputFunction(BellpadSDLLog, nullptr);
     void (^install)(void) = ^{
         UIWindow *window = BellpadGameWindow();
         if (!window) return;
@@ -1859,7 +2211,8 @@ int bellpad_prepare_game_data_path(const char* applicationSupportPath,
     NSURL *supportURL = [NSURL fileURLWithPath:supportPath isDirectory:YES];
     sApplicationSupportURL = supportURL;
     BellpadApplyPendingSaveImport();
-    if (!BellpadRecoverCanonicalSaveIfNeeded()) return 0;
+    if (!BellpadRecoverCanonicalSaveIfNeeded()) { BellpadLog(@"save recovery blocked startup"); return 0; }
+    BellpadLog(@"save preparation complete");
 
     NSUserDefaults *defaults = NSUserDefaults.standardUserDefaults;
     BOOL forcePicker = [defaults boolForKey:BPChangeGameDataOnNextLaunchKey];
@@ -1871,17 +2224,19 @@ int bellpad_prepare_game_data_path(const char* applicationSupportPath,
         NSError *error = nil;
         [NSFileManager.defaultManager removeItemAtURL:retainedURL error:&error];
         if (error) {
-            NSLog(@"[Storage] Could not remove retained game data: %@", error.localizedDescription);
+            BellpadLog(@"[Storage] Could not remove retained game data: %@", error.localizedDescription);
             return 0;
         }
-        NSLog(@"[Storage] Removed retained game data at the user's request");
+        BellpadLog(@"[Storage] Removed retained game data at the user's request");
     }
     [defaults removeObjectForKey:BPChangeGameDataOnNextLaunchKey];
     [defaults removeObjectForKey:BPRemoveGameDataOnNextLaunchKey];
     if (!forcePicker && !removeRetainedData &&
         BellpadValidateDiscImage(retainedURL.fileSystemRepresentation).valid()) {
+        BellpadLog(@"retained disc validated; startup continuing");
         return BellpadCopyPath(retainedURL.path, outputPath, outputCapacity) ? 1 : 0;
     }
+    BellpadLog(@"game data setup required forcePicker=%d removeRequested=%d", forcePicker, removeRetainedData);
     dispatch_semaphore_t completionSemaphore = dispatch_semaphore_create(0);
     __block NSString *selectedPath = nil;
     __block BOOL finished = NO;

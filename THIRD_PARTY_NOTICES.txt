@@ -1,6 +1,6 @@
-BELLPAD THIRD-PARTY NOTICES
+BellPad Third-Party Notices
 
-This file accompanies Bellpad binary distributions. Bellpad is an unofficial,
+This file accompanies BellPad binary distributions. BellPad is an unofficial,
 ROM-free compatibility project and is not affiliated with or endorsed by
 Nintendo. No retail game image or original copyrighted game asset is covered by
 or included with these notices.
@@ -10,26 +10,29 @@ PRODUCT DEPENDENCY INVENTORY
 - Animal Crossing decompilation and PC port: ACreTeam/ac-decomp provenance,
   carried by birabittoh/ACGC-PC-Port commit
   915fb86ba9a6c2144dabda9143d93af7a3f92be7. CC0-1.0 game code; MIT PC
-  compatibility layer and FixNES. Bellpad applies its tracked pc-port patch
-  series and incorporates the resulting game core.
-- bc7decomp: Richard Geldreich, Jr., 2020. MIT or public domain; Bellpad uses
+  compatibility layer and FixNES. BellPad maintains its existing changes in
+  https://github.com/chrissotraidis/ACGC-PC-Port at commit
+  dbbb789e3404c94fe17520fb7ad3f048a3870cdc (sources.lock.json).
+- bc7decomp: Richard Geldreich, Jr., 2020. MIT or public domain; BellPad uses
   the MIT alternative through the pinned PC-port tree for texture decoding.
 - Aurora: encounter/aurora commit
-  5027ed63a73dfba28de9eceed00481fb09a19c35, MIT. Bellpad applies its tracked
-  Aurora patch series and incorporates GX, core, OS, PAD, CARD, SI, VI, MTX,
+  5027ed63a73dfba28de9eceed00481fb09a19c35, MIT. BellPad maintains its changes
+  in https://github.com/chrissotraidis/aurora at commit
+  5a0b160e4bcc0a37316f55a02c0bb4a7e3ddfd67 and incorporates
+  GX, core, OS, PAD, CARD, SI, VI, MTX,
   SDL3, and Dawn/Metal integration.
 - Dawn/Tint: encounter/dawn commit
   266c1cf8de969a364afa4fa49311631fc99a881e, prebuilt Apple ARM64 release
   v20260618.032059 for device builds and source-built for Simulator builds.
   BSD-3-Clause with additional file-specific terms reproduced below; provides
-  WebGPU and the Metal renderer. Bellpad makes no source modification.
+  WebGPU and the Metal renderer. BellPad makes no source modification.
 - Abseil 20240722.0, Apache-2.0: statically linked containers and support code.
 - SDL 3.4.10, zlib license: statically linked Apple application, audio, and
   controller platform layer. The compiled library also contains HIDAPI and
   yuv2rgb code under the BSD-3-Clause notices reproduced below. Aurora's
-  tracked Android-only patch commands do not alter Bellpad's Apple build.
+  tracked Android-only patch commands do not alter BellPad's Apple build.
 - fmt 12.1.0, MIT: statically linked formatting support.
-- FreeType 2.14.3, FreeType License/GPL dual license: Bellpad distributes under
+- FreeType 2.14.3, FreeType License/GPL dual license: BellPad distributes under
   the permissive FreeType License option for font support.
 - libpng 1.6.58, libpng license: statically linked PNG support.
 - Dear ImGui 1.91.9b-docking, MIT: statically linked Aurora UI support.
@@ -37,7 +40,7 @@ PRODUCT DEPENDENCY INVENTORY
 - Tracy commit 6789e7d6f9a65ec98926b602097a33a9676d2606 (0.13.3),
   BSD-3-Clause: statically linked disabled/on-demand instrumentation support.
 - Apple SDK frameworks, libc++, libSystem, libsqlite3, libz, and libbz2 are
-  supplied by the operating system and are not copied into Bellpad.
+  supplied by the operating system and are not copied into BellPad.
 
 The clean decompilation's CC0-1.0 legal code is available from Creative Commons:
 https://creativecommons.org/publicdomain/zero/1.0/legalcode.txt
@@ -45,8 +48,11 @@ CC0 applies only to rights its affirmers could waive. It does not grant rights
 to Nintendo assets, trademarks, patents, or other third-party material.
 
 The exact source URLs, hashes, upstream purpose, changes, and disposition are
-also recorded in docs/RESEARCH.md, docs/LEGAL.md, upstreams.lock.json, and the
-tracked patch directories.
+also recorded in docs/RESEARCH.md, docs/LEGAL.md, upstreams.lock.json, and
+sources.lock.json. Historical patches map to maintained source commits in
+docs/source-maintenance/migration.json. Original BellPad additions retain the
+existing no-outbound-license terms unless a file or contribution states otherwise;
+upstream license texts below remain unchanged.
 
 
 ===============================================================================

@@ -3,7 +3,7 @@ set -eu
 
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 repo_root=$(CDPATH= cd -- "$script_dir/.." && pwd)
-aurora_dir="$repo_root/ref/upstream/aurora"
+aurora_dir="$repo_root/source/aurora"
 platform=${1:-}
 
 usage() {

@@ -1,3 +1,12 @@
+# Historical migration evidence — not a build input
+
+Normal builds consume pinned source submodules. New fixes belong in those
+source branches, not additional patches. The 56 files below are retained to
+reproduce the pre-migration baseline with `python3 scripts/verify-migration.py`.
+See [mapping](../docs/source-maintenance/migration.json) and
+[source maintenance](../docs/SOURCE_MAINTENANCE.md). The descriptions below
+record the former preparation workflow.
+
 # Reference patches
 
 These patches preserve small, evidence-backed changes against pinned upstream research baselines. They are not applied automatically and do not turn the reference port into the final Bellpad architecture.

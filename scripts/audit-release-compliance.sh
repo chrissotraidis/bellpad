@@ -12,13 +12,15 @@ for required_file in \
     product-dependencies.lock.json \
     docs/LEGAL.md \
     docs/RESEARCH.md \
-    patches/aurora/0005-pin-fetched-archive-hashes.patch; do
+    sources.lock.json; do
     if [ ! -s "$required_file" ]; then
         echo "Missing release-compliance file: $required_file" >&2
         exit 1
     fi
 done
 
+"$script_dir/fetch-aurora.sh"
+jq empty sources.lock.json
 jq empty upstreams.lock.json
 jq empty product-dependencies.lock.json
 
@@ -49,7 +51,7 @@ for archive_hash in \
     ada0bafc173152d80eba7c3b2f9609a71185d5809cbd5dd3251b91a0803a7ae2 \
     a9cc9903761e60cf70d7d771bd0c482be1943e273717782d71c33313afeb6080 \
     0dc11d980ba17250200718fa4e28011da293f27ed92f92203afffe396811f307; do
-    if ! rg -Fq "$archive_hash" patches/aurora/0005-pin-fetched-archive-hashes.patch; then
+    if ! rg -Fq "$archive_hash" source/aurora/cmake source/aurora/extern; then
         echo "Pinned archive hash is missing: $archive_hash" >&2
         exit 1
     fi

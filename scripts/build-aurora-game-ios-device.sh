@@ -3,8 +3,8 @@ set -eu
 
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 repo_root=$(CDPATH= cd -- "$script_dir/.." && pwd)
-core_dir="$repo_root/ref/upstream/acgc-64bit"
-aurora_dir="$repo_root/ref/upstream/aurora"
+core_dir="$repo_root/source/acgc-64bit"
+aurora_dir="$repo_root/source/aurora"
 build_dir=${BELLPAD_AURORA_GAME_IOS_DEVICE_BUILD_DIR:-"$core_dir/pc/build-bellpad-aurora-game-ios-device-package"}
 dependency_dir=${BELLPAD_AURORA_IOS_DEVICE_DEPENDENCY_DIR:-"$aurora_dir/build-bellpad-ios-device-package-ninja/_deps"}
 prefix_map="-ffile-prefix-map=$repo_root=/bellpad -fdebug-prefix-map=$repo_root=/bellpad -fmacro-prefix-map=$repo_root=/bellpad"

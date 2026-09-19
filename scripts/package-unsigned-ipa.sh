@@ -3,7 +3,7 @@ set -eu
 
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 repo_root=$(CDPATH= cd -- "$script_dir/.." && pwd)
-core_dir="$repo_root/ref/upstream/acgc-64bit"
+core_dir="$repo_root/source/acgc-64bit"
 build_dir=${BELLPAD_AURORA_GAME_IOS_DEVICE_BUILD_DIR:-"$core_dir/pc/build-bellpad-aurora-game-ios-device-package"}
 app=${BELLPAD_IOS_DEVICE_APP:-"$build_dir/bin/Bellpad.app"}
 output=${BELLPAD_UNSIGNED_IPA_OUTPUT:-"$repo_root/dist/Bellpad-unsigned.ipa"}
@@ -14,6 +14,8 @@ fi
 
 binary="$app/Bellpad"
 test -x "$binary"
+python3 "$script_dir/audit-ios-deployment.py" "$app"
+python3 "$script_dir/build-provenance.py" --verify "$app/SourceProvenance.json"
 cmp -s "$repo_root/THIRD_PARTY_NOTICES.txt" "$app/ThirdPartyNotices.txt"
 platform=$(xcrun vtool -show-build "$binary" | awk '$1 == "platform" { print $2; exit }')
 if [ "$platform" != "IOS" ]; then
@@ -60,6 +62,7 @@ if otool -l "$package_binary" | rg -q 'LC_CODE_SIGNATURE'; then
     exit 1
 fi
 cmp -s "$repo_root/THIRD_PARTY_NOTICES.txt" "$package_app/ThirdPartyNotices.txt"
+python3 "$script_dir/audit-ios-deployment.py" "$package_app"
 
 find "$package_dir/Payload" -exec touch -h -t 202001010000 {} +
 mkdir -p "$(dirname -- "$output")"
