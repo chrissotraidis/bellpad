@@ -34,17 +34,51 @@ procedure are in [SOURCE_MAINTENANCE.md](SOURCE_MAINTENANCE.md).
   system-only dynamic dependencies, no runtime search paths, exact notices,
   and absence of prohibited data/signing files.
 
-## Remaining qualification
+## Final source/package qualification
 
-Simulator build, source archive restoration and failure-boundary tests, and
-final package identities are recorded as they complete. No physical-device or
-new gameplay acceptance is implied by build/test success. Existing public
-Preview 2 and its prior acceptance remain separate from these local artifacts.
+Code/artifact commit: `e6d2e9801808c385f56a476f4932d8627b72ea9f`.
+[Review PR #11](https://github.com/chrissotraidis/bellpad/pull/11) remains unmerged.
+The following documentation-only checkpoint does not change the binaries.
 
-The established reconstructed-game rights question and original Bellpad's lack
-of an outbound grant remain explicit. This task preserves those terms rather
-than asserting clearance. No new binary release is authorized. Review/merge and
-any future release decision remain follow-up actions.
+| Local artifact (not published) | SHA-256 |
+|---|---|
+| `Bellpad-qualified-unsigned.ipa` | `e2dfb6cf52a78e1ae6e868e3c35ccaf15c475327c3c17b91ac3b90805d01a25b` |
+| `Bellpad-qualified-source.tar.gz` | `0acccec06cab0890a40ca01de44808b291ad3eaa5a5d3c66cad365cdd24fd4b3` |
+
+The IPA retains `dev.bellpad.app`, 0.1.0/build 2, is unsigned, and has matching
+executable/plist minimum iOS 17.0. Source provenance identifies the clean artifact
+commit and both dependency pins. It is an internal qualification candidate,
+not a new release or a replacement for Preview 2.
+
+- Device and Simulator builds/package audits pass under Xcode 27.0 (27A266a).
+  Device uses its pinned Dawn package; Simulator builds Dawn source. Native macOS
+  baseline builds against the host SDL2 2.32.10; no macOS binary was published.
+- All 6,952 exported files restore and verify with SHA-256 and normalized Git
+  executable modes without Git/network. Both modified dependency trees are
+  included. Corrupted/unrecorded source, wrong pins, dirty dependency source,
+  stale package provenance, and missing/mismatched OS metadata are rejected.
+- Restored baseline Git bundle checks out the old commit; old PC/Aurora fetch
+  scripts and the 50-patch regression replay pass in a disposable checkout.
+  Supplemental PC/Aurora history bundles verify complete upstream ancestry.
+- SDL 3.4.10 fetched archive SHA-256 matches the lock. Comparing its prepared tree
+  to the pristine archive finds only `SDL_gamepad.c`'s Android-guarded mapping
+  block and Android `SDLActivity.java`. Controller regressions pass. Optional
+  zlib-ng/RmlUi package patches remain disabled for the product.
+- [Hosted Apple ARM64 check](https://github.com/chrissotraidis/bellpad/actions/runs/35408311699)
+  passed for the initial PR. The final documentation/code head is checked again
+  by the PR workflow; use its current result as authoritative.
+- A fresh iPhone Simulator on iOS 26.5 installs/launches the playable app and
+  reaches “Choose your game data.” The computer-use connection could not access
+  Xcode's Simulator, so actual file-picker taps/import are **not verified**.
+  No physical device was installed, no private game/save state changed, and no
+  new gameplay/controller acceptance is claimed.
+
+The source archive is not an offline Xcode/third-party dependency cache and does
+not establish byte-identical binary reproduction across toolchains. The existing
+reconstructed-game rights question and original Bellpad's lack of an outbound
+grant remain explicit. No new release is authorized. Next action: review PR #11;
+reporter evidence is needed before claiming issue #10 resolved, and any later
+binary publication requires its own authorization and qualification.
 
 ## Issue #10
 
@@ -55,3 +89,8 @@ its Info.plist lacks `MinimumOSVersion`. This is a concrete packaging metadata
 gap, not proof of the reported gesture failure's cause. The playable IPA uses
 `BellpadGameOverlay.mm`, not the separate shell's picker. Do not lower the OS
 target or claim the report fixed without supported-device evidence.
+
+The metadata correction is implemented independently of the source migration,
+with rejection checks in IPA packaging. [Investigation reply](https://github.com/chrissotraidis/bellpad/issues/10#issuecomment-5737689176)
+asks for the exact IPA/installer, local versus cloud storage, and whether the
+file is greyed out. The issue remains open; no game image or save was requested.
