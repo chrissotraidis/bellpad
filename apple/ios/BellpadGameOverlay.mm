@@ -374,7 +374,7 @@ static BOOL BellpadRecoverCanonicalSaveIfNeeded(void) {
         if (error) {
             BellpadLog(@"[Save] Invalid canonical GCI could not be quarantined: %@", error.localizedDescription);
             BellpadSetSaveRecoveryNotice(@"Save Needs Attention",
-                @"The active GCI is invalid and no valid backup was found. Bellpad could not move it aside, so the game was not started. Export the app container before retrying.");
+                @"The active GCI is invalid and no valid backup was found. BellPad could not move it aside, so the game was not started. Export the app container before retrying.");
             return NO;
         }
         NSError *syncError = nil;
@@ -386,7 +386,7 @@ static BOOL BellpadRecoverCanonicalSaveIfNeeded(void) {
               quarantine.lastPathComponent);
         BellpadSetSaveRecoveryNotice(@"Save Quarantined",
             [NSString stringWithFormat:
-                @"The active GCI was invalid and no valid backup was found. Bellpad preserved it as %@ and started without loading the damaged file. You can import a valid Dolphin GCI from Settings.",
+                @"The active GCI was invalid and no valid backup was found. BellPad preserved it as %@ and started without loading the damaged file. You can import a valid Dolphin GCI from Settings.",
                 quarantine.lastPathComponent]);
         return YES;
     }
@@ -408,7 +408,7 @@ static BOOL BellpadRecoverCanonicalSaveIfNeeded(void) {
               recoveryName, error.localizedDescription);
         BellpadSetSaveRecoveryNotice(@"Save Recovery Failed",
             [NSString stringWithFormat:
-                @"The active GCI is invalid. A valid backup (%@) was found, but Bellpad could not install it: %@",
+                @"The active GCI is invalid. A valid backup (%@) was found, but BellPad could not install it: %@",
                 recoveryName, error.localizedDescription]);
         return NO;
     }
@@ -422,7 +422,7 @@ static BOOL BellpadRecoverCanonicalSaveIfNeeded(void) {
           recoveryName, quarantine.lastPathComponent);
     BellpadSetSaveRecoveryNotice(@"Save Recovered",
         [NSString stringWithFormat:
-            @"Bellpad restored the newest valid backup (%@). The damaged GCI was preserved as %@.",
+            @"BellPad restored the newest valid backup (%@). The damaged GCI was preserved as %@.",
             recoveryName, quarantine.lastPathComponent]);
     return YES;
 }
@@ -533,6 +533,74 @@ static void BellpadQueueNativeTextCommand(int command) {
 
 @end
 
+// The menu and first-run importer use the same problem-report flow.
+static UIAlertController *BPProblemReportPrompt(UIViewController *presenter, UIView *anchor,
+                                                NSString *technicalContext) {
+    UIAlertController *prompt = [UIAlertController alertControllerWithTitle:@"Report a Problem"
+        message:@"Describe the problem and BellPad will add technical details. Share the diagnostic file or open a prefilled GitHub report. Attach the file on GitHub before submitting. Game images, saves and typed game text are excluded; GitHub reports are public. Nothing is submitted automatically."
+        preferredStyle:UIAlertControllerStyleAlert];
+    static NSArray<NSString *> *draft = @[@"", @"", @""];
+    NSArray *placeholders = @[@"What went wrong?", @"What were you doing? (optional)", @"Every time, sometimes, once, or not sure?"];
+    for (NSUInteger index = 0; index < placeholders.count; ++index) {
+        [prompt addTextFieldWithConfigurationHandler:^(UITextField *field) {
+            field.placeholder = placeholders[index];
+            field.text = draft[index];
+            field.clearButtonMode = UITextFieldViewModeWhileEditing;
+        }];
+    }
+    [prompt addAction:[UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleCancel handler:nil]];
+    __weak UIAlertController *weakPrompt = prompt;
+    __weak UIViewController *weakPresenter = presenter;
+    __weak UIView *weakAnchor = anchor;
+    for (NSNumber *destination in @[@NO, @YES]) {
+        BOOL openGitHub = destination.boolValue;
+        [prompt addAction:[UIAlertAction actionWithTitle:openGitHub ? @"Report on GitHub" : @"Share Report…"
+            style:UIAlertActionStyleDefault handler:^(__kindof UIAlertAction *action) {
+            (void)action;
+            UIAlertController *answers = weakPrompt;
+            UIViewController *owner = weakPresenter;
+            if (!answers || !owner) return;
+            NSString *summary = answers.textFields[0].text ?: @"";
+            NSString *steps = answers.textFields[1].text ?: @"";
+            NSString *frequency = answers.textFields[2].text ?: @"";
+            draft = @[summary, steps, frequency];
+            NSString *context = [NSString stringWithFormat:@"Steps: %@\nFrequency: %@\n%@", steps, frequency, technicalContext];
+            BellpadLog(@"problem report requested destination=%@", openGitHub ? @"github-draft" : @"share-sheet");
+            NSError *error = nil;
+            NSURL *report = BellpadDiagnosticsReport(summary, context, &error);
+            if (!report) {
+                UIAlertController *failure = [UIAlertController alertControllerWithTitle:@"Report Unavailable"
+                    message:@"The report could not be written. Check available storage and try again."
+                    preferredStyle:UIAlertControllerStyleAlert];
+                [failure addAction:[UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:nil]];
+                [owner presentViewController:failure animated:YES completion:nil];
+                return;
+            }
+            if (openGitHub) {
+                NSURL *url = BellpadDiagnosticsIssueURL(summary, steps, frequency);
+                [UIApplication.sharedApplication openURL:url options:@{} completionHandler:^(BOOL success) {
+                    if (success) return;
+                    dispatch_async(dispatch_get_main_queue(), ^{
+                        UIAlertController *failure = [UIAlertController alertControllerWithTitle:@"Could Not Open GitHub"
+                            message:@"Your diagnostic report is still available. Use Report a Problem → Share Report to save or share it."
+                            preferredStyle:UIAlertControllerStyleAlert];
+                        [failure addAction:[UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:nil]];
+                        [owner presentViewController:failure animated:YES completion:nil];
+                    });
+                }];
+            } else {
+                UIActivityViewController *share = [[UIActivityViewController alloc] initWithActivityItems:@[report] applicationActivities:nil];
+                UIView *source = weakAnchor ?: owner.view;
+                share.popoverPresentationController.sourceView = source;
+                share.popoverPresentationController.sourceRect = source.bounds;
+                [owner presentViewController:share animated:YES completion:nil];
+            }
+        }]];
+    }
+    prompt.preferredAction = prompt.actions.lastObject;
+    return prompt;
+}
+
 @interface BPDiscImportViewController : UIViewController <UIDocumentPickerDelegate>
 @property(nonatomic, copy) void (^completion)(NSURL *retainedURL);
 @property(nonatomic, strong) NSURL *applicationSupportURL;
@@ -558,7 +626,7 @@ static void BellpadQueueNativeTextCommand(int command) {
 
     UILabel *detail = [UILabel new];
     detail.translatesAutoresizingMaskIntoConstraints = NO;
-    detail.text = @"Bellpad requires a legally obtained Animal Crossing GAFE01 revision 0 ISO or GCM. The selected file is validated and copied to private Application Support. It is never added to the app bundle.";
+    detail.text = @"BellPad requires a legally obtained Animal Crossing GAFE01 revision 0 ISO or GCM. The selected file is validated and copied to private Application Support. It is never added to the app bundle.";
     detail.numberOfLines = 0;
     detail.textColor = [UIColor colorWithWhite:1.0 alpha:0.76];
     detail.font = [UIFont systemFontOfSize:16.0 weight:UIFontWeightRegular];
@@ -592,7 +660,7 @@ static void BellpadQueueNativeTextCommand(int command) {
 
     UIButton *diagnostics = [UIButton buttonWithType:UIButtonTypeSystem];
     diagnostics.translatesAutoresizingMaskIntoConstraints = NO;
-    [diagnostics setTitle:@"Share Diagnostic Report…" forState:UIControlStateNormal];
+    [diagnostics setTitle:@"Report a Problem…" forState:UIControlStateNormal];
     [diagnostics addTarget:self action:@selector(shareImportDiagnostics) forControlEvents:UIControlEventTouchUpInside];
     [self.view addSubview:diagnostics];
     UILayoutGuide *safe = self.view.safeAreaLayoutGuide;
@@ -621,13 +689,7 @@ static void BellpadQueueNativeTextCommand(int command) {
 }
 
 - (void)shareImportDiagnostics {
-    NSError *error = nil;
-    NSURL *url = BellpadDiagnosticsReport(@"Game data setup", @"Report created from the import screen; no selected file or game data is included.", &error);
-    if (!url) { [self finishWithError:@"The report could not be written. Check available storage and try again."]; return; }
-    UIActivityViewController *share = [[UIActivityViewController alloc] initWithActivityItems:@[url] applicationActivities:nil];
-    share.popoverPresentationController.sourceView = _chooseButton;
-    share.popoverPresentationController.sourceRect = _chooseButton.bounds;
-    [self presentViewController:share animated:YES completion:nil];
+    [self presentViewController:BPProblemReportPrompt(self, _chooseButton, @"Game data setup") animated:YES completion:nil];
 }
 
 - (void)documentPickerWasCancelled:(UIDocumentPickerViewController *)controller {
@@ -718,7 +780,7 @@ static void BellpadQueueNativeTextCommand(int command) {
         }
 
         dispatch_async(dispatch_get_main_queue(), ^{
-            [strongSelf setBusy:NO status:@"Supported game data imported. Starting Bellpad…"];
+            [strongSelf setBusy:NO status:@"Supported game data imported. Starting BellPad…"];
             BellpadLog(@"disc import validated and committed");
             if (strongSelf.completion) strongSelf.completion(destination);
         });
@@ -1074,19 +1136,15 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
         [weakSelf presentMessageWithTitle:@"Controls" message:[NSString stringWithFormat:@"%lu controller(s) connected. Controllers reconnect automatically. Touch controls can stay visible alongside a controller.\n\nKeyboard: WASD moves; arrow keys control the C-stick. Space = A, Shift = B, X/Y = X/Y, Return = Start, Z = Z, Q/E = L/R, I/J/K/L = D-pad.\n\nTouch layout and sizes are saved separately for iPhone and iPad. Editing a layout does not send game input. Haptics require supported hardware.", (unsigned long)GCController.controllers.count]];
     }];
     UIMenu *controls = [UIMenu menuWithTitle:@"Controls" image:[UIImage systemImageNamed:@"gamecontroller"] identifier:nil options:0 children:@[touch, autoHide, haptics, help]];
-    UIAction *report = [UIAction actionWithTitle:@"Share Diagnostic Report…" image:[UIImage systemImageNamed:@"doc.text.magnifyingglass"] identifier:nil handler:^(__kindof UIAction *a) {
+    UIAction *report = [UIAction actionWithTitle:@"Report a Problem…" image:[UIImage systemImageNamed:@"doc.text.magnifyingglass"] identifier:nil handler:^(__kindof UIAction *a) {
         (void)a; [weakSelf shareDiagnostics];
-    }];
-    UIAction *issues = [UIAction actionWithTitle:@"Bellpad Support on GitHub" image:[UIImage systemImageNamed:@"questionmark.circle"] identifier:nil handler:^(__kindof UIAction *a) {
-        (void)a;
-        [UIApplication.sharedApplication openURL:[NSURL URLWithString:@"https://github.com/chrissotraidis/bellpad/issues"] options:@{} completionHandler:nil];
     }];
     UIAction *about = [UIAction actionWithTitle:@"About This Build" image:[UIImage systemImageNamed:@"info.circle"] identifier:nil handler:^(__kindof UIAction *a) {
         (void)a;
         NSBundle *bundle = NSBundle.mainBundle;
-        [weakSelf presentMessageWithTitle:@"Bellpad" message:[NSString stringWithFormat:@"Version %@ (build %@)\n\nNative Apple integration of birabittoh/ACGC-PC-Port, ACreTeam/ac-decomp and encounter/aurora. Source and third-party notices are included with this build.\n\nDiagnostic logs stay on this device until you choose to share them. No game images, saves, text input or signing material are attached.", [bundle objectForInfoDictionaryKey:@"CFBundleShortVersionString"], [bundle objectForInfoDictionaryKey:@"CFBundleVersion"]]];
+        [weakSelf presentMessageWithTitle:@"BellPad" message:[NSString stringWithFormat:@"Version %@ (build %@)\n\nNative Apple integration of birabittoh/ACGC-PC-Port, ACreTeam/ac-decomp and encounter/aurora. Source provenance and third-party notices are included with this build.\n\nDiagnostic logs stay on this device until you choose to share them. No game images, saves, text input or signing material are attached.", [bundle objectForInfoDictionaryKey:@"CFBundleShortVersionString"], [bundle objectForInfoDictionaryKey:@"CFBundleVersion"]]];
     }];
-    _settingsButton.menu = [UIMenu menuWithTitle:@"Bellpad" children:@[display, controls, _dataMenu, report, issues, about]];
+    _settingsButton.menu = [UIMenu menuWithTitle:@"BellPad" children:@[display, controls, _dataMenu, report, about]];
 }
 
 - (void)deadzoneChanged:(UISlider *)slider {
@@ -1105,27 +1163,9 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
 
 - (void)shareDiagnostics {
     [self clearTouchInput];
-    UIAlertController *prompt = [UIAlertController alertControllerWithTitle:@"Share Diagnostic Report"
-        message:@"Describe what happened and what you were doing. Bellpad adds build details and bounded recent logs. Game images, saves and typed game text are excluded. Review the report before sharing; GitHub attachments are public. Nothing uploads automatically."
-        preferredStyle:UIAlertControllerStyleAlert];
-    [prompt addTextFieldWithConfigurationHandler:^(UITextField *field) { field.placeholder = @"What went wrong?"; }];
-    [prompt addTextFieldWithConfigurationHandler:^(UITextField *field) { field.placeholder = @"Steps and how often it happens"; }];
-    [prompt addAction:[UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleCancel handler:nil]];
-    __weak BPGameOverlay *weakSelf = self;
-    [prompt addAction:[UIAlertAction actionWithTitle:@"Create Report…" style:UIAlertActionStyleDefault handler:^(__kindof UIAlertAction *action) {
-        (void)action;
-        BPGameOverlay *owner = weakSelf; if (!owner) return;
-        NSString *context = [NSString stringWithFormat:@"%@\nControllers=%lu renderScale=%d thermal=%ld layout=%@ autoHide=%d", prompt.textFields[1].text ?: @"", (unsigned long)GCController.controllers.count, sFrameBufferScaleMode.load(), (long)NSProcessInfo.processInfo.thermalState, [owner settingsProfile], owner->_autoHideControls];
-        BellpadLog(@"diagnostic report requested");
-        NSError *error = nil;
-        NSURL *url = BellpadDiagnosticsReport(prompt.textFields[0].text ?: @"", context, &error);
-        if (!url) { [owner presentMessageWithTitle:@"Report Unavailable" message:@"The report could not be written. Check available storage and try again."]; return; }
-        UIActivityViewController *share = [[UIActivityViewController alloc] initWithActivityItems:@[url] applicationActivities:nil];
-        share.popoverPresentationController.sourceView = owner->_settingsButton;
-        share.popoverPresentationController.sourceRect = owner->_settingsButton.bounds;
-        [[owner presentationController] presentViewController:share animated:YES completion:nil];
-    }]];
-    [[self presentationController] presentViewController:prompt animated:YES completion:nil];
+    NSString *context = [NSString stringWithFormat:@"Controllers=%lu renderScale=%d thermal=%ld layout=%@ autoHide=%d", (unsigned long)GCController.controllers.count, sFrameBufferScaleMode.load(), (long)NSProcessInfo.processInfo.thermalState, [self settingsProfile], _autoHideControls];
+    UIViewController *presenter = [self presentationController];
+    [presenter presentViewController:BPProblemReportPrompt(presenter, _settingsButton, context) animated:YES completion:nil];
 }
 
 - (void)buildSettingsPanel {
@@ -1137,7 +1177,7 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
     _settingsButton.layer.cornerRadius = 24.0;
     _settingsButton.layer.borderWidth = 1.0;
     _settingsButton.layer.borderColor = [UIColor colorWithWhite:1.0 alpha:0.30].CGColor;
-    _settingsButton.accessibilityLabel = @"Bellpad menu";
+    _settingsButton.accessibilityLabel = @"BellPad menu";
     _settingsButton.accessibilityIdentifier = @"bellpad.menu";
     _settingsButton.tintColor = UIColor.whiteColor;
     _settingsButton.showsMenuAsPrimaryAction = YES;
@@ -1348,13 +1388,13 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
     [NSUserDefaults.standardUserDefaults setBool:NO forKey:BPRemoveGameDataOnNextLaunchKey];
     [self closeSettingsPanel];
     [self presentMessageWithTitle:@"Reimport on Next Launch"
-                          message:@"Close and reopen Bellpad. Before the game starts, Files will ask for a supported ISO or GCM. Your current retained image remains available until a replacement passes validation."];
+                          message:@"Close and reopen BellPad. Before the game starts, Files will ask for a supported ISO or GCM. Your current retained image remains available until a replacement passes validation."];
 }
 
 - (void)confirmGameDataRemoval {
     [self closeSettingsPanel];
     UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"Remove Stored Game Data?"
-        message:@"The private retained ISO/GCM will be removed the next time Bellpad launches, then Files will request replacement game data. Your GCI save and backups are not removed."
+        message:@"The private retained ISO/GCM will be removed the next time BellPad launches, then Files will request replacement game data. Your GCI save and backups are not removed."
         preferredStyle:UIAlertControllerStyleAlert];
     [alert addAction:[UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleCancel handler:nil]];
     [alert addAction:[UIAlertAction actionWithTitle:@"Remove on Relaunch"
@@ -1371,7 +1411,7 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
     BellpadLog(@"save import requested");
     if (!BellpadResolvedApplicationSupportURL()) {
         [self presentMessageWithTitle:@"Save Import Unavailable"
-                              message:@"Bellpad has not finished preparing Application Support yet."];
+                              message:@"BellPad has not finished preparing Application Support yet."];
         return;
     }
     UTType *gciType = [UTType typeWithFilenameExtension:@"gci"] ?: UTTypeData;
@@ -1401,7 +1441,7 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
     }
 
     NSURL *snapshot = [NSFileManager.defaultManager.temporaryDirectory
-        URLByAppendingPathComponent:@"Bellpad-Dolphin-Save.gci"];
+        URLByAppendingPathComponent:@"BellPad-Dolphin-Save.gci"];
     [NSFileManager.defaultManager removeItemAtURL:snapshot error:nil];
     NSError *error = nil;
     [data writeToURL:snapshot options:NSDataWritingAtomic error:&error];
@@ -1425,7 +1465,7 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
         if (_documentPickerMode == BPDocumentPickerModeExportSave) [self clearExportSnapshot];
         _documentPickerMode = BPDocumentPickerModeNone;
         [self presentMessageWithTitle:@"Files Unavailable"
-                              message:@"Bellpad could not present the system Files browser."];
+                              message:@"BellPad could not present the system Files browser."];
         return;
     }
 
@@ -1490,7 +1530,7 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
 
         NSURL *pending = BellpadPendingSaveURL();
         NSError *error = nil;
-        if (!message && !pending) message = @"Bellpad could not resolve its save-import directory.";
+        if (!message && !pending) message = @"BellPad could not resolve its save-import directory.";
         if (!message) {
             [NSFileManager.defaultManager createDirectoryAtURL:pending.URLByDeletingLastPathComponent
                                    withIntermediateDirectories:YES attributes:nil error:&error];
@@ -1508,7 +1548,7 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
                 [strongSelf presentMessageWithTitle:@"Save Import Failed" message:message];
             } else {
                 [strongSelf presentMessageWithTitle:@"Save Ready to Import"
-                    message:@"The validated GCI will replace the active town before the next launch, and the current file will be retained as a pre-import backup. Close Bellpad without saving again, then reopen it now."];
+                    message:@"The validated GCI will replace the active town before the next launch, and the current file will be retained as a pre-import backup. Close BellPad without saving again, then reopen it now."];
             }
         });
     });

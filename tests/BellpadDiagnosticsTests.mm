@@ -38,6 +38,16 @@ int main() {
         assert([report containsString:@"10000 occurrences"]);
         assert(![report containsString:@"example.com"] && report.length < 1200000);
         assert(![report containsString:@"private save"]);
+        NSURL *issue = BellpadDiagnosticsIssueURL(@"Menu & controls?", @"Open menu /private/secret/save.gci", @"Sometimes");
+        NSURLComponents *parts = [NSURLComponents componentsWithURL:issue resolvingAgainstBaseURL:NO];
+        assert([parts.host isEqualToString:@"github.com"] && [parts.path isEqualToString:@"/chrissotraidis/bellpad/issues/new"]);
+        NSMutableDictionary *query = [NSMutableDictionary dictionary];
+        for (NSURLQueryItem *item in parts.queryItems) query[item.name] = item.value;
+        assert([query[@"title"] isEqualToString:@"[Bug]: Menu & controls?"]);
+        assert([query[@"body"] containsString:@"Sometimes"] && [query[@"body"] containsString:@"fixture"]);
+        assert(![issue.absoluteString containsString:@"secret"]);
+        NSString *large = [@"🎮" stringByPaddingToLength:5000 withString:@"🎮" startingAtIndex:0];
+        assert(BellpadDiagnosticsIssueURL(large, large, large).absoluteString.length <= 7500);
         // Disk failure returns an error, never throws through game code.
         sDirectory = [directory stringByAppendingPathComponent:@"missing/child"];
         BellpadLog(@"unwritable log destination");

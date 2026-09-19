@@ -1,4 +1,4 @@
-# Bellpad
+# BellPad
 
 <p align="center">
   <strong>Animal Crossing rebuilt as a native Apple Silicon source port for macOS, iPhone, and iPad.</strong><br>
@@ -6,35 +6,35 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/chrissotraidis/bellpad/actions/workflows/source-release.yml"><img alt="Bellpad source release checks" src="https://github.com/chrissotraidis/bellpad/actions/workflows/source-release.yml/badge.svg"></a>
+  <a href="https://github.com/chrissotraidis/bellpad/actions/workflows/source-release.yml"><img alt="BellPad source release checks" src="https://github.com/chrissotraidis/bellpad/actions/workflows/source-release.yml/badge.svg"></a>
   <img alt="iOS and iPadOS 17 or newer" src="https://img.shields.io/badge/iOS%20%2F%20iPadOS-17%2B-0A84FF?logo=apple">
   <img alt="Apple Silicon macOS" src="https://img.shields.io/badge/macOS-Apple%20Silicon-30D158?logo=apple">
   <img alt="Metal renderer" src="https://img.shields.io/badge/renderer-Metal-5E5CE6">
   <img alt="game data not included" src="https://img.shields.io/badge/game%20data-not%20included-FF453A">
 </p>
 
-![Bellpad running in a town on iPad](docs/readme/bellpad-town.png)
+![BellPad running in a town on iPad](docs/readme/bellpad-town.png)
 
-Bellpad is an experimental native Apple-platform source port for the original
+BellPad is an experimental native Apple-platform source port for the original
 US release of Animal Crossing for Nintendo GameCube. It is not a GameCube
 emulator or a browser port. The project builds a 64-bit, reverse-engineered
 game core for Apple Silicon macOS and a Metal-backed iPhone/iPad app through
 [Aurora](https://github.com/encounter/aurora), SDL3, and Dawn. Its game foundation
 is [birabittoh/ACGC-PC-Port](https://github.com/birabittoh/ACGC-PC-Port), based on
 [FlyingMeta’s PC port](https://github.com/flyngmt/ACGC-PC-Port) and
-[ACreTeam/ac-decomp](https://github.com/ACreTeam/ac-decomp). Bellpad contributes
+[ACreTeam/ac-decomp](https://github.com/ACreTeam/ac-decomp). BellPad contributes
 the Apple integration, native import/input/save handling, and compatibility fixes.
 
-This repository contains source, original Bellpad integration, reproducible
+This repository contains source, original BellPad integration, reproducible
 build scripts, and documentation. It does **not** contain Animal Crossing, a
 GameCube image, extracted game assets, or saves. You supply your own legally
-obtained, supported game data locally after building or installing Bellpad.
+obtained, supported game data locally after building or installing BellPad.
 Read the scoped [legal and clean-room boundary](docs/LEGAL.md) before using or
 contributing to the project.
 
 ## Download
 
-[**Download Bellpad 0.1.0 Preview 2 for iPhone and iPad (.ipa)**](https://github.com/chrissotraidis/bellpad/releases/download/v0.1.0-preview.2/Bellpad-0.1.0-preview.2-unsigned.ipa)
+[**Download BellPad 0.1.0 Preview 2 for iPhone and iPad (.ipa)**](https://github.com/chrissotraidis/bellpad/releases/download/v0.1.0-preview.2/Bellpad-0.1.0-preview.2-unsigned.ipa)
 
 This is an experimental, unsigned, ROM-free preview for ARM64 devices running
 iOS or iPadOS 17.0 or later. You must sign it with your own Apple identity
@@ -52,7 +52,7 @@ Preview 2 asset: `Bellpad-0.1.0-preview.2-unsigned.ipa`, SHA-256
 | iPhone and iPad Simulator | **Current development target** | Files import, retained game data, Metal rendering, touch input, native name entry, save import/export, and relaunch have evidence on sequential Simulator runs. |
 | ARM64 iPhone/iPad device build | **Physical iPad validated** | Version 0.1.0 build 2 was signed, installed in place, and reached the retained-image/save-backed title on iPad. Game data, saves, controller settings, and touch preferences were byte-identical after readback. Physical controller scenarios remain acceptance gates. |
 | GitHub release | **Unsigned preview available** | Download the ROM-free IPA above, sign it with your own Apple identity, and provide your own supported game data after launch. |
-| App Store / TestFlight | **Not available** | Bellpad is not store-distributed. |
+| App Store / TestFlight | **Not available** | BellPad is not store-distributed. |
 
 The source-release workflow verifies the clean-room and reproducibility gates
 on Apple ARM64. It is not a substitute for hands-on hardware gameplay,
@@ -97,7 +97,7 @@ download without your own signing and hardware validation.
 
 ## First launch and game data
 
-Bellpad never downloads, bundles, or distributes game data. The currently
+BellPad never downloads, bundles, or distributes game data. The currently
 supported compatibility target is the original US revision:
 
 | Game ID | Region | Revision | Accepted application input |
@@ -107,10 +107,10 @@ supported compatibility target is the original US revision:
 On macOS, the app asks for the image once with a native file chooser and
 remembers it, so later launches start straight into the game. Run it with
 `--choose-disc` to pick a different image, or `--disc PATH` to use one for a
-single run. Bellpad stores only a local reference to the file you picked; it
+single run. BellPad stores only a local reference to the file you picked; it
 never copies the image into the app or the data directory.
 
-On iPhone and iPad, select the file in Files. Bellpad validates the header,
+On iPhone and iPad, select the file in Files. BellPad validates the header,
 revision, size, and streamed fingerprint; stages a private Application Support
 copy; validates it again; then installs it atomically for subsequent launches.
 An invalid selection does not replace a retained valid image. Compressed
@@ -118,7 +118,7 @@ formats, including CISO/RVZ, remain unsupported in the application flow.
 
 ```mermaid
 flowchart LR
-    A["Bellpad source and pinned dependencies"] --> B["Build macOS app or iOS/iPadOS app"]
+    A["BellPad source and pinned dependencies"] --> B["Build macOS app or iOS/iPadOS app"]
     C["Your supported game data"] --> D["Files picker or native file chooser"]
     B --> E["Private app container"]
     D --> E
@@ -130,9 +130,9 @@ issues, pull requests, documentation, CI artifacts, app bundles, or packages.
 
 ## Touch controls and input
 
-Bellpad's native mobile layout includes the left and C sticks, D-pad,
+BellPad's native mobile layout includes the left and C sticks, D-pad,
 A/B/X/Y, Z/L/R, and Start. It adapts between compact iPhone and larger iPad
-layouts and respects safe areas. The reviewed build 4 candidate uses a native
+layouts and respects safe areas. The reviewed build 5 candidate uses a native
 three-dot menu with Display, Controls, Game Data & Saves and diagnostics. These
 changes are not in the public Preview 2 download yet.
 
@@ -153,7 +153,7 @@ changes are not in the public Preview 2 download yet.
   and Done to the game thread. Simulator coverage exists; physical keyboard
   transitions still need acceptance testing.
 
-The candidate's **Share Diagnostic Report** includes the app/source build, bounded
+The candidate's **Report a Problem** flow includes the app/source build, bounded
 current/previous session logs, repeated runtime warning counts, import/save/audio
 and lifecycle breadcrumbs, frame-loop health and current technical settings. It
 is also available before import. No automatic upload occurs; game images, save
@@ -169,10 +169,10 @@ and package-audit workflow.
 <table>
   <tr>
     <td width="50%">
-      <img src="docs/readme/bellpad-porter-dialogue.png" alt="Bellpad train-station dialogue with Porter">
+      <img src="docs/readme/bellpad-porter-dialogue.png" alt="BellPad train-station dialogue with Porter">
     </td>
     <td width="50%">
-      <img src="docs/readme/bellpad-nook-dialogue.png" alt="Bellpad shop dialogue with Tom Nook">
+      <img src="docs/readme/bellpad-nook-dialogue.png" alt="BellPad shop dialogue with Tom Nook">
     </td>
   </tr>
   <tr>
@@ -183,7 +183,7 @@ and package-audit workflow.
 
 These are current gameplay captures made with locally supplied game data. They
 are documentation only: no game image, extracted asset, save, or derived
-archive is included in this repository or in Bellpad build products.
+archive is included in this repository or in BellPad build products.
 
 ## What works today
 
@@ -233,7 +233,7 @@ signed apps, packages, and credentials are ignored and must never be committed.
 
 ## Research, credits, and legal
 
-Bellpad is an unofficial community compatibility project. It is not affiliated
+BellPad is an unofficial community compatibility project. It is not affiliated
 with or endorsed by Nintendo. Animal Crossing, Nintendo, and GameCube names
 are used only to describe compatibility; their trademarks and copyrighted works
 remain their owners' property.

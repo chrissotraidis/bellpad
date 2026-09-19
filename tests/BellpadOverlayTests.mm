@@ -18,9 +18,17 @@ extern "C" void SDL_SetLogOutputFunction(SDL_LogOutputFunction callback, void *u
             [overlay layoutSubviews];
             UIButton *menu = [overlay valueForKey:@"settingsButton"];
             assert(menu.showsMenuAsPrimaryAction && menu.bounds.size.width >= 44);
-            assert(menu.menu.children.count == 6);
+            assert(menu.menu.children.count == 5);
             assert([menu.menu.children[0].title isEqualToString:@"Display"]);
             assert([menu.menu.children[1].title isEqualToString:@"Controls"]);
+            assert([menu.menu.title isEqualToString:@"BellPad"]);
+            assert([menu.menu.children[3].title isEqualToString:@"Report a Problem…"]);
+            UIAlertController *report = BPProblemReportPrompt(self.window.rootViewController, menu, @"Fixture");
+            assert([report.title isEqualToString:@"Report a Problem"] && report.textFields.count == 3);
+            assert(report.actions.count == 3);
+            assert([report.actions[1].title isEqualToString:@"Share Report…"]);
+            assert([report.actions[2].title isEqualToString:@"Report on GitHub"]);
+            assert(report.preferredAction == report.actions[2]);
             UIMenu *data = (UIMenu *)menu.menu.children[2];
             assert(data.children.count == 4); // export/import/change/remove all retained
             BPGameButton *a = [overlay button:@"A"];
@@ -57,7 +65,7 @@ extern "C" void SDL_SetLogOutputFunction(SDL_LogOutputFunction callback, void *u
                 assert(CGRectContainsRect(overlay.bounds, menu.frame));
                 assert(CGRectContainsRect(overlay.bounds, panel.frame));
             }
-            NSDictionary *result = @{ @"passed": @YES, @"checks": @"menu/data actions; held-input release; layout editing; controller auto-hide override; native text; lifecycle; iPhone/iPad bounds" };
+            NSDictionary *result = @{ @"passed": @YES, @"checks": @"unified reporting prompt; menu/data actions; held-input release; layout editing; controller auto-hide override; native text; lifecycle; iPhone/iPad bounds" };
             NSData *json = [NSJSONSerialization dataWithJSONObject:result options:NSJSONWritingPrettyPrinted error:nil];
             [json writeToFile:[NSHomeDirectory() stringByAppendingPathComponent:@"Documents/overlay-tests.json"] atomically:YES];
             overlay.frame = self.window.rootViewController.view.bounds;

@@ -60,7 +60,7 @@ void BellpadLog(NSString *format, ...) {
         NSString *message = [[NSString alloc] initWithFormat:format arguments:args];
         va_end(args);
         message = BellpadDiagnosticsRedact(message);
-        os_log_with_type(OS_LOG_DEFAULT, OS_LOG_TYPE_DEFAULT, "[Bellpad] %{public}s", message.UTF8String);
+        os_log_with_type(OS_LOG_DEFAULT, OS_LOG_TYPE_DEFAULT, "[BellPad] %{public}s", message.UTF8String);
         BPWrite(message);
     }
 }
@@ -123,7 +123,7 @@ double bellpad_diagnostics_fps(void) {
 NSURL *BellpadDiagnosticsReport(NSString *summary, NSString *context, NSError **error) {
     std::lock_guard<std::recursive_mutex> lock(sLock);
     if (!sDirectory) bellpad_diagnostics_start();
-    NSMutableString *report = [NSMutableString stringWithFormat:@"Bellpad diagnostic report — schema 1\nSession: %@\nSummary: %@\nContext: %@\n\nLogs exclude game/save data, controller inputs, device identifiers and signing material. Review your own description before sharing. No automatic upload.\n", sSession, BellpadDiagnosticsRedact(summary), BellpadDiagnosticsRedact(context)];
+    NSMutableString *report = [NSMutableString stringWithFormat:@"BellPad diagnostic report — schema 1\nSession: %@\nSummary: %@\nContext: %@\n\nLogs exclude game/save data, controller inputs, device identifiers and signing material. Review your own description before sharing. No automatic upload.\n", sSession, BellpadDiagnosticsRedact(summary), BellpadDiagnosticsRedact(context)];
     NSArray *keys = [[sCounts allKeys] sortedArrayUsingSelector:@selector(compare:)];
     for (NSString *key in keys) [report appendFormat:@"%@: %@ occurrences\n", key, sCounts[key]];
     [report appendFormat:@"Additional event kinds suppressed: %lu\n", (unsigned long)sDropped];
@@ -132,6 +132,27 @@ NSURL *BellpadDiagnosticsReport(NSString *summary, NSString *context, NSError **
         if (data.length > kLimit + 8192) data = [data subdataWithRange:NSMakeRange(data.length - kLimit, kLimit)];
         [report appendFormat:@"\n--- %@ ---\n%@", name, [[NSString alloc] initWithData:data ?: [NSData data] encoding:NSUTF8StringEncoding] ?: @"<unreadable log>\n"];
     }
-    NSURL *url = [NSURL fileURLWithPath:[sDirectory stringByAppendingPathComponent:@"Bellpad-Diagnostics.txt"]];
+    NSURL *url = [NSURL fileURLWithPath:[sDirectory stringByAppendingPathComponent:@"BellPad-Diagnostics.txt"]];
     return [report writeToURL:url atomically:YES encoding:NSUTF8StringEncoding error:error] ? url : nil;
+}
+
+NSURL *BellpadDiagnosticsIssueURL(NSString *summary, NSString *steps, NSString *frequency) {
+    std::lock_guard<std::recursive_mutex> lock(sLock);
+    if (!sDirectory) bellpad_diagnostics_start();
+    NSBundle *bundle = NSBundle.mainBundle;
+    NSString *(^bounded)(NSString *, NSUInteger) = ^NSString *(NSString *text, NSUInteger count) {
+        NSString *safe = BellpadDiagnosticsRedact(text);
+        if (safe.length > count) safe = [safe substringWithRange:[safe rangeOfComposedCharacterSequencesForRange:NSMakeRange(0, count)]];
+        return safe;
+    };
+    NSString *problem = bounded(summary, 100);
+    if (!problem.length) problem = @"BellPad problem";
+    NSString *details = [NSString stringWithFormat:@"## What happened\n%@\n\n## Steps\n%@\n\n## Frequency\n%@\n\n", bounded(summary, 400), bounded(steps, 400), bounded(frequency, 80)];
+    NSString *technical = [NSString stringWithFormat:@"## Build\nBellPad %@ (build %@)\nOS: %@\nDiagnostic session: %@\n\n## Diagnostics\nAttach BellPad-Diagnostics.txt using Report a Problem → Share Report in the app. Review it before attaching; do not upload game images or saves.\n", [bundle objectForInfoDictionaryKey:@"CFBundleShortVersionString"] ?: @"unknown", [bundle objectForInfoDictionaryKey:@"CFBundleVersion"] ?: @"unknown", NSProcessInfo.processInfo.operatingSystemVersionString, sSession ?: @"unknown"];
+    NSURLComponents *url = [NSURLComponents componentsWithString:@"https://github.com/chrissotraidis/bellpad/issues/new"];
+    url.queryItems = @[[NSURLQueryItem queryItemWithName:@"title" value:[@"[Bug]: " stringByAppendingString:problem]], [NSURLQueryItem queryItemWithName:@"body" value:[details stringByAppendingString:technical]]];
+    // Percent-encoded emoji/non-ASCII input can otherwise exceed browser limits.
+    if (url.URL.absoluteString.length > 7500)
+        url.queryItems = @[[NSURLQueryItem queryItemWithName:@"title" value:@"[Bug]: BellPad problem"], [NSURLQueryItem queryItemWithName:@"body" value:[@"Describe the problem here; the complete description is in your diagnostic file.\n\n" stringByAppendingString:technical]]];
+    return url.URL;
 }

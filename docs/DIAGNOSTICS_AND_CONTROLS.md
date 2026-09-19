@@ -1,9 +1,9 @@
 # Controls and diagnostic reports
 
-Build 4 is a local review candidate, not a public release. The owner requested
+Build 5 is a local review candidate, not a public release. The owner requested
 this pass after the unchanged-product source migration and build 3 iPad update.
 SunPad's grouped native menu and user-initiated reporting flow informed the design;
-Bellpad's runtime, existing save actions and persisted settings remain its own.
+BellPad's runtime, existing save actions and persisted settings remain its own.
 
 The three-dot menu groups render resolution/frame rate, controls, game data and
 saves, diagnostic sharing and support. Display changes retain Native/1×/2×/3×/4×.
@@ -22,10 +22,12 @@ input path or controller remapping system is introduced. Haptics depend on hardw
 
 ## What the report contains
 
-Use **Share Diagnostic Report…** to describe the problem and its reproduction,
-then use the system share sheet to save or share the generated text. The initial
-game-data screen also exposes reports for picker/import problems. Opening GitHub
-support does not submit a report or upload a file. Review the text before sharing.
+Use **Report a Problem…** to describe the problem and its reproduction,
+then choose **Share Report…** or **Report on GitHub** from the same prompt.
+Both prepare diagnostics; GitHub opens a prefilled draft for your review. Attach
+the diagnostic file using Share Report before submitting. Answers remain in
+memory while the app runs so both actions can reuse them. The initial
+game-data screen also exposes reports for picker/import problems. Opening the GitHub draft does not submit a report or upload a file. Review the text before sharing.
 
 - Version/build, public source commit/component pins, executable identity,
   toolchain, OS version and hardware model (not the device name/identifier).

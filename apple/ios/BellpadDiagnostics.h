@@ -14,5 +14,6 @@ double bellpad_diagnostics_fps(void);
 #import <Foundation/Foundation.h>
 void BellpadLog(NSString *format, ...) NS_FORMAT_FUNCTION(1, 2);
 NSString *BellpadDiagnosticsRedact(NSString *message);
+NSURL *BellpadDiagnosticsIssueURL(NSString *summary, NSString *steps, NSString *frequency);
 NSURL *BellpadDiagnosticsReport(NSString *summary, NSString *context, NSError **error);
 #endif
