@@ -1,6 +1,6 @@
 # Controls and diagnostic reports
 
-Build 6 is a local review candidate, not a public release. The owner requested
+Preview 3 distributes build 6. The owner requested
 this pass after the unchanged-product source migration and build 3 iPad update.
 SunPad's grouped native menu and user-initiated reporting flow informed the design;
 BellPad's runtime, existing save actions and persisted settings remain its own.

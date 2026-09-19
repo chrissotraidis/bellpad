@@ -34,15 +34,17 @@ contributing to the project.
 
 ## Download
 
-[**Download BellPad 0.1.0 Preview 2 for iPhone and iPad (.ipa)**](https://github.com/chrissotraidis/bellpad/releases/download/v0.1.0-preview.2/Bellpad-0.1.0-preview.2-unsigned.ipa)
+[**Download BellPad 0.1.0 Preview 3 for iPhone and iPad (.ipa)**](https://github.com/chrissotraidis/bellpad/releases/download/v0.1.0-preview.3/BellPad-0.1.0-preview.3-unsigned.ipa)
 
 This is an experimental, unsigned, ROM-free preview for ARM64 devices running
 iOS or iPadOS 17.0 or later. You must sign it with your own Apple identity
 before installation and provide your own supported game data after launch. It
 is not an App Store or TestFlight release.
 
-Preview 2 asset: `Bellpad-0.1.0-preview.2-unsigned.ipa`, SHA-256
-`d9e9ebd5d17fa360de1775cf60deaccd8ca5b196b09842ea633a8ad353a8aaea`.
+Preview 3 asset: `BellPad-0.1.0-preview.3-unsigned.ipa`, SHA-256
+`7ea5c1c437ec223e691150ddbf597e8cbf1e8a4ce79cd3e6487e0873e73021a1`.
+
+[Complete modified source, notices, provenance and checksums](https://github.com/chrissotraidis/bellpad/releases/tag/v0.1.0-preview.3) accompany the IPA.
 
 ## Release status
 
@@ -50,7 +52,7 @@ Preview 2 asset: `Bellpad-0.1.0-preview.2-unsigned.ipa`, SHA-256
 |---|---|---|
 | Apple Silicon macOS | **Playable baseline** | The native `Bellpad.app` reaches a generated town, creates/reloads a Dolphin-compatible GCI save, and has desktop rendering/input evidence. |
 | iPhone and iPad Simulator | **Current development target** | Files import, retained game data, Metal rendering, touch input, native name entry, save import/export, and relaunch have evidence on sequential Simulator runs. |
-| ARM64 iPhone/iPad device build | **Physical iPad validated** | Local version 0.1.0 build 6 was signed and installed in place; on-device logs confirm retained-image validation and save preparation at startup. The public download remains build 2. Game data, saves, controller settings, and touch preferences were byte-identical after readback. Physical controller scenarios remain acceptance gates. |
+| ARM64 iPhone/iPad device build | **Physical iPad validated** | Local version 0.1.0 build 6 was signed and installed in place; on-device logs confirm retained-image validation and save preparation at startup. Preview 3 provides this same audited build 6. Game data, saves, controller settings, and touch preferences were byte-identical after readback. Physical controller scenarios remain acceptance gates. |
 | GitHub release | **Unsigned preview available** | Download the ROM-free IPA above, sign it with your own Apple identity, and provide your own supported game data after launch. |
 | App Store / TestFlight | **Not available** | BellPad is not store-distributed. |
 
@@ -132,16 +134,16 @@ issues, pull requests, documentation, CI artifacts, app bundles, or packages.
 
 BellPad's native mobile layout includes the left and C sticks, D-pad,
 A/B/X/Y, Z/L/R, and Start. It adapts between compact iPhone and larger iPad
-layouts and respects safe areas. The reviewed build 6 candidate uses a native
+layouts and respects safe areas. Preview 3 (build 6) uses a native
 three-dot menu with Display, Controls, Game Data & Saves and diagnostics. These
-changes are not in the public Preview 2 download yet.
+changes are included in Preview 3.
 
 - **Movement:** place your thumb in empty space in the lower-left area to reveal
   the left stick at that spot. Drag to move; lift to hide it. Buttons take
   priority, and the camera stick stays fixed. Stick size and dead zone still apply.
 - **Controls:** hide/show gameplay controls, adjust opacity and global size,
   move controls, resize an individual selected control, and reset the active
-  device-class layout. The candidate adds a touch-stick dead zone, optional
+  device-class layout. Preview 3 adds a touch-stick dead zone, optional
   button haptics and a choice to retain touch controls with a controller attached.
   Existing positions/preferences and default stick response are preserved.
 - **Render scale:** choose Native, 1×, 2×, 3×, or 4× internal rendering.

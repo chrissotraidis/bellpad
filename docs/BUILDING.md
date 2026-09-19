@@ -314,3 +314,12 @@ GX example. The ARM64 `IOSSIMULATOR` executable selected the Apple iOS simulator
 GPU through Metal and rendered on an iPhone 17 Pro simulator, then an iPad Pro
 13-inch simulator after the phone was stopped. The iPad used a resizable window,
 which correctly exposes product window/layout work still to be implemented.
+
+
+Preview 3 (0.1.0/build 6) is the exact reviewed artifact from
+`b5d3358cc493d9134c0d91f9a7479afa2f824640`, published under
+`v0.1.0-preview.3`. Its release includes `BellPad-0.1.0-preview.3-source.tar.gz`,
+`SourceProvenance.json`, `ThirdPartyNotices.txt` and `SHA256SUMS.txt`. The source
+archive includes both maintained component trees and verifies offline with
+`python3 scripts/maintained-sources.py verify`; builds still require Xcode and
+external pinned dependencies. See the release for the exact IPA/source checksums.

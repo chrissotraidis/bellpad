@@ -1,9 +1,9 @@
 # Maintained sources and reproducibility
 
-Bellpad remains the same app repository, product, bundle ID (`dev.bellpad.app`),
+BellPad remains the same app repository, product, bundle ID (`dev.bellpad.app`),
 issues and release URLs. This migration does not upgrade upstream, change game
-behavior, grant new licenses, or publish a binary. Preview 2 remains the public
-iPhone/iPad release. macOS is a local playable baseline; the native shell and
+behavior or grant new licenses. The later owner-requested controls/reporting
+refinements are delivered as iPhone/iPad Preview 3 (build 6). macOS is a local playable baseline; the native shell and
 Aurora convergence/probe executables are development targets.
 
 ## Source ownership and exact baseline
@@ -100,8 +100,8 @@ folders, ROMs, saves, signing material or the private checkout. Verification and
 modified-source availability work without Git or network. Normal build scripts
 also accept a verified export. Building still requires Xcode, host libraries and
 the externally hash-pinned dependencies; the archive is **not a fully offline
-SDK/dependency cache**. GitHub's automatic app ZIP omits submodule contents, so a
-future binary release should attach this explicit source archive and checksums.
+SDK/dependency cache**. GitHub's automatic app ZIP omits submodule contents, so Preview 3
+attaches this explicit source archive and checksums.
 Every packaged product now includes `SourceProvenance.json` beside its component
 `ThirdPartyNotices.txt`. Provenance binds the unsigned executable hash and bundle
 identity to verified sources; offline exports are checked before provenance is

@@ -262,3 +262,16 @@ Prior exact-signed build 5 is retained for in-place rollback; commands and
 manifests are in the same private external backup's `RECOVERY.md`. Local restore
 was verified; no device downgrade performed. PR #11 remains open, main/public
 Preview 2 unchanged, and rights/reporter follow-up remains as previously recorded.
+
+## Preview 3 publication authorization
+
+On 20 September the owner explicitly authorized merging PR #11 and publishing
+the latest IPA. Earlier no-merge/no-publication statements are historical scope.
+Preview 3 selects the already audited build 6 artifact and exact source commit
+`b5d3358cc493d9134c0d91f9a7479afa2f824640`; its tag points to that build commit,
+while main also carries later review/documentation. No new code or dependency
+version is introduced by publication, and the installed iPad build is unchanged.
+The previous section records matching hashes and validation. Explicit source,
+notices, executable-bound provenance and checksums accompany this release.
+Existing rights/reporter/physical-acceptance limits remain open; publication
+does not erase them. Prior releases and private rollback packages are retained.
