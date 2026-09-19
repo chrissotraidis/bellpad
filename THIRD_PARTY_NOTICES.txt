@@ -12,7 +12,7 @@ PRODUCT DEPENDENCY INVENTORY
   915fb86ba9a6c2144dabda9143d93af7a3f92be7. CC0-1.0 game code; MIT PC
   compatibility layer and FixNES. BellPad maintains its existing changes in
   https://github.com/chrissotraidis/ACGC-PC-Port at commit
-  7bca87ec4ea75d7a138ebd26c1c1dd1f703cf8ae (sources.lock.json).
+  6bd5a496cfbd7a7a448decdd4f6287a0fef66104 (sources.lock.json).
 - bc7decomp: Richard Geldreich, Jr., 2020. MIT or public domain; BellPad uses
   the MIT alternative through the pinned PC-port tree for texture decoding.
 - Aurora: encounter/aurora commit

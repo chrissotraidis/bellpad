@@ -10,7 +10,7 @@ Aurora convergence/probe executables are development targets.
 
 | Component | Upstream base | Maintained source |
 |---|---|---|
-| Game and PC layer | [birabittoh/ACGC-PC-Port](https://github.com/birabittoh/ACGC-PC-Port) `915fb86ba9a6c2144dabda9143d93af7a3f92be7` | [chrissotraidis/ACGC-PC-Port](https://github.com/chrissotraidis/ACGC-PC-Port/tree/bellpad/diagnostics-controls), `source/acgc-64bit`, `7bca87ec4ea75d7a138ebd26c1c1dd1f703cf8ae` |
+| Game and PC layer | [birabittoh/ACGC-PC-Port](https://github.com/birabittoh/ACGC-PC-Port) `915fb86ba9a6c2144dabda9143d93af7a3f92be7` | [chrissotraidis/ACGC-PC-Port](https://github.com/chrissotraidis/ACGC-PC-Port/tree/bellpad/diagnostics-controls), `source/acgc-64bit`, `6bd5a496cfbd7a7a448decdd4f6287a0fef66104` |
 | Aurora | [encounter/aurora](https://github.com/encounter/aurora) `5027ed63a73dfba28de9eceed00481fb09a19c35` | [chrissotraidis/aurora](https://github.com/chrissotraidis/aurora/tree/bellpad/apple), `source/aurora`, `5a0b160e4bcc0a37316f55a02c0bb4a7e3ddfd67` |
 
 Both fork-parent relationships were verified through GitHub. The PC port retains

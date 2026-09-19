@@ -67,5 +67,5 @@ Bluetooth, haptic, share-destination or gameplay acceptance.
 Post-migration PC dependency changes include commit
 `f918823fd8743bf2e1dc67830a161469844cc020` on `bellpad/diagnostics-controls`:
 the iOS build links the product logger and forwards existing Aurora logs/frame
-notifications. Build 5 selects `7bca87ec4ea75d7a138ebd26c1c1dd1f703cf8ae`, which also corrects visible Apple runtime names to BellPad without changing storage paths. The upstream base and Aurora pin are unchanged. See
+notifications. Build 5 selects `6bd5a496cfbd7a7a448decdd4f6287a0fef66104`, which also corrects visible Apple runtime names to BellPad without changing storage paths. The upstream base and Aurora pin are unchanged. See
 [SOURCE_MAINTENANCE.md](SOURCE_MAINTENANCE.md) for pins, source export and rollback.
