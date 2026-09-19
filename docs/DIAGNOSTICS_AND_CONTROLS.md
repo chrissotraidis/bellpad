@@ -1,6 +1,6 @@
 # Controls and diagnostic reports
 
-Build 5 is a local review candidate, not a public release. The owner requested
+Build 6 is a local review candidate, not a public release. The owner requested
 this pass after the unchanged-product source migration and build 3 iPad update.
 SunPad's grouped native menu and user-initiated reporting flow informed the design;
 BellPad's runtime, existing save actions and persisted settings remain its own.
@@ -9,6 +9,17 @@ The three-dot menu groups render resolution/frame rate, controls, game data and
 saves, diagnostic sharing and support. Display changes retain Native/1×/2×/3×/4×.
 Export/import Dolphin GCI, change/reimport ISO/GCM, and confirmed removal retain
 their existing implementation and validation. No new data migration is performed.
+
+The movement stick is hidden until a thumb lands in empty space within the left
+45% and lower 60% of the safe area. It appears exactly at that contact, starts
+neutral, and follows only that thumb until release/cancellation, even outside
+the activation region. Other controls take priority, so simultaneous buttons and
+the fixed camera stick remain usable. Lift, open a menu, enter native text,
+background, hide controls, connect an auto-hiding controller or resize/rotate to
+release movement. Ordinary layout passes retain the active origin. The layout
+editor shows the saved Move preview and adjusts its size; gameplay origins never
+rewrite stored layout positions. Existing opacity, size and dead-zone settings
+still apply.
 
 Touch settings retain opacity, overall and per-control size, normalized positions,
 hide controls and per-device reset. Editing stays usable with a connected controller,

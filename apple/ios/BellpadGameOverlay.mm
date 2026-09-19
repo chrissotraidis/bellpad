@@ -33,6 +33,7 @@
 @property(nonatomic, weak) id<BPStickDelegate> delegate;
 @property(nonatomic) CGFloat deadzone;
 - (void)reset;
+- (void)updatePoint:(CGPoint)point;
 @end
 
 @implementation BPStickView {
@@ -64,8 +65,7 @@
     _thumb.layer.cornerRadius = diameter * 0.5;
 }
 
-- (void)update:(UITouch *)touch {
-    CGPoint point = [touch locationInView:self];
+- (void)updatePoint:(CGPoint)point {
     CGPoint center = CGPointMake(CGRectGetMidX(self.bounds), CGRectGetMidY(self.bounds));
     CGFloat radius = std::max<CGFloat>(1.0, std::min(self.bounds.size.width, self.bounds.size.height) * 0.5);
     CGFloat x = (point.x - center.x) / radius;
@@ -90,8 +90,8 @@
     [self.delegate stick:self.tag changedX:0 y:0];
 }
 
-- (void)touchesBegan:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event { (void)event; [self update:touches.anyObject]; }
-- (void)touchesMoved:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event { (void)event; [self update:touches.anyObject]; }
+- (void)touchesBegan:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event { (void)event; [self updatePoint:[touches.anyObject locationInView:self]]; }
+- (void)touchesMoved:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event { (void)event; [self updatePoint:[touches.anyObject locationInView:self]]; }
 - (void)touchesEnded:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event { (void)touches; (void)event; [self reset]; }
 - (void)touchesCancelled:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event { [self touchesEnded:touches withEvent:event]; }
 
@@ -813,6 +813,9 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
 @implementation BPGameOverlay {
     BellpadPadState _state;
     BPStickView *_moveStick;
+    UITouch *_moveTouch; // Only the initiating thumb owns the floating stick.
+    CGRect _moveStickRestingFrame;
+    CGRect _floatingMoveSafeRect;
     BPStickView *_cameraStick;
     NSMutableArray<BPGameButton *> *_buttons;
     NSMutableArray<UIGestureRecognizer *> *_editGestures;
@@ -1133,7 +1136,7 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
     haptics.state = _hapticsEnabled ? UIMenuElementStateOn : UIMenuElementStateOff;
     UIAction *help = [UIAction actionWithTitle:@"Controller & Keyboard Help" image:[UIImage systemImageNamed:@"keyboard"] identifier:nil handler:^(__kindof UIAction *a) {
         (void)a;
-        [weakSelf presentMessageWithTitle:@"Controls" message:[NSString stringWithFormat:@"%lu controller(s) connected. Controllers reconnect automatically. Touch controls can stay visible alongside a controller.\n\nKeyboard: WASD moves; arrow keys control the C-stick. Space = A, Shift = B, X/Y = X/Y, Return = Start, Z = Z, Q/E = L/R, I/J/K/L = D-pad.\n\nTouch layout and sizes are saved separately for iPhone and iPad. Editing a layout does not send game input. Haptics require supported hardware.", (unsigned long)GCController.controllers.count]];
+        [weakSelf presentMessageWithTitle:@"Controls" message:[NSString stringWithFormat:@"%lu controller(s) connected. Controllers reconnect automatically. Touch controls can stay visible alongside a controller.\n\nKeyboard: WASD moves; arrow keys control the C-stick. Space = A, Shift = B, X/Y = X/Y, Return = Start, Z = Z, Q/E = L/R, I/J/K/L = D-pad.\n\nPlace your thumb in an empty part of the lower-left area to reveal the movement stick. Lift to hide it; the camera stick stays fixed.\n\nTouch layout and sizes are saved separately for iPhone and iPad. Editing a layout does not send game input. Haptics require supported hardware.", (unsigned long)GCController.controllers.count]];
     }];
     UIMenu *controls = [UIMenu menuWithTitle:@"Controls" image:[UIImage systemImageNamed:@"gamecontroller"] identifier:nil options:0 children:@[touch, autoHide, haptics, help]];
     UIAction *report = [UIAction actionWithTitle:@"Report a Problem…" image:[UIImage systemImageNamed:@"doc.text.magnifyingglass"] identifier:nil handler:^(__kindof UIAction *a) {
@@ -1652,9 +1655,10 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
     BOOL hidden = _nativeTextActive || (!_editingLayout && (_manualControlsHidden || (_controllerConnected && _autoHideControls)));
     if (hidden) [self clearTouchInput];
     for (UIView *control in [self gameplayControls]) {
-        control.hidden = hidden;
+        control.hidden = hidden || (control == _moveStick && !_editingLayout && !_moveTouch);
         control.alpha = _controlOpacity;
-        control.userInteractionEnabled = !hidden;
+        // Movement touches belong to the overlay region, not the moving artwork.
+        control.userInteractionEnabled = !hidden && (control != _moveStick || _editingLayout);
         UIColor *border = [UIColor colorWithWhite:1.0 alpha:0.42];
         if (_editingLayout) {
             border = control == _selectedControl
@@ -1676,7 +1680,9 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
 - (void)selectControlForEditing:(UIView *)control {
     if (!_editingLayout || !control.accessibilityLabel) return;
     _selectedControl = control;
-    _selectionLabel.text = [NSString stringWithFormat:@"Editing %@ — drag to move; use Selected Size to resize.", control.accessibilityLabel];
+    _selectionLabel.text = control == _moveStick
+        ? @"Move preview — Selected Size resizes the floating stick. In play, it appears at your thumb in the lower-left area."
+        : [NSString stringWithFormat:@"Editing %@ — drag to move; use Selected Size to resize.", control.accessibilityLabel];
     NSNumber *saved = _controlSizeScales[control.accessibilityLabel];
     _selectedScaleSlider.value = std::clamp<CGFloat>(saved ? saved.doubleValue : 1.0,
                                                      0.60, 1.75);
@@ -1770,6 +1776,58 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
     }
 }
 
+// Only empty space in the lower-left safe area starts a movement gesture.
+// Buttons, the camera stick and settings retain first priority in hitTest.
+- (CGRect)floatingMoveRegion {
+    CGRect safe = UIEdgeInsetsInsetRect(self.bounds, self.safeAreaInsets);
+    return CGRectMake(CGRectGetMinX(safe), CGRectGetMinY(safe) + safe.size.height * 0.40,
+                      safe.size.width * 0.45, safe.size.height * 0.60);
+}
+
+- (BOOL)floatingMoveEnabled {
+    return !_editingLayout && !_nativeTextActive && !_manualControlsHidden &&
+           !(_controllerConnected && _autoHideControls) && _settingsPanel.hidden;
+}
+
+- (void)endFloatingMove {
+    _moveTouch = nil;
+    _moveStick.frame = _moveStickRestingFrame;
+    [_moveStick reset];
+    _moveStick.hidden = !_editingLayout;
+}
+
+- (void)touchesBegan:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
+    if (_moveTouch || ![self floatingMoveEnabled]) return;
+    for (UITouch *touch in touches) {
+        CGPoint point = [touch locationInView:self];
+        if ([self hitTest:point withEvent:event] != self) continue;
+        _moveTouch = touch;
+        _floatingMoveSafeRect = UIEdgeInsetsInsetRect(self.bounds, self.safeAreaInsets);
+        _moveStick.center = point; // No movement on touchdown, including near an edge.
+        _moveStick.hidden = NO;
+        [_moveStick layoutIfNeeded];
+        [_moveStick reset];
+        break;
+    }
+}
+
+- (void)touchesMoved:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
+    (void)event;
+    if (!_moveTouch || ![touches containsObject:_moveTouch]) return;
+    if (![self floatingMoveEnabled]) { [self endFloatingMove]; return; }
+    // Keep tracking this thumb outside the activation region; never hand off.
+    [_moveStick updatePoint:[_moveTouch locationInView:_moveStick]];
+}
+
+- (void)touchesEnded:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
+    (void)event;
+    if (_moveTouch && [touches containsObject:_moveTouch]) [self endFloatingMove];
+}
+
+- (void)touchesCancelled:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
+    [self touchesEnded:touches withEvent:event];
+}
+
 - (UIView *)hitTest:(CGPoint)point withEvent:(UIEvent *)event {
     if (self.hidden || self.alpha < 0.01 || !self.userInteractionEnabled) return nil;
     for (UIView *child in [self.subviews reverseObjectEnumerator]) {
@@ -1777,7 +1835,7 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
         UIView *hit = [child hitTest:local withEvent:event];
         if (hit) return hit;
     }
-    return nil;
+    return [self floatingMoveEnabled] && CGRectContainsPoint([self floatingMoveRegion], point) ? self : nil;
 }
 
 - (void)buttonDown:(BPGameButton *)button {
@@ -1810,7 +1868,7 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
     _state = {};
     BellpadClearInputState(BellpadInputSource::Touch);
     for (BPGameButton *button in _buttons) button.transform = CGAffineTransformIdentity;
-    [_moveStick reset];
+    [self endFloatingMove];
     [_cameraStick reset];
 }
 
@@ -1920,6 +1978,8 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
 - (void)layoutSubviews {
     [super layoutSubviews];
     CGRect safe = UIEdgeInsetsInsetRect(self.bounds, self.safeAreaInsets);
+    CGPoint floatingCenter = _moveStick.center;
+    CGSize previousStickSize = _moveStick.bounds.size;
     [self loadSettingsForCurrentProfile];
     BOOL pad = self.traitCollection.userInterfaceIdiom == UIUserInterfaceIdiomPad && safe.size.width >= 1000.0;
     CGFloat baseScale = pad ? 1.0 : std::min<CGFloat>(1.0, std::min(safe.size.width / 800.0, safe.size.height / 380.0));
@@ -1959,6 +2019,16 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
         button.layer.cornerRadius = std::min(button.bounds.size.width, button.bounds.size.height) * 0.5;
     }
     [self applySavedControlCentersInSafeRect:safe];
+    _moveStickRestingFrame = _moveStick.frame;
+    if (_moveTouch) {
+        if (CGRectEqualToRect(safe, _floatingMoveSafeRect) &&
+            CGSizeEqualToSize(previousStickSize, _moveStick.bounds.size)) {
+            _moveStick.center = floatingCenter;
+        } else {
+            // Rotation, resizing or a size change must not leave movement held.
+            [self endFloatingMove];
+        }
+    }
 
     CGFloat settingsSide = 48.0;
     _settingsButton.frame = CGRectMake(CGRectGetMaxX(safe) - settingsSide,

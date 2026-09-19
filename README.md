@@ -132,10 +132,13 @@ issues, pull requests, documentation, CI artifacts, app bundles, or packages.
 
 BellPad's native mobile layout includes the left and C sticks, D-pad,
 A/B/X/Y, Z/L/R, and Start. It adapts between compact iPhone and larger iPad
-layouts and respects safe areas. The reviewed build 5 candidate uses a native
+layouts and respects safe areas. The reviewed build 6 candidate uses a native
 three-dot menu with Display, Controls, Game Data & Saves and diagnostics. These
 changes are not in the public Preview 2 download yet.
 
+- **Movement:** place your thumb in empty space in the lower-left area to reveal
+  the left stick at that spot. Drag to move; lift to hide it. Buttons take
+  priority, and the camera stick stays fixed. Stick size and dead zone still apply.
 - **Controls:** hide/show gameplay controls, adjust opacity and global size,
   move controls, resize an individual selected control, and reset the active
   device-class layout. The candidate adds a touch-stick dead zone, optional
