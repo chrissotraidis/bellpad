@@ -4,9 +4,12 @@ set -eu
 repo_root=$(git rev-parse --show-toplevel)
 cd "$repo_root"
 
+"$repo_root/scripts/fetch-desktop-baseline.sh"
+"$repo_root/scripts/fetch-aurora.sh"
+
 forbidden_path_pattern='(^|/)(aram\.bin|audiorom\.img|famicom\.arc|foresta\.map|foresta\.rel\.szs|forest_1st\.arc|forest_2nd\.arc|opening\.bnr|static\.map|static\.str)$|\.(iso|gcm|ciso|rvz|wia|wbfs|gcz|gci|raw|sav|srm|ipa|xcarchive|p12|mobileprovision|provisionprofile|cer|key|pem)$|(^|/)\.env($|\.)'
 
-tracked_matches=$(git ls-files | rg -i "$forbidden_path_pattern" || true)
+tracked_matches=$(git ls-files --recurse-submodules | rg -i "$forbidden_path_pattern" || true)
 if [ -n "$tracked_matches" ]; then
   printf '%s\n' 'ERROR: forbidden game data, save, package, signing, or secret paths are tracked:' >&2
   printf '%s\n' "$tracked_matches" >&2

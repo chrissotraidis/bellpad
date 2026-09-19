@@ -29,6 +29,15 @@ def verify_export():
     lock = json.loads((ROOT / "sources.lock.json").read_text())
     if manifest["components"] != lock["components"]:
         fail("Export provenance and source pins disagree")
+    for component in lock["components"]:
+        source = ROOT / component["path"]
+        for path in source.rglob("*"):
+            relative = path.relative_to(source)
+            # Normal out-of-source build outputs are permitted after restoration.
+            if any(part.startswith("build-") for part in relative.parts):
+                continue
+            if path.is_file() and str(path.relative_to(ROOT)) not in manifest["files"]:
+                fail(f"Unrecorded exported source: {path.relative_to(ROOT)}")
     print(f"Verified {len(manifest['files'])} exported files without Git or network")
 
 
