@@ -12,7 +12,12 @@ brew install cmake ninja ripgrep sdl2
 ./scripts/build-aurora-game-ios-simulator.sh
 ```
 
-The verification command audits tracked/release content, clones the exact pinned game core and Aurora revisions into ignored local storage, replays all fifty core patches and six Aurora patches in isolated detached worktrees, builds and runs the clean native platform tests, exercises the deterministic controller-reconnect, RTC, Apple disc-memory, and NES/GX conversion suites, checks every shell script, and rejects whitespace errors. It requires no retail data. The same command runs on GitHub's Apple ARM64 `macos-15` runner through the pinned [source-release workflow](https://github.com/chrissotraidis/bellpad/actions/workflows/source-release.yml); use that live workflow page as the authoritative clean-checkout result for the current `main`. The simulator build fetches pinned dependencies and may take several minutes on its first Dawn build.
+The verification command checks the maintained source pins and clean dependency
+worktrees, builds the native platform tests, and exercises controller reconnect,
+RTC, Apple disc memory, and NES/GX conversion. It requires no retail data.
+Normal builds no longer replay patches. The [source maintenance guide](SOURCE_MAINTENANCE.md)
+documents the optional historical parity check and complete modified-source archive.
+The Simulator's first source-built Dawn compilation may take several minutes.
 
 ## Host
 
@@ -36,7 +41,10 @@ BELLPAD_DISC_IMAGE="/absolute/path/to/your/Animal Crossing.iso" \
   ./scripts/build-desktop-baseline.sh
 ```
 
-The fetch script checks out commit `915fb86ba9a6c2144dabda9143d93af7a3f92be7` under ignored `ref/upstream/`, verifies the exact revision, and idempotently applies the ordered compatibility patches. Applied patch hashes are recorded under the ignored checkout's `.git/` directory so later patches may safely modify files introduced by earlier ones; changed historical patches require a clean checkout. The build script uses Apple Clang by default and verifies that the result is an ARM64 Mach-O. Override `BELLPAD_CC`, `BELLPAD_CXX`, and `BELLPAD_BUILD_DIR` for an independent compiler/configuration.
+The fetch script initializes the immutable `source/acgc-64bit` gitlink and
+verifies it against `sources.lock.json`. Existing dirty or mismatched sources
+stop the build without deleting edits. The Apple Clang build verifies ARM64 output.
+Override `BELLPAD_CC`, `BELLPAD_CXX`, and `BELLPAD_BUILD_DIR` for an independent build.
 
 Optional GCC compatibility build:
 
@@ -44,7 +52,7 @@ Optional GCC compatibility build:
 brew install gcc
 BELLPAD_CC="$(command -v gcc-16)" \
 BELLPAD_CXX="$(command -v g++-16)" \
-BELLPAD_BUILD_DIR="$PWD/ref/upstream/acgc-64bit/pc/build-macos-arm64-gcc" \
+BELLPAD_BUILD_DIR="$PWD/source/acgc-64bit/pc/build-macos-arm64-gcc" \
   ./scripts/build-desktop-baseline.sh
 ```
 
@@ -88,7 +96,7 @@ multi-hour sanitizer certification.
 
 ```sh
 ./scripts/build-playable-macos-app.sh
-open ref/upstream/acgc-64bit/pc/build-bellpad-app/bin/Bellpad.app
+open source/acgc-64bit/pc/build-bellpad-app/bin/Bellpad.app
 ```
 
 This opt-in build packages the actual compiled game core as an ARM64 app bundle. If no image was selected with `--disc PATH`, none is remembered from an earlier launch, and none is found by the legacy search, it presents a native `NSOpenPanel`. The core accepts only GAFE01 disc 0 revision 0 and reads the selected image in place. The bundle contains its clean GLSL shaders, executable, and plist only; it never copies the selected image.
@@ -103,14 +111,14 @@ The current bundle is an honest Milestone 1 product baseline, not the final arch
 ./scripts/build-aurora-game-macos.sh
 ```
 
-This fetches the pinned game and Aurora trees, applies their tracked patches,
+This verifies the maintained game and Aurora source pins,
 builds the complete game at the proven unoptimized core setting, and links an
 ARM64 `BellpadAurora` executable against SDL3 and Metal. The script rejects a
 binary that links the legacy SDL2 runtime. It contains no game image or extracted
 asset; launch it only with a private supported file:
 
 ```sh
-ref/upstream/acgc-64bit/pc/build-bellpad-aurora-game-macos/bin/BellpadAurora \
+source/acgc-64bit/pc/build-bellpad-aurora-game-macos/bin/BellpadAurora \
   --disc /absolute/private/path/to/game.iso
 ```
 
@@ -162,7 +170,7 @@ To install the simulator bundle, use `xcrun simctl install <device-uuid> build/i
 ./scripts/build-aurora-game-ios-simulator.sh
 ```
 
-This applies the pinned fifty-patch game series and five-patch Aurora series,
+This consumes the maintained game and Aurora sources,
 builds Dawn and SDL3 for ARM64 iOS Simulator, and links the complete game core,
 Aurora GX/Metal renderer, SDL3 audio, normalized input bridge, and UIKit GameCube
 overlay into `Bellpad.app`. The script verifies the Mach-O platform, plist,

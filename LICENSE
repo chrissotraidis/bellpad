@@ -12,7 +12,7 @@ The reverse-engineered game core, PC compatibility code, compatibility
 libraries, and bundled third-party components retain their upstream licenses.
 Their exact revisions, provenance, purposes, modifications, and license texts
 are recorded in THIRD_PARTY_NOTICES.txt, docs/RESEARCH.md, docs/LEGAL.md,
-upstreams.lock.json, and the tracked patch directories.
+upstreams.lock.json, sources.lock.json, and the component source notices.
 
 No license in this repository grants rights to a retail game image, extracted
 game assets, Nintendo trademarks, leaked source code, unauthorized development

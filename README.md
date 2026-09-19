@@ -19,7 +19,11 @@ Bellpad is an experimental native Apple-platform source port for the original
 US release of Animal Crossing for Nintendo GameCube. It is not a GameCube
 emulator or a browser port. The project builds a 64-bit, reverse-engineered
 game core for Apple Silicon macOS and a Metal-backed iPhone/iPad app through
-Aurora, SDL3, and Dawn.
+[Aurora](https://github.com/encounter/aurora), SDL3, and Dawn. Its game foundation
+is [birabittoh/ACGC-PC-Port](https://github.com/birabittoh/ACGC-PC-Port), based on
+[FlyingMeta’s PC port](https://github.com/flyngmt/ACGC-PC-Port) and
+[ACreTeam/ac-decomp](https://github.com/ACreTeam/ac-decomp). Bellpad contributes
+the Apple integration, native import/input/save handling, and compatibility fixes.
 
 This repository contains source, original Bellpad integration, reproducible
 build scripts, and documentation. It does **not** contain Animal Crossing, a
@@ -66,15 +70,17 @@ You need:
 Clone, validate the source release, and build the iOS Simulator app:
 
 ```sh
-git clone https://github.com/chrissotraidis/bellpad.git
+git clone --recurse-submodules https://github.com/chrissotraidis/bellpad.git
 cd bellpad
 brew install cmake ninja ripgrep sdl2
 ./scripts/verify-release-candidate.sh
 ./scripts/build-aurora-game-ios-simulator.sh
 ```
 
-The first Aurora/Dawn build fetches only the pinned source dependencies into
-ignored `ref/upstream/`; it does not download game data. Install the resulting
+The game and Aurora are maintained in pinned submodules under `source/`.
+The first build also fetches hash-pinned third-party dependencies; it does not
+download game data. See [source maintenance](docs/SOURCE_MAINTENANCE.md) for
+the exact fork pins, update procedure, source delivery, and rollback. Install the resulting
 `Bellpad.app` in one booted Simulator, launch it, and use Files to select your
 own supported raw ISO/GCM. Run iPhone and iPad Simulator sessions separately.
 

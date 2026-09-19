@@ -3,7 +3,7 @@ set -eu
 
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 repo_root=$(CDPATH= cd -- "$script_dir/.." && pwd)
-core_dir="$repo_root/ref/upstream/acgc-64bit"
+core_dir="$repo_root/source/acgc-64bit"
 build_dir=${BELLPAD_AURORA_GAME_IOS_DEVICE_BUILD_DIR:-"$core_dir/pc/build-bellpad-aurora-game-ios-device-package"}
 app=${BELLPAD_IOS_DEVICE_APP:-"$build_dir/bin/Bellpad.app"}
 output=${BELLPAD_UNSIGNED_IPA_OUTPUT:-"$repo_root/dist/Bellpad-unsigned.ipa"}

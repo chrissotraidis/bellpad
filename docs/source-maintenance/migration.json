@@ -1,0 +1,306 @@
+{
+  "pc-port": {
+    "base": "915fb86ba9a6c2144dabda9143d93af7a3f92be7",
+    "commit": "7fc71b287c7920af25aaad7e9e72b5eb9d751a4b",
+    "tree": "9e158781cfdc52dbc97dac4f0892d00558564309",
+    "files": 6497,
+    "localDifferences": [
+      "src/static/libforest/emu64/emu64.c"
+    ],
+    "patches": [
+      {
+        "patch": "patches/pc-port/0001-handle-aligned-read-tail.patch",
+        "sha256": "6feca10a4689a073b62af6661e331042d394bb4301e5dd8f9bfed8506be71b70",
+        "commit": "261493bbc0e30a4af0492ded17b07828432aadf8"
+      },
+      {
+        "patch": "patches/pc-port/0002-latch-keyboard-button-edges.patch",
+        "sha256": "1af915e8f766cea660716a4d856c859259756a9b668cfbf8c406b8d3208cb996",
+        "commit": "7f84f3802d6c48d4e74849412e0aad684f1979df"
+      },
+      {
+        "patch": "patches/pc-port/0003-port-support-Apple-Clang-on-64-bit-hosts.patch",
+        "sha256": "d249b09395278aa0a8499082dc6e761105b40e12502e26841d47a3185a5b0a1f",
+        "commit": "962acb6a9c14420f1c7fcb48b3d81f1ffefd50a5"
+      },
+      {
+        "patch": "patches/pc-port/0004-pad-static-structure-actor-pool-slots.patch",
+        "sha256": "9beaafd9b5e0016d9327513ac51a290085588eebeb376d90092b42452c4990a2",
+        "commit": "08049adf83f061bcedd263d9ebe6e7a2905d5cce"
+      },
+      {
+        "patch": "patches/pc-port/0005-expose-native-text-commit-api.patch",
+        "sha256": "9ad160db5162775d31d5812a54e151779f993c8ab02eaa5f7339edff00e2168b",
+        "commit": "6b1ad3094b5454a1db7f18ac82d3ed9705de7601"
+      },
+      {
+        "patch": "patches/pc-port/0006-add-normalized-virtual-pad-state.patch",
+        "sha256": "efa07dd7271db06607c8f0c56d619f880e12d2b7c318a5b7048bd15ec2eb15e6",
+        "commit": "3fbe54cf53f3d8d4ba5fbb96de9465b9bc68b75a"
+      },
+      {
+        "patch": "patches/pc-port/0007-handle-card-program-allocation-failure.patch",
+        "sha256": "5935d0799783f77ab5b136437d61c16f225d2d16e27a0bbecdf830783efbfb3a",
+        "commit": "2e544547a5b718232ee60adef0e6cf5b4404e07b"
+      },
+      {
+        "patch": "patches/pc-port/0008-restore-NPC-house-door-reach.patch",
+        "sha256": "89e476781c2db334de4cb56c373873887bc7eb8ca7c28f709c2ec789a1ca598e",
+        "commit": "fd48683a3fb68a872e8c332bf6fdc629f7a22139"
+      },
+      {
+        "patch": "patches/pc-port/0009-harden-low-GBI-texture-pointers.patch",
+        "sha256": "bfff1320a0ec98751e6e7a1df8820525530940caba0593e1a0b3bd78a150ed51",
+        "commit": "0cefb05401a19fa6bbfa7c06acc48902744ce90c"
+      },
+      {
+        "patch": "patches/pc-port/0010-lock-simulation-to-native-60hz.patch",
+        "sha256": "a4171ed801fd37794f9ad42a046244d63182f1956365918f1aa537b1e265910d",
+        "commit": "5ab8df319247d6467ccad5894098fee47823ad12"
+      },
+      {
+        "patch": "patches/pc-port/0011-package-playable-macos-app.patch",
+        "sha256": "01b9517c45536d4938eb0e66399f5b257964b77b9bdb9f9a4b84044e89324210",
+        "commit": "2d1b2346bf6a5359c2645f0ad8039e791db568b1"
+      },
+      {
+        "patch": "patches/pc-port/0012-use-application-support-on-macos.patch",
+        "sha256": "b19f7fac4fcc5899e188c27bdf0a0687385ad8f68d6f56ad36858a77172345b3",
+        "commit": "e1d1431bbdf23bf0f912a16e8e841e22af0566be"
+      },
+      {
+        "patch": "patches/pc-port/0013-size-gx-objects-for-aurora.patch",
+        "sha256": "80317826d0ded1d5a704b2c55b831e98bdcf48b49691c5330b634f717b181e95",
+        "commit": "146155f42b9dc07f57492e5e7c31c8159bdc4f87"
+      },
+      {
+        "patch": "patches/pc-port/0014-add-aurora-core-probe.patch",
+        "sha256": "bbe013e8ed7e0491c0aed91cfee689444e554e893b92bcec2c54dd1505015103",
+        "commit": "20b810c2eed36152e8d384b4a7334314fff58472"
+      },
+      {
+        "patch": "patches/pc-port/0015-link-game-to-aurora-metal.patch",
+        "sha256": "f56e61d639a8e6d4e67c365389a72c47efc4bd859985cdd5c6fdcec615eaa78e",
+        "commit": "1324a1520153a7239f5955294e2e35b99fc1edee"
+      },
+      {
+        "patch": "patches/pc-port/0016-restore-aurora-frame-clearing.patch",
+        "sha256": "74915cc57ffd2368b8b8d38a0c7569b5bb22ed7a28a67b3429bc016cb116139e",
+        "commit": "9fd069d9791058b9c7992e578ac76a583d7d4f75"
+      },
+      {
+        "patch": "patches/pc-port/0017-connect-aurora-keyboard-and-virtual-pad.patch",
+        "sha256": "e90dc3495274bee1a965a6f103ce6b6c579ac69e3b0e4176af2b02d8671af119",
+        "commit": "20dd3b9a66ca62dfbd8eda2bb51d4d0cb799d8ee"
+      },
+      {
+        "patch": "patches/pc-port/0018-fix-aurora-colors-and-dialogue.patch",
+        "sha256": "7d53c8b1e4c33cadbee6f60c3bf46e4f8f01d7b7213f98ae3ad909a23de53e67",
+        "commit": "0db508422d463fabf7ddc8bf33c34043111dc031"
+      },
+      {
+        "patch": "patches/pc-port/0019-pull-normalized-input-on-game-thread.patch",
+        "sha256": "f55101948ff4b2ae7ae428218d04f9e6a83f3af1eefdcf847422b6b125beb849",
+        "commit": "de65442031c31698959b7cb2afbbf77dc5c25b54"
+      },
+      {
+        "patch": "patches/pc-port/0020-build-native-ios-game-bundle.patch",
+        "sha256": "818ee81cd2d45f13adc9eab56bb23453cb5ea2520527e460314f2dc8bfcdc730",
+        "commit": "ccbf6b9df51dc5f64a0b431baa200a39c36eb0e3"
+      },
+      {
+        "patch": "patches/pc-port/0021-connect-native-files-import.patch",
+        "sha256": "9935af94612ce123e2a5b641a951888f3116a5a3c23a2a5ba9fa939232e8ade8",
+        "commit": "54054dad0367c55649f2a2a2dea51633014dfe4a"
+      },
+      {
+        "patch": "patches/pc-port/0022-connect-native-mobile-text-input.patch",
+        "sha256": "8ca2b9d6e4ba7c83bd69ffbe590ba3c6e34f46bac1691ae30607b96fee9ade1a",
+        "commit": "a3e3cbb3e5208e10cf5b1209495f669eee86f2b4"
+      },
+      {
+        "patch": "patches/pc-port/0023-make-gci-save-commits-durable.patch",
+        "sha256": "6011ceb2f73beca3b8f54fea40347209ff86cd0857f546b29b309b736ade768a",
+        "commit": "54e122f44430733855e228706df53c1ca606ac10"
+      },
+      {
+        "patch": "patches/pc-port/0024-pause-audio-with-aurora-lifecycle.patch",
+        "sha256": "a8cac3e14e1bf18251dff94df4e9c02cd4527eb910bd44a0a971114a9bcb441b",
+        "commit": "7eaa39c5baabbdb1ab86db5d5576b68baee5c500"
+      },
+      {
+        "patch": "patches/pc-port/0025-use-prebuilt-dawn-for-ios-device.patch",
+        "sha256": "476b0bd1d631438c3f1463b0f0ce9e06915089e92412507fa0a51f890ef82efd",
+        "commit": "795176d6eb9aef63d85f861c51070155f7ae2488"
+      },
+      {
+        "patch": "patches/pc-port/0026-connect-mobile-render-resolution.patch",
+        "sha256": "74053e1839aea22e53ef492b07926bb6998239e755990ef76a14f8d79e11c64c",
+        "commit": "5396771f0b0952851f72bc7b74fdf473a48c503a"
+      },
+      {
+        "patch": "patches/pc-port/0027-resume-audio-after-ios-activation.patch",
+        "sha256": "4ee9bef13b3dc25ae5da8e654d1ea6665a86c30428f08719308fc45b6db98534",
+        "commit": "c2afbc967ccf6cbccf49e1eee42fd54f55892949"
+      },
+      {
+        "patch": "patches/pc-port/0028-link-native-save-data-validator.patch",
+        "sha256": "5e5c73db19e8cc14e89ab5447ab789d81c115dd2afaa971d2a6d3466749d3489",
+        "commit": "600b165e4d4cb5feeeeaf6d1bdaf05f4c20c3751"
+      },
+      {
+        "patch": "patches/pc-port/0029-skip-aurora-end-frame-without-drawable.patch",
+        "sha256": "0af8af9f1b802eebbacb8a37707d48c0074e3438b286262e141fe1df43026233",
+        "commit": "384793910af35975d8eeed8ad2d3d19d53291bfc"
+      },
+      {
+        "patch": "patches/pc-port/0030-sync-rtc-with-host-clock.patch",
+        "sha256": "aec823bcde8bcd6b3ff3184bc9678491f26f14281da542655ea3f97b0314a164",
+        "commit": "936f14752df89152f13ced28ac385605cb96c155"
+      },
+      {
+        "patch": "patches/pc-port/0031-use-subsecond-wall-clock-for-rtc.patch",
+        "sha256": "5ade9292fd906ecda0007dee818f39ba0146da4467393694a05a972a9f54685d",
+        "commit": "18b36446a55649b5acb9d48182648f127fe3ce75"
+      },
+      {
+        "patch": "patches/pc-port/0032-render-nes-framebuffer-through-aurora-gx.patch",
+        "sha256": "a2796e3440f75627f1abe858c63d6899c19cd46a2b29038eb146511d2cbe7ae4",
+        "commit": "0cc1946a8f5b47f0eb2d25b59b5c7e3a0d45ee5e"
+      },
+      {
+        "patch": "patches/pc-port/0033-initialize-jutvideo-black-state.patch",
+        "sha256": "37a2e4df60d13f7fdd73e84c2d6b265c807e61af809bea0ef899a4c40e570a09",
+        "commit": "aacfe4875fed30f9c1f1ac60c9ba7144887154cb"
+      },
+      {
+        "patch": "patches/pc-port/0034-align-expheap-blocks-for-native-pointers.patch",
+        "sha256": "a1009c460ee09e7d29c2aefd9d6162358194480d4103a0682110a634df223ff1",
+        "commit": "6b024efe4fd83c090207076e043b98f5d421709c"
+      },
+      {
+        "patch": "patches/pc-port/0035-use-native-width-audio-messages.patch",
+        "sha256": "b14fadac171f7c5dacf30b58871b33c3c953d77a0f76c60295711eabad965346",
+        "commit": "3a4efe8d0fb0672454565acac817dd7f2bca6bc8"
+      },
+      {
+        "patch": "patches/pc-port/0036-give-release-aflags-native-storage.patch",
+        "sha256": "625a31bb70003201835f33a7f9966040ed4578badeeed814b12824b6938ad715",
+        "commit": "0c465c206e5567a99a06ee3438809accfae36ed7"
+      },
+      {
+        "patch": "patches/pc-port/0037-wrap-clock-angles-without-float-ub.patch",
+        "sha256": "65b91d6feefd1a3b75589a15af2024a696d1127b56a3292f9cd95591e3651dc4",
+        "commit": "02abb3938a7869cc97cc6bcb2ad97a3713d0d176"
+      },
+      {
+        "patch": "patches/pc-port/0038-check-event-sentinel-before-indexing.patch",
+        "sha256": "998ee1cd16d9c560e2bac29a74eae9698602b1961b29b6dd72e780f76c1ca38b",
+        "commit": "215010b1b852eecbbde1dfcf02ad4b77c85cd4d2"
+      },
+      {
+        "patch": "patches/pc-port/0039-guard-missing-native-actor-banks.patch",
+        "sha256": "2416e29602d69d9c8d4eef4217bd8a9af5631d232f461392a3086b97b99f0454",
+        "commit": "f1384fd4d8364be9a120de08d7fac20c2cf2d8cf"
+      },
+      {
+        "patch": "patches/pc-port/0040-initialize-player-item-arrays-directly.patch",
+        "sha256": "3af3733486a57175adbc118b922b1ef538648ecc672fb959a4c952d6fcc4b13f",
+        "commit": "920d79daa6249e767888e8f1ff11066cfeb5f1f6"
+      },
+      {
+        "patch": "patches/pc-port/0041-serialize-resampler-state-safely.patch",
+        "sha256": "40211a8a426c11daf48d0b9ea3ff2515d70295ef9293b706c62c8709e8d1aa41",
+        "commit": "3cf3fb8fb3554df08aea50604fe1c4365498f8e0"
+      },
+      {
+        "patch": "patches/pc-port/0042-handle-ios-audio-session-events.patch",
+        "sha256": "469073fd22d63ef45bea9c36cc80baf3836544b888e8a892c0f0ca2a2753ee8f",
+        "commit": "4d90eade143e582c413c75e9e5eb36760b3131a9"
+      },
+      {
+        "patch": "patches/pc-port/0043-keep-audio-producer-clocked-while-paused.patch",
+        "sha256": "8aa2acad737554c5e4c7e6bde29beffb07f8d1a4dae832dfd4647b3b04f6ebc2",
+        "commit": "d25f9ce56254b76d1867b165689708570534aa0a"
+      },
+      {
+        "patch": "patches/pc-port/0044-hide-desktop-video-settings-on-ios.patch",
+        "sha256": "cd50a6ad44adfc8d230187372dc6228bf1daf8eab2f8d9b63e4b3747d08eb1c1",
+        "commit": "4be1ff279bb458f38785a41defe4ef5b8d3216da"
+      },
+      {
+        "patch": "patches/pc-port/0045-render-all-aurora-font-glyphs-as-polygons.patch",
+        "sha256": "41d7f94f6327d22068bcfb3d7c29b3a393467cfd677d90fededc640e93722bf2",
+        "commit": "03c6f6eba509e419543067482474792d499b2f37"
+      },
+      {
+        "patch": "patches/pc-port/0046-restore-aurora-texture-rectangle-coordinates.patch",
+        "sha256": "b6155ae71cd21b6eb82e5fc69a2113ac7474b02d91039a62d96ecb01365557e1",
+        "commit": "641e128240c60ab7f8248d3092ae676a2f7d70e6"
+      },
+      {
+        "patch": "patches/pc-port/0047-complete-aurora-two-texture-rectangle-setup.patch",
+        "sha256": "d456d0dc6d219460d47d0a1d1f086bf454107bff2ec535b9f9106f8f5be5273f",
+        "commit": "9a8f1ab9762f9aebf2d09dae92bb76b37c87aebb"
+      },
+      {
+        "patch": "patches/pc-port/0048-stabilize-submenu-analog-navigation.patch",
+        "sha256": "f0ccb888dee923f6d37876a9c60ed1825005e77354c07538b68a77dfca9ad8ad",
+        "commit": "e82813ffa572e221f86300f89d36fa61217f01eb"
+      },
+      {
+        "patch": "patches/pc-port/0049-render-inventory-items-as-polygons.patch",
+        "sha256": "b4975881e4b07261014ed808a6bc1947cb805ad86fa9fe6053b6d9439c7f8401",
+        "commit": "ae6a480fff8c45096487f8d0630eebea28b20f9b"
+      },
+      {
+        "patch": "patches/pc-port/0050-remember-macos-disc-selection.patch",
+        "sha256": "ae0a44ca0c1718ddaecb22cb3587bb1680044a9e455d153956904fc3025d1d83",
+        "commit": "7fc71b287c7920af25aaad7e9e72b5eb9d751a4b"
+      }
+    ],
+    "selectedCommit": "771f9348f1d1193f970c763d63ad73faa21a3723",
+    "selectedTree": "11e407b11043bef4a2d4513cff88ef79f378d1c3"
+  },
+  "aurora": {
+    "base": "5027ed63a73dfba28de9eceed00481fb09a19c35",
+    "commit": "875ed3c5d072d3d87b01ab931eafe10e8eeab694",
+    "tree": "11edea7d78583e936c919c1f7aefae4c0136ea71",
+    "files": 315,
+    "localDifferences": [],
+    "patches": [
+      {
+        "patch": "patches/aurora/0001-complete-acgc-gx-compatibility.patch",
+        "sha256": "ba339b77a3b8bf4c55fa5c3833e8e3f74c3a91fe69664da587e9b4515e0b1ede",
+        "commit": "0ba0136fc9ad721ab06aed6846e3725ea0d9bb70"
+      },
+      {
+        "patch": "patches/aurora/0002-support-host-endian-tluts.patch",
+        "sha256": "ad7ace883a0e927e698594f214d66302a2a60c21c26e51eaf350ce569622981f",
+        "commit": "34d12de5df68b52c43d3ebba27dfaee76631ce8c"
+      },
+      {
+        "patch": "patches/aurora/0003-fix-emu64-texture-lifetime-and-batching.patch",
+        "sha256": "bc38cf03906486d713abe50f3a67f3f8ce74a2850caf5326152eff616b87c46c",
+        "commit": "5c5a53a21cf8fb556292f0f564050a0c5c2b4086"
+      },
+      {
+        "patch": "patches/aurora/0004-correct-webgpu-front-face-winding.patch",
+        "sha256": "8fd1d12f592ae65206f4572758668dec1f60f322085ba34482e87e9682949f56",
+        "commit": "1e0b54da77e77de556f2737e3c18578a325cc3fe"
+      },
+      {
+        "patch": "patches/aurora/0005-pin-fetched-archive-hashes.patch",
+        "sha256": "6270d1a3cfcc62cdd00f633963ea97caca36fc705381d076cc53bb45ddbae2bc",
+        "commit": "0b2a522f3894659ea910b4493786497ec339b438"
+      },
+      {
+        "patch": "patches/aurora/0006-reconcile-controller-lifecycle.patch",
+        "sha256": "9d929b2baa81f8f1a337922e1f9f4eccce09b6dc65a02242e4bb8dbcf1d2a3af",
+        "commit": "875ed3c5d072d3d87b01ab931eafe10e8eeab694"
+      }
+    ],
+    "selectedCommit": "5a0b160e4bcc0a37316f55a02c0bb4a7e3ddfd67",
+    "selectedTree": "5e4a904a362fcbc7dfdf01d63bccec32828a917d"
+  }
+}

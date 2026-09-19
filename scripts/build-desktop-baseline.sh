@@ -3,7 +3,7 @@ set -eu
 
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 repo_root=$(CDPATH= cd -- "$script_dir/.." && pwd)
-source_dir="$repo_root/ref/upstream/acgc-64bit/pc"
+source_dir="$repo_root/source/acgc-64bit/pc"
 
 "$script_dir/fetch-desktop-baseline.sh"
 

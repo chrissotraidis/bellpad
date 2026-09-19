@@ -45,7 +45,9 @@ beside the tracked 1024×1024 icon.
 
 ## License handling
 
-Every incorporated upstream is pinned. `upstreams.lock.json` records inspected
+Every incorporated upstream is pinned. `sources.lock.json` and the component
+`BELLPAD.md` notices identify the maintained forks without changing existing
+license terms; see [source maintenance](SOURCE_MAINTENANCE.md). `upstreams.lock.json` records inspected
 top-level projects, while `product-dependencies.lock.json` records every
 non-system implementation component linked into Apple product binaries,
 including version/commit, source or package SHA-256, purpose, reused component,

@@ -3,8 +3,8 @@ set -eu
 
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 repo_root=$(CDPATH= cd -- "$script_dir/.." && pwd)
-core_include="$repo_root/ref/upstream/acgc-64bit/include"
-aurora_include="$repo_root/ref/upstream/aurora/include"
+core_include="$repo_root/source/acgc-64bit/include"
+aurora_include="$repo_root/source/aurora/include"
 probe_source="$repo_root/tests/GXAbiProbe.cpp"
 
 if [ ! -f "$core_include/dolphin/gx/GXStruct.h" ]; then

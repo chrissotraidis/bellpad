@@ -24,8 +24,18 @@ jobs:
       - name: Check out source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
+        with:
+          submodules: recursive
+
       - name: Install build tools
         run: brew install cmake ninja ripgrep sdl2
 
       - name: Verify source release
         run: ./scripts/verify-release-candidate.sh
+
+      - name: Restore and verify source delivery
+        run: |
+          python3 scripts/source-archive.py /tmp/bellpad-source.tar.gz
+          mkdir /tmp/bellpad-source-restored
+          tar -xzf /tmp/bellpad-source.tar.gz -C /tmp/bellpad-source-restored
+          python3 /tmp/bellpad-source-restored/scripts/maintained-sources.py verify

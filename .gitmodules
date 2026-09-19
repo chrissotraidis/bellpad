@@ -1,0 +1,6 @@
+[submodule "source/acgc-64bit"]
+	path = source/acgc-64bit
+	url = https://github.com/chrissotraidis/ACGC-PC-Port.git
+[submodule "source/aurora"]
+	path = source/aurora
+	url = https://github.com/chrissotraidis/aurora.git

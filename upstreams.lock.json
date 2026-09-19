@@ -24,7 +24,7 @@
       "branch": "master",
       "commit": "915fb86ba9a6c2144dabda9143d93af7a3f92be7",
       "license": "CC0-1.0 decomp; MIT PC layer",
-      "disposition": "playable desktop oracle and patched Apple product game core"
+      "disposition": "Selected upstream base; maintained Bellpad source and immutable gitlink recorded in sources.lock.json"
     },
     {
       "name": "ACGC-macOS-Port",
@@ -40,7 +40,7 @@
       "branch": "main",
       "commit": "5027ed63a73dfba28de9eceed00481fb09a19c35",
       "license": "MIT",
-      "disposition": "selected, patched Apple product compatibility-layer dependency"
+      "disposition": "Selected upstream base; maintained Bellpad source and immutable gitlink recorded in sources.lock.json"
     },
     {
       "name": "forest",

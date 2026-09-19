@@ -3,8 +3,8 @@ set -eu
 
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 repo_root=$(CDPATH= cd -- "$script_dir/.." && pwd)
-core_dir="$repo_root/ref/upstream/acgc-64bit"
-aurora_dir="$repo_root/ref/upstream/aurora"
+core_dir="$repo_root/source/acgc-64bit"
+aurora_dir="$repo_root/source/aurora"
 build_dir=${BELLPAD_AURORA_GAME_BUILD_DIR:-"$core_dir/pc/build-bellpad-aurora-game-macos"}
 
 "$script_dir/fetch-desktop-baseline.sh"

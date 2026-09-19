@@ -3,8 +3,8 @@ set -eu
 
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 repo_root=$(CDPATH= cd -- "$script_dir/.." && pwd)
-core_dir="$repo_root/ref/upstream/acgc-64bit"
-aurora_dir="$repo_root/ref/upstream/aurora"
+core_dir="$repo_root/source/acgc-64bit"
+aurora_dir="$repo_root/source/aurora"
 core_build=${BELLPAD_AURORA_CORE_BUILD_DIR:-"$core_dir/pc/build-bellpad-aurora-core-probe"}
 aurora_build=${BELLPAD_AURORA_BUILD_DIR:-"$aurora_dir/build-bellpad-macos-arm64"}
 object_root="$core_build/CMakeFiles/ac_aurora_core_probe.dir"
