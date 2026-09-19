@@ -15,6 +15,7 @@ fi
 binary="$app/Bellpad"
 test -x "$binary"
 python3 "$script_dir/audit-ios-deployment.py" "$app"
+python3 "$script_dir/build-provenance.py" --verify "$app/SourceProvenance.json"
 cmp -s "$repo_root/THIRD_PARTY_NOTICES.txt" "$app/ThirdPartyNotices.txt"
 platform=$(xcrun vtool -show-build "$binary" | awk '$1 == "platform" { print $2; exit }')
 if [ "$platform" != "IOS" ]; then
