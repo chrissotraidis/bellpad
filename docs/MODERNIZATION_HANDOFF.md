@@ -275,3 +275,27 @@ The previous section records matching hashes and validation. Explicit source,
 notices, executable-bound provenance and checksums accompany this release.
 Existing rights/reporter/physical-acceptance limits remain open; publication
 does not erase them. Prior releases and private rollback packages are retained.
+
+## Preview 3 published and verified — 20 September
+
+[PR #11](https://github.com/chrissotraidis/bellpad/pull/11) merged at
+`91bbb61bd30e62e62a0d5ff48fbf54b3d6c8e179`; its
+[main CI](https://github.com/chrissotraidis/bellpad/actions/runs/35451686969) passes.
+[Preview 3](https://github.com/chrissotraidis/bellpad/releases/tag/v0.1.0-preview.3)
+is published. Tag `v0.1.0-preview.3` resolves to the exact build 6 commit
+`b5d3358cc493d9134c0d91f9a7479afa2f824640`, preserved in main's history.
+
+All five assets were downloaded anonymously and matched the audited local bytes:
+the unsigned IPA, complete modified-source archive, notices, provenance and
+checksum manifest. The manifest verifies every payload; IPA/source hashes are
+unchanged from the build 6 table above. Source restoration verifies all 6,960
+files without Git/network, and executable/bundle provenance matches the archive.
+The primary checkout is synchronized to main with the locked submodules.
+
+The release is the same build already installed on the iPad; no additional
+installation, signing change or user-data mutation occurred during publication.
+Preview 1/2, exact-signed build 5 and private backups remain available. The
+isolated maintenance worktree is retained because it contains build caches and
+private rollback inputs; all intended source changes are merged into main.
+Rights, issue #10 reporter evidence and physical gesture/gameplay acceptance
+remain explicit follow-up items; release delivery is complete.
