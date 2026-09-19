@@ -97,7 +97,7 @@ also accept a verified export. Building still requires Xcode, host libraries and
 the externally hash-pinned dependencies; the archive is **not a fully offline
 SDK/dependency cache**. GitHub's automatic app ZIP omits submodule contents, so a
 future binary release should attach this explicit source archive and checksums.
-Every packaged product now includes `SourceProvenance.json` beside its unchanged
+Every packaged product now includes `SourceProvenance.json` beside its component
 `ThirdPartyNotices.txt`; development changes are marked rather than represented
 as a clean release commit.
 

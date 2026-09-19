@@ -36,14 +36,14 @@ procedure are in [SOURCE_MAINTENANCE.md](SOURCE_MAINTENANCE.md).
 
 ## Final source/package qualification
 
-Code/artifact commit: `e6d2e9801808c385f56a476f4932d8627b72ea9f`.
+Code/artifact commit: `ee986f320be21d391da20946358fbfd68b9311a0`.
 [Review PR #11](https://github.com/chrissotraidis/bellpad/pull/11) remains unmerged.
 The following documentation-only checkpoint does not change the binaries.
 
 | Local artifact (not published) | SHA-256 |
 |---|---|
-| `Bellpad-qualified-unsigned.ipa` | `e2dfb6cf52a78e1ae6e868e3c35ccaf15c475327c3c17b91ac3b90805d01a25b` |
-| `Bellpad-qualified-source.tar.gz` | `0acccec06cab0890a40ca01de44808b291ad3eaa5a5d3c66cad365cdd24fd4b3` |
+| `Bellpad-qualified-unsigned.ipa` | `0766c2ec474ff834378bde348f8ec233154ee057c10cfb7b81a4c31d88872775` |
+| `Bellpad-qualified-source.tar.gz` | `0c7fc5c2ffda2158f0234769500d958ee0b83c5ff94fc79bce2bc06d32d363aa` |
 
 The IPA retains `dev.bellpad.app`, 0.1.0/build 2, is unsigned, and has matching
 executable/plist minimum iOS 17.0. Source provenance identifies the clean artifact
