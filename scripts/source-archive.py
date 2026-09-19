@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Export clean app and exact maintained sources, never ignored/private working data."""
 import hashlib
+import gzip
+import importlib.util
 import io
 import json
 import pathlib
@@ -8,10 +10,10 @@ import subprocess
 import sys
 import tarfile
 
-from importlib.machinery import SourceFileLoader
-
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-sources = SourceFileLoader("maintained_sources", str(ROOT / "scripts/maintained-sources.py")).load_module()
+spec = importlib.util.spec_from_file_location("maintained_sources", ROOT / "scripts/maintained-sources.py")
+sources = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(sources)
 
 
 def main():
@@ -28,7 +30,8 @@ def main():
     manifest = {"schema": 1, "appCommit": sources.git(ROOT, "rev-parse", "HEAD"), "components": lock["components"], "files": {}}
     inputs = [(ROOT, "")] + [(ROOT / c["path"], c["path"] + "/") for c in lock["components"]]
     output.parent.mkdir(parents=True, exist_ok=True)
-    with tarfile.open(output, "w:gz") as out:
+    # Do not encode the output filename or current time in the gzip header.
+    with output.open("wb") as raw, gzip.GzipFile(filename="", mode="wb", fileobj=raw, mtime=0) as compressed, tarfile.open(fileobj=compressed, mode="w") as out:
         for checkout, prefix in inputs:
             data = subprocess.check_output(["git", "-C", str(checkout), "archive", "HEAD"])
             with tarfile.open(fileobj=io.BytesIO(data)) as archive:

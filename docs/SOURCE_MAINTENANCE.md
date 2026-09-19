@@ -90,7 +90,8 @@ python3 /tmp/Bellpad-source-restored/scripts/maintained-sources.py verify
 ```
 
 This exports the exact app and both complete maintained component trees with
-per-file SHA-256/modes and source identities. It never copies ignored build
+per-file SHA-256/modes and source identities. Gzip timestamps and filenames are
+normalized, so repeated exports from the same clean commits are identical. It never copies ignored build
 folders, ROMs, saves, signing material or the private checkout. Verification and
 modified-source availability work without Git or network. Normal build scripts
 also accept a verified export. Building still requires Xcode, host libraries and
@@ -98,8 +99,11 @@ the externally hash-pinned dependencies; the archive is **not a fully offline
 SDK/dependency cache**. GitHub's automatic app ZIP omits submodule contents, so a
 future binary release should attach this explicit source archive and checksums.
 Every packaged product now includes `SourceProvenance.json` beside its component
-`ThirdPartyNotices.txt`; development changes are marked rather than represented
-as a clean release commit.
+`ThirdPartyNotices.txt`. Provenance binds the unsigned executable hash and bundle
+identity to verified sources; offline exports are checked before provenance is
+created or accepted. Development changes are marked and cannot be packaged as a
+clean release. Signing changes the executable bytes; sign a private copy of the
+audited unsigned app and retain both artifact hashes.
 
 Upstream CC0/MIT, Aurora MIT, and per-component notices are preserved. Bellpad's
 original changes retain the existing no-outbound-license terms; no blanket grant

@@ -94,3 +94,25 @@ The metadata correction is implemented independently of the source migration,
 with rejection checks in IPA packaging. [Investigation reply](https://github.com/chrissotraidis/bellpad/issues/10#issuecomment-5737689176)
 asks for the exact IPA/installer, local versus cloud storage, and whether the
 file is greyed out. The issue remains open; no game image or save was requested.
+
+
+## Follow-up review and hardware deployment
+
+On 19 September the owner authorized continued review and an in-place update of
+the existing hardware iPad, preserving its imported ISO, saves and settings. This
+supersedes the earlier no-install scope; binary publication remains unauthorized.
+
+Review found and corrected two source-delivery gaps: nondeterministic gzip
+headers, and provenance that did not bind the actual executable/bundle identity.
+Exported source is now revalidated when provenance is generated or accepted.
+`tests/SourceDeliveryTests.py` exercises deterministic export, executable/version
+tampering, modified offline source and dirty-checkout rejection in CI. iOS build
+3 identifies this local candidate; upstream/component pins remain unchanged.
+
+Before installation, the current hardware app was verified as 0.1.0/build 2.
+All 13 container files (36,458,717 bytes), including one ISO, two GCI saves,
+settings and preferences, were copied twice using independent transfer paths.
+Hashes match and a separate local restore matches. Existing signing/team,
+application identity and keychain groups are preserved; the matching profile
+covers this hardware. No app uninstall or container replacement is needed.
+Installation/readback results will be recorded after the candidate is verified.

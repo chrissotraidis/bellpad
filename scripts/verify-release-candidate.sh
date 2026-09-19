@@ -13,6 +13,7 @@ cd "$repo_root"
 "$script_dir/test-pc-rtc-clock.sh"
 "$script_dir/test-pc-apple-disc-memory.sh"
 "$script_dir/test-pc-nes-gx-frame.sh"
+python3 "$repo_root/tests/SourceDeliveryTests.py"
 
 for script in "$script_dir"/*.sh; do
     /bin/sh -n "$script"
