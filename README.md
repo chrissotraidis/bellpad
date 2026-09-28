@@ -34,7 +34,7 @@ contributing to the project.
 
 ## Download
 
-[**Download BellPad 0.1.0 Preview 3 for iPhone and iPad (.ipa)**](https://github.com/chrissotraidis/bellpad/releases/download/v0.1.0-preview.3/BellPad-0.1.0-preview.3-unsigned.ipa)
+Previous builds have been retired; a new version is in progress.
 
 This is an experimental, unsigned, ROM-free preview for ARM64 devices running
 iOS or iPadOS 17.0 or later. You must sign it with your own Apple identity
@@ -44,7 +44,7 @@ is not an App Store or TestFlight release.
 Preview 3 asset: `BellPad-0.1.0-preview.3-unsigned.ipa`, SHA-256
 `7ea5c1c437ec223e691150ddbf597e8cbf1e8a4ce79cd3e6487e0873e73021a1`.
 
-[Complete modified source, notices, provenance and checksums](https://github.com/chrissotraidis/bellpad/releases/tag/v0.1.0-preview.3) accompany the IPA.
+Previous builds have been retired; a new version is in progress.
 
 ## Release status
 
