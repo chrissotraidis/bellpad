@@ -15,8 +15,6 @@
   <a href="https://discord.gg/xwHfUD2bxW"><img alt="Join the BellPad Discord" src="https://img.shields.io/badge/Discord-Join%20the%20community-5865F2?logo=discord&amp;logoColor=white"></a>
 </p>
 
-![BellPad running in a town on iPad](docs/readme/bellpad-town.png)
-
 BellPad is an experimental native Apple-platform source port for the original
 US release of Animal Crossing for Nintendo GameCube. It is not a GameCube
 emulator or a browser port. The project builds a 64-bit, reverse-engineered
@@ -181,27 +179,6 @@ contents, typed game text and signing material are excluded. See
 The desktop baseline also supports keyboard mappings; see
 [BUILDING.md](docs/BUILDING.md) for the complete control, signing, product-path,
 and package-audit workflow.
-
-## Current screenshots
-
-<table>
-  <tr>
-    <td width="50%">
-      <img src="docs/readme/bellpad-porter-dialogue.png" alt="BellPad train-station dialogue with Porter">
-    </td>
-    <td width="50%">
-      <img src="docs/readme/bellpad-nook-dialogue.png" alt="BellPad shop dialogue with Tom Nook">
-    </td>
-  </tr>
-  <tr>
-    <td align="center"><strong>Arrival</strong><br>Native dialogue and touch overlay during the train sequence.</td>
-    <td align="center"><strong>Town life</strong><br>The Nook shop sequence running through the Metal-backed app.</td>
-  </tr>
-</table>
-
-These are current gameplay captures made with locally supplied game data. They
-are documentation only: no game image, extracted asset, save, or derived
-archive is included in this repository or in BellPad build products.
 
 ## What works today
 
