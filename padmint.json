@@ -54,6 +54,56 @@
           }
         }
       ]
+    },
+    "macos": {
+      "hosts": {
+        "macos-arm64": "experimental"
+      },
+      "output": "zip",
+      "check": "none",
+      "steps": [
+        {
+          "stage": "dependencies",
+          "command": [
+            "git",
+            "-C",
+            "{repo}",
+            "submodule",
+            "update",
+            "--init",
+            "--recursive"
+          ]
+        },
+        {
+          "stage": "compile",
+          "command": [
+            "/bin/sh",
+            "{repo}/scripts/build-playable-macos-app.sh"
+          ]
+        },
+        {
+          "stage": "sign",
+          "command": [
+            "/usr/bin/codesign",
+            "--force",
+            "--deep",
+            "--sign",
+            "-",
+            "{repo}/source/acgc-64bit/pc/build-bellpad-app/bin/Bellpad.app"
+          ]
+        },
+        {
+          "stage": "package",
+          "command": [
+            "/usr/bin/ditto",
+            "-c",
+            "-k",
+            "--keepParent",
+            "{repo}/source/acgc-64bit/pc/build-bellpad-app/bin/Bellpad.app",
+            "{output}"
+          ]
+        }
+      ]
     }
   },
   "requirements": {
