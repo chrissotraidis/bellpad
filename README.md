@@ -48,10 +48,11 @@ decompilation, so you make your own. On an Apple Silicon Mac with Xcode and
 `brew install cmake ninja ripgrep sdl2`, download
 [PadMint](https://github.com/chrissotraidis/padmint/releases/latest), unzip it,
 double-click `PadMint.command` and choose BellPad. PadMint builds the app
-from this repository's latest release and saves an unsigned IPA for iOS or
-iPadOS 17.0 or later. Install it with AltStore Classic, SideStore or
-Sideloadly, then provide your own supported game data after launch (see
-[First launch and game data](#first-launch-and-game-data)).
+from this repository's latest release. For **iPhone or iPad** it saves an
+unsigned IPA for iOS or iPadOS 17.0 or later; install it with AltStore Classic,
+SideStore or Sideloadly. For **This Mac** (PadMint 0.5.5 or newer) it saves
+`Bellpad.app`. Either way, provide your own supported game data after launch
+(see [First launch and game data](#first-launch-and-game-data)).
 
 ## Release status
 
@@ -60,7 +61,7 @@ Sideloadly, then provide your own supported game data after launch (see
 | Apple Silicon macOS | **Playable baseline** | The native `Bellpad.app` reaches a generated town, creates/reloads a Dolphin-compatible GCI save, and has desktop rendering/input evidence. |
 | iPhone and iPad Simulator | **Current development target** | Files import, retained game data, Metal rendering, touch input, native name entry, save import/export, and relaunch have evidence on sequential Simulator runs. |
 | ARM64 iPhone/iPad device build | **Physical iPad validated** | Local version 0.1.0 build 6 was signed and installed in place; on-device logs confirm retained-image validation and save preparation at startup. Preview 3 provides this same audited build 6. Game data, saves, controller settings, and touch preferences were byte-identical after readback. Physical controller scenarios remain acceptance gates. |
-| Make your own with PadMint | **Available (0.2.1)** | See [Get BellPad](#get-bellpad). Releases hold the recipe only. PadMint 0.3.5 built 0.2.1 end to end from the release on an Apple Silicon Mac. Windows and Linux build hosts are not supported yet. |
+| Make your own with PadMint | **Available (0.2.2)** | See [Get BellPad](#get-bellpad). Releases hold the recipe only. PadMint builds iPhone/iPad and, from 0.5.5, Mac copies on an Apple Silicon Mac; a clean PadMint build of the 0.2.2 Mac app reached the title screen. Windows and Linux build hosts are not supported yet. |
 | App Store / TestFlight | **Not available** | BellPad is not store-distributed. |
 
 The source-release workflow verifies the clean-room and reproducibility gates
