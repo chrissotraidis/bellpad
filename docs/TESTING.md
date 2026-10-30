@@ -12,13 +12,23 @@ No gameplay test is marked passed without a dated result, device/OS, build revis
   uppercase extensions, directory/symlink exclusion and Inbox-only cleanup. The
   shipped fingerprint also rejects the generated fixture. No game data is bundled
   in the tests, and the accepted production fingerprint is unchanged.
-- The iOS 27.0 iPhone Simulator overlay host exercises the actual folder button,
+- The iOS 27.0 iPhone and iPad Simulator overlay host exercises the actual folder button,
   invalid-image preservation, busy-state recovery, cancel and empty callbacks,
   alongside the existing touch/control regressions. The import screen was rendered
-  and inspected in landscape. The host now uses a scene lifecycle for current SDKs.
+  and inspected in landscape on both devices. The host uses the same full-screen
+  policy as the product and a scene lifecycle for current SDKs.
 - The native iOS shell compiles; `scripts/verify-release-candidate.sh` includes
   the import transaction tests. Packaging rejects a bundle missing either Files
   sharing flag, so the documented import fallback cannot silently lose its metadata.
+- Both clean PadMint iOS builds passed: before tagging from the committed checkout,
+  then after publication from the normal latest-release route. Each used current
+  PadMint main, Apple's Python 3.9.6 and a separate empty PadMint folder. The
+  resulting app reports 0.2.3/build 10, both Files keys and the real SDL scene
+  configuration callback. Recipe/checksum release assets passed the private gate.
+- A full Aurora/SDL iOS Simulator build also launched in a fresh iOS 27.0 iPhone
+  container, displayed the production setup screen and created
+  `Documents/Import/READ ME.txt` before any game image was supplied. This verifies
+  actual startup and folder creation, not a successful retail-image import.
 - These checks do not reproduce issue #26 on the reporter's iOS 27.2 device,
   exercise cloud-provider downloads or LiveContainer, or establish gameplay
   acceptance. Keep those claims separate from the clean PadMint release builds.

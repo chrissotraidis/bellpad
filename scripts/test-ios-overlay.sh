@@ -10,7 +10,7 @@ mkdir -p "$app"
 python3 - "$app/Info.plist" <<'PY'
 import plistlib,sys
 with open(sys.argv[1], 'wb') as f:
-    plistlib.dump(dict(CFBundleIdentifier='dev.bellpad.overlaytests', CFBundleExecutable='OverlayTests', CFBundleName='Bellpad Overlay Tests', CFBundlePackageType='APPL', CFBundleVersion='1', CFBundleShortVersionString='1.0', MinimumOSVersion='17.0', LSRequiresIPhoneOS=True, UIFileSharingEnabled=True, LSSupportsOpeningDocumentsInPlace=True, UIDeviceFamily=[1,2], UILaunchScreen={}, UIApplicationSceneManifest={'UIApplicationSupportsMultipleScenes': False, 'UISceneConfigurations': {'UIWindowSceneSessionRoleApplication': [{'UISceneConfigurationName': 'Default', 'UISceneDelegateClassName': 'BPOverlayTestScene'}]}}, UISupportedInterfaceOrientations=['UIInterfaceOrientationLandscapeLeft','UIInterfaceOrientationLandscapeRight']),f)
+    plistlib.dump(dict(CFBundleIdentifier='dev.bellpad.overlaytests', CFBundleExecutable='OverlayTests', CFBundleName='Bellpad Overlay Tests', CFBundlePackageType='APPL', CFBundleVersion='1', CFBundleShortVersionString='1.0', MinimumOSVersion='17.0', LSRequiresIPhoneOS=True, UIRequiresFullScreen=True, UIFileSharingEnabled=True, LSSupportsOpeningDocumentsInPlace=True, UIDeviceFamily=[1,2], UILaunchScreen={}, UIApplicationSceneManifest={'UIApplicationSupportsMultipleScenes': False, 'UISceneConfigurations': {'UIWindowSceneSessionRoleApplication': [{'UISceneConfigurationName': 'Default', 'UISceneDelegateClassName': 'BPOverlayTestScene'}]}}, UISupportedInterfaceOrientations=['UIInterfaceOrientationLandscapeLeft','UIInterfaceOrientationLandscapeRight']),f)
 PY
 sdk=$(xcrun --sdk iphonesimulator --show-sdk-path)
 xcrun clang++ -target arm64-apple-ios17.0-simulator -isysroot "$sdk" \
