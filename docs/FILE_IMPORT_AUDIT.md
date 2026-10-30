@@ -2,7 +2,7 @@
 
 This is a source and issue audit of the **39 existing PadMint catalog entries**, all owned by `chrissotraidis`. It is not a device compatibility certification and does not add games to PadMint. Source links below pin the default-branch commits inspected on this date; local working copies were not treated as current because several are older or have unrelated changes.
 
-## What the count means
+## What the initial snapshot count means
 
 - **5 projects have matching historical or current selection reports:** BellPad, KartPad, HaloPad (`projectreach`), SquirrelPad and SunPad.
 - **4 have an open relevant issue:** BellPad #26, KartPad #380, HaloPad #29 and SquirrelPad #3. Their installed versions and failure stages differ. This is not proof that four current releases fail on every device.
@@ -18,6 +18,50 @@ The categories are disjoint: 5 + 5 + 20 + 9 = 39. There is no telemetry establis
 
 [SquirrelPad 0.1.3](https://github.com/chrissotraidis/squirrelpad/releases/tag/v0.1.3) now delivers the already-merged import fix through normal PadMint rebuilds. Its release preparation also fixed hardcoded bundle metadata: the package now derives its version from `version.json` and rejects mismatches. The clean pre-tag build and actual 0.1.3/build 4 metadata passed; the affected iOS 27.2 RC device remains unconfirmed.
 
+## Follow-up: reproduced defects
+
+A second pass investigated the five priority entries and adjacent importers.
+A bounded scan of the remaining maintained import paths found the MeleePad duplicate; KartPad already verifies extracted file sizes.
+The categories in the original 39-entry snapshot below describe the first
+pass, not the outcome of this deeper testing. Six projects now have concrete
+defects supported by failing-before/passing-after regression evidence:
+
+| Project | Confirmed failure | Correction and evidence |
+| --- | --- | --- |
+| UTP | Recovery moved backup files into place one at a time. If recovery failed, the next attempt deleted already-restored files whose backups had been consumed. | [0.1.1](https://github.com/chrissotraidis/utp/releases/tag/v0.1.1) keeps backup copies until restoration finishes and checkpoints completed restoration before cleanup. Forced interruption, retry, cleanup, replacement and existing transaction tests pass. Clean PadMint pre-tag and published-route builds pass with version 0.1.1/build 4. |
+| VaultPad | A missing source could report success after replacing existing data with zero bytes. Selecting the app's own source folder deleted inputs before reading them. Name-only readiness then let empty required files bypass setup. | [Preview 2](https://github.com/chrissotraidis/vaultpad/releases/tag/v0.1.0-preview.2) stages all inputs, checks their lengths, and reapplies required-file validation before replacing each complete file atomically. Ten Foundation regressions cover failed reads, changed sizes or headers, self-import, saves, replacement failures and readiness. Full iPad Simulator startup also returns empty required files to setup. Activation is atomic per file, not across the entire data set. |
+| SunPad | The directory exporter logs individual write failures and continues. A truncated output retains its filename and can pass the old existence/file-count checks, replacing working data. | [0.2.3](https://github.com/chrissotraidis/sunpad/releases/tag/v0.2.3) verifies every extracted file's type and length against the verified disc's file table before reporting success. The production app extractor wrapper, tested with synthetic DiscIO outputs, passes complete, truncated, missing and directory-instead-of-file cases under address/undefined-behavior sanitizers. Clean shell preparation also reproduced an incorrect host xxHash selection; the device script now forces its bundled library and clears stale xxHash detection when rerun. The previously broken warm build state now builds successfully. |
+| RAtouch | An invalid ISO selected alongside a complete valid MIX set was ignored; the other files were installed and the UI reported success. | [0.1.1](https://github.com/chrissotraidis/ratouch/releases/tag/v0.1.1) aborts the complete selection immediately on ISO extraction failure and reports that failure even when old playable data remains. Regression with private supported inputs and unmodified production size/hash/MIX validation proves rejection and preservation of installed receipt, saves and an existing pending replacement. |
+| BallPad | Setup incorrectly instructed players to import extracted folders. Discovery hid legitimate sibling folders sharing the retained-store name prefix, while stale picker copies could reappear as manual inputs. | [1.1.2](https://github.com/chrissotraidis/ballpad/releases/tag/v1.1.2) corrects the instructions, excludes only the actual store and Inbox, and removes only this app's picker-owned copy. Eight synthetic native checks cover discovery, modeled Documents/Inbox and temporary bundle-Inbox locations, exact parent/bundle matching, symlinks and original-file preservation. The old scanner fails the same fixture. |
+| MeleePad | The same void directory-export failure as SunPad: a short game-data file retains its name and passes the old required-name/count checks before activation. | [0.2.5](https://github.com/chrissotraidis/meleepad/releases/tag/v0.2.5) validates every exported file against the verified disc's file table before success. The production app extractor wrapper, tested with synthetic DiscIO outputs, fails the truncated-output fixture before the fix; complete, truncated, missing and directory-replaced cases now pass with address/undefined-behavior sanitizers and the full repository suite. |
+
+These are specific failures, not proof that every installation is affected or
+that every “cannot select” report has the same cause. GalaxyPad's bounded
+review did not establish a new defect. F0X's Simulator harness manually delivered
+an app-owned fixture URL to the picker delegate, which returned the readable URL
+to its caller. This did not exercise selection through Files or a provider. A
+forced inactive-state probe was insufficient to establish real device lifecycle
+behavior, so no speculative F0X change was released.
+
+Clean Mac-hosted iOS PadMint checks passed before tagging and through the published
+release for UTP, BallPad, SunPad and MeleePad. Each used Apple's Python 3.9 and an
+empty PadMint folder. Actual package metadata confirms UTP 0.1.1/build 4,
+BallPad 1.1.2/build 10, SunPad 0.2.3/build 17 and MeleePad 0.2.5/build 35.
+RAtouch and VaultPad retain their direct-download routes. All six releases' public
+assets passed the required content gates, and anonymous downloads matched the
+audited bytes. Regression checks and applicable required CI passed.
+
+A separate SunPad developer Simulator helper correction merged in
+[PR #81](https://github.com/chrissotraidis/sunpad/pull/81)
+selects the same bundled xxHash library and repairs stale detection; it does not
+change the 0.2.3 tag or release assets.
+
+[PadMint 0.5.26](https://github.com/chrissotraidis/padmint/releases/tag/v0.5.26)
+updates RAtouch's download instructions to the latest unsigned IPA and its matching
+checksum in English, Spanish and Portuguese, instead of a fixed 0.1.0 filename.
+Its existing 39-entry catalog passes the catalog audit. The game fixes retain
+their existing build or direct-download routes; no new games were added.
+
 ## Reported behavior and released fixes
 
 | Project | Evidence and current interpretation |
@@ -26,7 +70,7 @@ The categories are disjoint: 5 + 5 + 20 + 9 = 39. There is no telemetry establis
 | KartPad | [#1](https://github.com/chrissotraidis/kartpad/issues/1) contains an actual player confirmation that manual ISO selection worked after changing to copy mode in 0.3.0-preview.3. Folder fallback still had a separate installation-container issue. [#380](https://github.com/chrissotraidis/kartpad/issues/380) led to folder open-in-place in 0.7.4 and a folder-only action with explicit results in 0.8.1. The later repeat report used an unverified third-party IPA/data setup; it does not establish a regression in current PadMint-built 0.8.6. Current source keeps the folder-only path but still offers a mixed file/folder path that opens in place. |
 | HaloPad | [projectreach#29](https://github.com/chrissotraidis/projectreach/issues/29) reports an unselectable ISO, without version/device details. 0.3.11 added disk-image types; latest 0.3.13 includes that code. The user has not confirmed success. The Xbox ISO action is different from Custom Edition ZIP/folder setup. |
 | SquirrelPad | [#2](https://github.com/chrissotraidis/squirrelpad/issues/2) was an iPhone launcher/window-update failure; one player confirmed 0.1.2 improved it. [#3](https://github.com/chrissotraidis/squirrelpad/issues/3) has a newer iOS 27.2 RC failure after rebuilding. [PR #8](https://github.com/chrissotraidis/squirrelpad/pull/8) merged 2026-10-27: broad item selection and asynchronous import. **At initial inspection, latest was still 0.1.2; the newly published 0.1.3 now delivers #8 through PadMint.** The exact affected-device failure has not been reproduced. |
-| SunPad | [#6](https://github.com/chrissotraidis/sunpad/issues/6) reports the same “tap ISO does nothing” symptom and requests a Files folder. Preview 2 changed to copy mode and added Import from SunPad Folder. Maintainer closed it; the thread contains no player retest confirming that specific fix. Latest 0.2.2 retains both routes. |
+| SunPad | [#6](https://github.com/chrissotraidis/sunpad/issues/6) reports the same “tap ISO does nothing” symptom and requests a Files folder. Preview 2 changed to copy mode and added Import from SunPad Folder. Maintainer closed it; the thread contains no player retest confirming that specific fix. Both 0.2.2 and the newly released 0.2.3 retain those routes; 0.2.3 adds the extraction validation described above. |
 
 ## Why these reports recur
 
@@ -79,7 +123,7 @@ Apple documents the [copy/open distinction](https://developer.apple.com/document
 | `spaghettipad` | Other route | [6a783cdb0a83](https://github.com/chrissotraidis/spaghettipad/blob/6a783cdb0a83bb21ac6351a358f447126e0507eb/README.md#L199) | Files-visible ROM discovery; no first-run system picker in the reviewed route. |
 | `squirrelpad` | Open report | [3c1e6e0e1503](https://github.com/chrissotraidis/squirrelpad/blob/3c1e6e0e1503d96ab96291af36f5eb8cb1737a2a/Sources/SquirrelPadApp.swift#L284) | Inspected main uses item and asynchronous import after #8; the new 0.1.3 release now includes it, replacing 0.1.2. Device failure on iOS 27.2 RC remains unconfirmed fixed. |
 | `starshippad` | Other route | [a578b8f2a544](https://github.com/chrissotraidis/starshippad/blob/a578b8f2a544e60645c9eb7a46173389d04e8922/README.md#L163) | Files-visible ROM discovery; no first-run system picker in the reviewed route. |
-| `sunpad` | Historical report | [d40a0674afa7](https://github.com/chrissotraidis/sunpad/blob/d40a0674afa7189c14bfd6ce6f099dd275b46397/apple/ios/SunPadGameViewController.mm#L1298) | ISO/GCM + data, copy mode, Documents fallback. #6 was addressed in Preview 2; latest 0.2.2 still has these protections. |
+| `sunpad` | Historical report | [d40a0674afa7](https://github.com/chrissotraidis/sunpad/blob/d40a0674afa7189c14bfd6ce6f099dd275b46397/apple/ios/SunPadGameViewController.mm#L1298) | ISO/GCM + data, copy mode, Documents fallback. #6 was addressed in Preview 2; 0.2.2, current at initial inspection, still has these protections. |
 | `tribespad` | Other route | [e8288172fe1b](https://github.com/chrissotraidis/tribespad/blob/e8288172fe1b8b61f675b3781d78f3009cc2f8ba/README.md#L337) | Builder prepares game data; reviewed launcher does not depend on a first-run native file selection. |
 | `utp` | Priority review | [803b47cfa5a9](https://github.com/chrissotraidis/utp/blob/803b47cfa5a9ef60a033dbaa0220a885dd942698/Sources/UT99Host/GameViewController.swift#L4907) | Folder and ZIP share one open picker; has an alternative verified-data acquisition route. Split folder/ZIP actions to remove the same mixed-selection ambiguity reported in KartPad. |
 | `vaultpad` | Native; unconfirmed | [6f4ccd6d13c0](https://github.com/chrissotraidis/vaultpad/blob/6f4ccd6d13c023e42923a0cb520830309f5d29e0/ios/Launcher/VaultPadBootstrap.swift#L523) | SwiftUI folder-only import; selection failure branch has no visible feedback here. No matching report located. |
