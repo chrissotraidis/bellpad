@@ -102,15 +102,64 @@ static void BPTestFloatingMovement(BPGameOverlay *overlay) {
     [overlay setValue:@NO forKey:@"manualControlsHidden"]; [overlay updateControlAppearance];
 }
 
+static void BPTestDiscImport(void (^completion)(void)) {
+    BPDiscImportViewController *importer = [BPDiscImportViewController new];
+    NSURL *root = [NSFileManager.defaultManager.temporaryDirectory URLByAppendingPathComponent:NSUUID.UUID.UUIDString];
+    importer.applicationSupportURL = [root URLByAppendingPathComponent:@"Support"];
+    [importer loadViewIfNeeded];
+    NSURL *documents = [root URLByAppendingPathComponent:@"Documents"];
+    [importer setValue:documents forKey:@"documentsURL"];
+    UIButton *folder = [importer valueForKey:@"folderButton"];
+    UIButton *choose = [importer valueForKey:@"chooseButton"];
+    UILabel *status = [importer valueForKey:@"statusLabel"];
+    [folder sendActionsForControlEvents:UIControlEventTouchUpInside];
+    assert([status.text containsString:@"No ISO or GCM"] && choose.enabled && folder.enabled);
+    NSURL *directory = [documents URLByAppendingPathComponent:@"Import"];
+    NSURL *source = [directory URLByAppendingPathComponent:@"invalid.iso"];
+    NSData *invalid = [@"Not a supported game image" dataUsingEncoding:NSUTF8StringEncoding];
+    assert([invalid writeToURL:source atomically:YES]);
+    NSURL *gameData = [importer.applicationSupportURL URLByAppendingPathComponent:@"Game Data"];
+    assert([NSFileManager.defaultManager createDirectoryAtURL:gameData withIntermediateDirectories:YES attributes:nil error:nil]);
+    NSURL *retained = [gameData URLByAppendingPathComponent:@"Animal Crossing.iso"];
+    NSData *marker = [@"Previous data must be preserved" dataUsingEncoding:NSUTF8StringEncoding];
+    assert([marker writeToURL:retained atomically:YES]);
+    [folder sendActionsForControlEvents:UIControlEventTouchUpInside];
+    assert(!choose.enabled && !folder.enabled);
+    // Let the main queue receive the real worker completion before assertions.
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 2 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+        assert(choose.enabled && folder.enabled && [status.text containsString:@"too small"]);
+        assert([[NSData dataWithContentsOfURL:retained] isEqual:marker]);
+        assert([[NSData dataWithContentsOfURL:source] isEqual:invalid]);
+        UIDocumentPickerViewController *picker = [[UIDocumentPickerViewController alloc]
+            initForOpeningContentTypes:@[UTTypeItem] asCopy:YES];
+        [importer documentPicker:picker didPickDocumentsAtURLs:@[]];
+        assert([status.text containsString:@"Files returned no image"]);
+        [importer documentPickerWasCancelled:picker];
+        assert([status.text containsString:@"No image imported"] && choose.enabled && folder.enabled);
+        [NSFileManager.defaultManager removeItemAtURL:root error:nil];
+        completion();
+    });
+}
+
 @interface BPOverlayTestApp : UIResponder <UIApplicationDelegate>
 @property(nonatomic, strong) UIWindow *window;
+- (void)configureWindow:(UIWindow *)window;
 @end
 @implementation BPOverlayTestApp
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)options {
     (void)application; (void)options;
-    self.window = [[UIWindow alloc] initWithFrame:UIScreen.mainScreen.bounds];
+    return YES;
+}
+- (void)configureWindow:(UIWindow *)window {
+    self.window = window;
     self.window.rootViewController = [UIViewController new];
     [self.window makeKeyAndVisible];
+    if ([NSProcessInfo.processInfo.arguments containsObject:@"--import-screen"]) {
+        BPDiscImportViewController *importer = [BPDiscImportViewController new];
+        importer.applicationSupportURL = [NSFileManager.defaultManager URLsForDirectory:NSApplicationSupportDirectory inDomains:NSUserDomainMask].firstObject;
+        self.window.rootViewController = importer;
+        return;
+    }
     dispatch_async(dispatch_get_main_queue(), ^{
         @try {
             BPGameOverlay *overlay = [[BPGameOverlay alloc] initWithFrame:CGRectMake(0, 0, 844, 390)];
@@ -168,9 +217,11 @@ static void BPTestFloatingMovement(BPGameOverlay *overlay) {
                 assert(CGRectContainsRect(overlay.bounds, menu.frame));
                 assert(CGRectContainsRect(overlay.bounds, panel.frame));
             }
-            NSDictionary *result = @{ @"passed": @YES, @"checks": @"floating-stick ownership/region/deadzone/multitouch/cancel/layout/state preservation; unified reporting prompt; menu/data actions; held-input release; layout editing; controller auto-hide override; native text; lifecycle; iPhone/iPad bounds" };
-            NSData *json = [NSJSONSerialization dataWithJSONObject:result options:NSJSONWritingPrettyPrinted error:nil];
-            [json writeToFile:[NSHomeDirectory() stringByAppendingPathComponent:@"Documents/overlay-tests.json"] atomically:YES];
+            NSDictionary *result = @{ @"passed": @YES, @"checks": @"real import buttons/empty folder/invalid disc preservation/cancel/empty picker; floating-stick ownership/region/deadzone/multitouch/cancel/layout/state preservation; unified reporting prompt; menu/data actions; held-input release; layout editing; controller auto-hide override; native text; lifecycle; iPhone/iPad bounds" };
+            BPTestDiscImport(^{
+                NSData *json = [NSJSONSerialization dataWithJSONObject:result options:NSJSONWritingPrettyPrinted error:nil];
+                [json writeToFile:[NSHomeDirectory() stringByAppendingPathComponent:@"Documents/overlay-tests.json"] atomically:YES];
+            });
             overlay.frame = self.window.rootViewController.view.bounds;
             [overlay layoutSubviews];
             [overlay toggleSettings];
@@ -178,7 +229,17 @@ static void BPTestFloatingMovement(BPGameOverlay *overlay) {
             NSLog(@"Overlay test failure: %@", error); abort();
         }
     });
-    return YES;
+}
+@end
+
+@interface BPOverlayTestScene : UIResponder <UIWindowSceneDelegate>
+@property(nonatomic, strong) UIWindow *window;
+@end
+@implementation BPOverlayTestScene
+- (void)scene:(UIScene *)scene willConnectToSession:(UISceneSession *)session options:(UISceneConnectionOptions *)options {
+    (void)session; (void)options;
+    self.window = [[UIWindow alloc] initWithWindowScene:(UIWindowScene *)scene];
+    [(BPOverlayTestApp *)UIApplication.sharedApplication.delegate configureWindow:self.window];
 }
 @end
 int main(int argc, char **argv) {

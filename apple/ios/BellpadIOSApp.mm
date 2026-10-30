@@ -5,6 +5,7 @@
 #import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
 
 #include "BellpadDiscValidator.h"
+#import "BellpadDiscImport.h"
 #include "BellpadInput.h"
 
 #include <algorithm>
@@ -464,27 +465,51 @@ static BellpadPadState BellpadStateFromGamepad(GCExtendedGamepad *gamepad) {
 }
 
 - (void)chooseGameData {
+    if (!_importButton.enabled || self.presentedViewController) return;
     UIDocumentPickerViewController *picker =
-        [[UIDocumentPickerViewController alloc] initForOpeningContentTypes:@[ UTTypeData ] asCopy:NO];
+        [[UIDocumentPickerViewController alloc] initForOpeningContentTypes:@[ UTTypeItem ] asCopy:YES];
     picker.delegate = self;
     picker.allowsMultipleSelection = NO;
     [self presentViewController:picker animated:YES completion:nil];
+}
+
+- (void)documentPickerWasCancelled:(UIDocumentPickerViewController *)controller {
+    (void)controller;
+    _discStatus = @"No image selected. Choose an ISO or GCM to validate.";
+    _statusLabel.text = _discStatus;
 }
 
 - (void)documentPicker:(UIDocumentPickerViewController *)controller
     didPickDocumentsAtURLs:(NSArray<NSURL *> *)urls {
     (void)controller;
     NSURL *url = urls.firstObject;
-    if (url == nil) return;
-    const BOOL accessed = [url startAccessingSecurityScopedResource];
-    const auto result = BellpadValidateDiscImage(url.fileSystemRepresentation);
-    if (accessed) [url stopAccessingSecurityScopedResource];
-    const std::string message = BellpadDiscValidationMessage(result);
-    _discStatus = [NSString stringWithUTF8String:message.c_str()];
+    if (!url) {
+        _discStatus = @"Files returned no image. Download the ISO or GCM in Files and try again.";
+        _statusLabel.text = _discStatus;
+        return;
+    }
+    _importButton.enabled = NO;
+    _discStatus = @"Reading and validating the image…";
     _statusLabel.text = _discStatus;
-    _statusLabel.textColor = result.valid()
-        ? [UIColor colorWithRed:0.45 green:0.90 blue:0.68 alpha:1.0]
-        : [UIColor colorWithRed:1.0 green:0.55 blue:0.55 alpha:1.0];
+    dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
+        __block BellpadDiscValidationResult result;
+        NSError *error = nil;
+        BPCoordinateDiscRead(url, &error, ^(NSURL *readableURL) {
+            result = BellpadValidateDiscImage(readableURL.fileSystemRepresentation);
+        });
+        NSURL *documents = [NSFileManager.defaultManager URLsForDirectory:NSDocumentDirectory inDomains:NSUserDomainMask].firstObject;
+        BPRemoveImportedInboxCopy(url, documents);
+        NSString *message = error ? error.localizedDescription
+            : [NSString stringWithUTF8String:BellpadDiscValidationMessage(result).c_str()];
+        dispatch_async(dispatch_get_main_queue(), ^{
+            self->_discStatus = message;
+            self->_statusLabel.text = message;
+            self->_importButton.enabled = YES;
+            self->_statusLabel.textColor = !error && result.valid()
+                ? [UIColor colorWithRed:0.45 green:0.90 blue:0.68 alpha:1.0]
+                : [UIColor colorWithRed:1.0 green:0.55 blue:0.55 alpha:1.0];
+        });
+    });
 }
 
 - (void)configureController:(GCController *)controller {

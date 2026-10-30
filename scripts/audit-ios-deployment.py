@@ -25,4 +25,7 @@ if args.write:
     plist_path.write_bytes(plistlib.dumps(info, sort_keys=False))
 if info.get("MinimumOSVersion") != minimum:
     raise SystemExit(f"MinimumOSVersion {info.get('MinimumOSVersion')!r} does not match executable {minimum}")
+for key in ("UIFileSharingEnabled", "LSSupportsOpeningDocumentsInPlace"):
+    if info.get(key) is not True:
+        raise SystemExit(f"{key} must be enabled so BellPad's Import folder is available in Files")
 print(f"Verified {platforms[0]} MinimumOSVersion {minimum}")
