@@ -18,6 +18,27 @@ The categories are disjoint: 5 + 5 + 20 + 9 = 39. There is no telemetry establis
 
 [SquirrelPad 0.1.3](https://github.com/chrissotraidis/squirrelpad/releases/tag/v0.1.3) now delivers the already-merged import fix through normal PadMint rebuilds. Its release preparation also fixed hardcoded bundle metadata: the package now derives its version from `version.json` and rejects mismatches. The clean pre-tag build and actual 0.1.3/build 4 metadata passed; the affected iOS 27.2 RC device remains unconfirmed.
 
+## Follow-up: reproduced defects
+
+A second pass investigated the five priority entries and adjacent importers.
+The categories in the original 39-entry snapshot below describe the first
+pass, not the outcome of this deeper testing. Five projects now have concrete
+defects supported by failing-before/passing-after regression evidence:
+
+| Project | Confirmed failure | Correction and evidence |
+| --- | --- | --- |
+| UTP | Recovery moved backup files into place one at a time. If recovery failed, the next attempt deleted already-restored files whose backups had been consumed. | [0.1.1](https://github.com/chrissotraidis/utp/releases/tag/v0.1.1) keeps backup copies until restoration finishes and checkpoints completed restoration before cleanup. Forced interruption, retry, cleanup, replacement and existing transaction tests pass. Clean PadMint pre-tag and published-route builds pass with version 0.1.1/build 4. |
+| VaultPad | A missing source could report success after replacing existing data with zero bytes. Selecting the app's own source folder deleted inputs before reading them. Name-only readiness then let empty required files bypass setup. | [PR #13](https://github.com/chrissotraidis/vaultpad/pull/13) stages all inputs and checks their lengths before replacing each complete file atomically. Nine Foundation regressions cover failed reads, changed sizes, self-import, saves, replacement failures and readiness. Full iPad Simulator startup also returns empty required files to setup. Activation is atomic per file, not across the entire data set. |
+| SunPad | The directory exporter logs individual write failures and continues. A truncated output retains its filename and can pass the old existence/file-count checks, replacing working data. | [PR #80](https://github.com/chrissotraidis/sunpad/pull/80) verifies every extracted file's type and length against the verified disc's file table before reporting success. Real extractor tests with controlled complete, truncated, missing and directory-instead-of-file outputs pass under address/undefined-behavior sanitizers. Clean shell preparation also reproduced an incorrect host xxHash selection; the device script now forces its bundled library and clears stale xxHash detection when rerun. The previously broken warm build state now builds successfully. |
+| RAtouch | An invalid ISO selected alongside a complete valid MIX set was ignored; the other files were installed and the UI reported success. | [PR #7](https://github.com/chrissotraidis/ratouch/pull/7) aborts the complete selection immediately on ISO extraction failure. Regression with private supported inputs and unmodified production size/hash/MIX validation proves rejection and preservation of installed receipt, saves and an existing pending replacement. |
+| BallPad | Setup incorrectly instructed players to import extracted folders. Discovery hid legitimate sibling folders sharing the retained-store name prefix, while stale picker copies could reappear as manual inputs. | [1.1.2](https://github.com/chrissotraidis/ballpad/releases/tag/v1.1.2) corrects the instructions, excludes only the actual store and Inbox, and removes only this app's picker-owned copy. Eight native checks cover discovery, both UIKit copy locations, exact parent/bundle matching, symlinks and original-file preservation. The old scanner fails the same fixture. |
+
+These are specific failures, not proof that every installation is affected or
+that every “cannot select” report has the same cause. GalaxyPad's bounded
+review did not establish a new defect. F0X's local selection probe reached its
+validator; a forced inactive-state probe was insufficient to establish real
+device lifecycle behavior, so no speculative F0X change was released.
+
 ## Reported behavior and released fixes
 
 | Project | Evidence and current interpretation |
