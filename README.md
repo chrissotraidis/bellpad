@@ -63,7 +63,7 @@ Linux or any computer with a web browser: follow
 | Apple Silicon macOS | **Playable baseline** | The native `Bellpad.app` reaches a generated town, creates/reloads a Dolphin-compatible GCI save, and has desktop rendering/input evidence. |
 | iPhone and iPad Simulator | **Current development target** | Files import, retained game data, Metal rendering, touch input, native name entry, save import/export, and relaunch have evidence on sequential Simulator runs. |
 | ARM64 iPhone/iPad device build | **Physical iPad validated** | Local version 0.1.0 build 6 was signed and installed in place; on-device logs confirm retained-image validation and save preparation at startup. Preview 3 provides this same audited build 6. Game data, saves, controller settings, and touch preferences were byte-identical after readback. Physical controller scenarios remain acceptance gates. |
-| Make your own with PadMint | **Available (0.2.2)** | See [Get BellPad](#get-bellpad). Releases hold the recipe only. PadMint builds iPhone/iPad and, from 0.5.5, Mac copies on an Apple Silicon Mac; a clean PadMint build of the 0.2.2 Mac app reached the title screen. Without a Mac, PadMint can build the iPhone/iPad app on [GitHub's free Mac](https://github.com/chrissotraidis/padmint#no-mac-build-on-githubs-mac). |
+| Make your own with PadMint | **Available (0.2.3)** | See [Get BellPad](#get-bellpad). Releases hold the recipe only. PadMint builds iPhone/iPad and, from 0.5.5, Mac copies on an Apple Silicon Mac. Without a Mac, PadMint can build the iPhone/iPad app on [GitHub's free Mac](https://github.com/chrissotraidis/padmint#no-mac-build-on-githubs-mac). |
 | App Store / TestFlight | **Not available** | BellPad is not store-distributed. |
 
 The source-release workflow verifies the clean-room and reproducibility gates
@@ -132,6 +132,30 @@ revision, size, and streamed fingerprint; stages a private Application Support
 copy; validates it again; then installs it atomically for subsequent launches.
 An invalid selection does not replace a retained valid image. Compressed
 formats, including CISO/RVZ, remain unsupported in the application flow.
+
+**If Files will not select your image (0.2.3 or newer):**
+
+1. Open BellPad once so it creates its import folder.
+2. In the Files app, copy one supported `.iso` or `.gcm` into
+   **On My iPhone / On My iPad → BellPad → Import**. Wait for the copy or cloud
+   download to finish.
+3. Return to BellPad and tap **Import from BellPad folder**. This reads that
+   folder directly, without opening the system picker.
+
+The picker accepts broadly labelled files and imports a temporary copy, then
+BellPad checks the actual file. A full ISO needs room for the source and private
+retained copy; after a successful folder import, you can remove your extra copy
+from `Import`. Saves and the retained image stay in private Application Support.
+If BellPad runs inside a container app, its Documents folder belongs to that
+container and may not appear as a separate BellPad folder in Files. Use the
+container's document-management tools or install BellPad directly with your
+sideloading tool.
+
+If selection still fails, use **Report a Problem → Share Report** and include
+whether Files opened, whether the file was greyed out, where it was stored,
+and which installer or container you used. Do not attach game files or saves.
+The [file-import audit](docs/FILE_IMPORT_AUDIT.md) distinguishes related reports
+in other ports from unverified code risks.
 
 ```mermaid
 flowchart LR

@@ -4,6 +4,30 @@ Last updated: 2026-08-18
 
 No gameplay test is marked passed without a dated result, device/OS, build revision, image revision, and observable outcome.
 
+## 0.2.3 import regression checks — 2026-10-30
+
+- `scripts/test-disc-import.sh` exercises the production coordinated transaction
+  with the real validator and an explicitly synthetic fingerprint: initial import,
+  replacement, corruption during staging, invalid/missing input, ambiguous folders,
+  uppercase extensions, directory/symlink exclusion and Inbox-only cleanup. The
+  shipped fingerprint also rejects the generated fixture. No game data is bundled
+  in the tests, and the accepted production fingerprint is unchanged.
+- The iOS 27.0 iPhone Simulator overlay host exercises the actual folder button,
+  invalid-image preservation, busy-state recovery, cancel and empty callbacks,
+  alongside the existing touch/control regressions. The import screen was rendered
+  and inspected in landscape. The host now uses a scene lifecycle for current SDKs.
+- The native iOS shell compiles; `scripts/verify-release-candidate.sh` includes
+  the import transaction tests. Packaging rejects a bundle missing either Files
+  sharing flag, so the documented import fallback cannot silently lose its metadata.
+- These checks do not reproduce issue #26 on the reporter's iOS 27.2 device,
+  exercise cloud-provider downloads or LiveContainer, or establish gameplay
+  acceptance. Keep those claims separate from the clean PadMint release builds.
+
+For manual follow-up: pick a local image and a downloaded cloud image; cancel and
+retry; import one image through Files → BellPad → Import; try an invalid image;
+then relaunch and confirm existing saves remain available. Test directly installed
+and container-hosted apps separately. See [the catalog audit](FILE_IMPORT_AUDIT.md).
+
 ## Source-release gate
 
 | Test | Current evidence |

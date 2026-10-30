@@ -1,5 +1,6 @@
 #import "BellpadGameOverlay.h"
 #import "BellpadDiagnostics.h"
+#import "BellpadDiscImport.h"
 #include <SDL3/SDL_log.h>
 
 #import <AVFAudio/AVAudioSession.h>
@@ -609,81 +610,88 @@ static UIAlertController *BPProblemReportPrompt(UIViewController *presenter, UIV
 @implementation BPDiscImportViewController {
     UILabel *_statusLabel;
     UIButton *_chooseButton;
+    UIButton *_folderButton;
     UIActivityIndicatorView *_activityIndicator;
+    NSURL *_documentsURL;
+    BOOL _importing;
 }
 
 - (void)viewDidLoad {
     [super viewDidLoad];
     self.view.backgroundColor = [UIColor colorWithRed:0.035 green:0.055 blue:0.095 alpha:1.0];
+    _documentsURL = [NSFileManager.defaultManager URLsForDirectory:NSDocumentDirectory inDomains:NSUserDomainMask].firstObject;
+    NSError *folderError = nil;
+    BPPrepareDiscImportDirectory(_documentsURL, &folderError);
+    if (folderError) BellpadLog(@"manual import folder unavailable: %@", folderError.localizedDescription);
 
     UILabel *title = [UILabel new];
-    title.translatesAutoresizingMaskIntoConstraints = NO;
     title.text = @"Choose your game data";
     title.textColor = UIColor.whiteColor;
-    title.font = [UIFont systemFontOfSize:28.0 weight:UIFontWeightBold];
+    title.font = [UIFont systemFontOfSize:26.0 weight:UIFontWeightBold];
     title.textAlignment = NSTextAlignmentCenter;
-    [self.view addSubview:title];
+    title.numberOfLines = 0;
 
     UILabel *detail = [UILabel new];
-    detail.translatesAutoresizingMaskIntoConstraints = NO;
-    detail.text = @"BellPad requires a legally obtained Animal Crossing GAFE01 revision 0 ISO or GCM. The selected file is validated and copied to private Application Support. It is never added to the app bundle.";
+    NSString *device = UIDevice.currentDevice.userInterfaceIdiom == UIUserInterfaceIdiomPad ? @"iPad" : @"iPhone";
+    detail.text = [NSString stringWithFormat:@"Use your own Animal Crossing USA revision 0 ISO or GCM. If Files won’t select it, copy it into On My %@ → BellPad → Import, then use the folder button below.", device];
     detail.numberOfLines = 0;
     detail.textColor = [UIColor colorWithWhite:1.0 alpha:0.76];
-    detail.font = [UIFont systemFontOfSize:16.0 weight:UIFontWeightRegular];
+    detail.font = [UIFont systemFontOfSize:15.0 weight:UIFontWeightRegular];
     detail.textAlignment = NSTextAlignmentCenter;
-    [self.view addSubview:detail];
-
-    _statusLabel = [UILabel new];
-    _statusLabel.translatesAutoresizingMaskIntoConstraints = NO;
-    _statusLabel.text = @"No supported game data is stored on this device.";
-    _statusLabel.numberOfLines = 0;
-    _statusLabel.textColor = [UIColor colorWithWhite:1.0 alpha:0.68];
-    _statusLabel.font = [UIFont systemFontOfSize:14.0 weight:UIFontWeightMedium];
-    _statusLabel.textAlignment = NSTextAlignmentCenter;
-    [self.view addSubview:_statusLabel];
 
     _chooseButton = [UIButton buttonWithType:UIButtonTypeSystem];
-    _chooseButton.translatesAutoresizingMaskIntoConstraints = NO;
     [_chooseButton setTitle:@"Choose ISO or GCM…" forState:UIControlStateNormal];
     [_chooseButton setTitleColor:UIColor.whiteColor forState:UIControlStateNormal];
     _chooseButton.titleLabel.font = [UIFont systemFontOfSize:17.0 weight:UIFontWeightSemibold];
     _chooseButton.backgroundColor = [UIColor colorWithRed:0.22 green:0.48 blue:0.76 alpha:1.0];
     _chooseButton.layer.cornerRadius = 14.0;
     [_chooseButton addTarget:self action:@selector(chooseGameData) forControlEvents:UIControlEventTouchUpInside];
-    [self.view addSubview:_chooseButton];
 
-    _activityIndicator = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleLarge];
-    _activityIndicator.translatesAutoresizingMaskIntoConstraints = NO;
-    _activityIndicator.color = UIColor.whiteColor;
+    _folderButton = [UIButton buttonWithType:UIButtonTypeSystem];
+    [_folderButton setTitle:@"Import from BellPad folder" forState:UIControlStateNormal];
+    _folderButton.titleLabel.font = [UIFont systemFontOfSize:16.0 weight:UIFontWeightSemibold];
+    [_folderButton addTarget:self action:@selector(importFromFolder) forControlEvents:UIControlEventTouchUpInside];
+
+    _statusLabel = [UILabel new];
+    _statusLabel.text = folderError ? @"The import folder could not be created. Check available storage and relaunch BellPad."
+        : @"Allow about 3 GB of free space for import. Your original file is kept; BellPad uses a private copy.";
+    _statusLabel.numberOfLines = 0;
+    _statusLabel.textColor = [UIColor colorWithWhite:1.0 alpha:0.68];
+    _statusLabel.font = [UIFont systemFontOfSize:14.0 weight:UIFontWeightMedium];
+    _statusLabel.textAlignment = NSTextAlignmentCenter;
+
+    _activityIndicator = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleMedium];
     _activityIndicator.hidesWhenStopped = YES;
-    [self.view addSubview:_activityIndicator];
+    _activityIndicator.hidden = YES;
 
     UIButton *diagnostics = [UIButton buttonWithType:UIButtonTypeSystem];
-    diagnostics.translatesAutoresizingMaskIntoConstraints = NO;
     [diagnostics setTitle:@"Report a Problem…" forState:UIControlStateNormal];
     [diagnostics addTarget:self action:@selector(shareImportDiagnostics) forControlEvents:UIControlEventTouchUpInside];
-    [self.view addSubview:diagnostics];
+
+    UIScrollView *scroll = [UIScrollView new];
+    scroll.translatesAutoresizingMaskIntoConstraints = NO;
+    [self.view addSubview:scroll];
+    UIStackView *stack = [[UIStackView alloc] initWithArrangedSubviews:@[
+        title, detail, _chooseButton, _folderButton, _statusLabel, _activityIndicator, diagnostics]];
+    stack.translatesAutoresizingMaskIntoConstraints = NO;
+    stack.axis = UILayoutConstraintAxisVertical;
+    stack.spacing = 10.0;
+    [scroll addSubview:stack];
     UILayoutGuide *safe = self.view.safeAreaLayoutGuide;
+    NSLayoutConstraint *width = [stack.widthAnchor constraintEqualToAnchor:scroll.frameLayoutGuide.widthAnchor constant:-48.0];
+    width.priority = UILayoutPriorityDefaultHigh;
     [NSLayoutConstraint activateConstraints:@[
-        [title.centerXAnchor constraintEqualToAnchor:safe.centerXAnchor],
-        [title.bottomAnchor constraintEqualToAnchor:detail.topAnchor constant:-18.0],
-        [title.leadingAnchor constraintGreaterThanOrEqualToAnchor:safe.leadingAnchor constant:24.0],
-        [detail.centerXAnchor constraintEqualToAnchor:safe.centerXAnchor],
-        [detail.centerYAnchor constraintEqualToAnchor:safe.centerYAnchor constant:-32.0],
-        [detail.widthAnchor constraintLessThanOrEqualToConstant:620.0],
-        [detail.leadingAnchor constraintGreaterThanOrEqualToAnchor:safe.leadingAnchor constant:32.0],
-        [_statusLabel.topAnchor constraintEqualToAnchor:detail.bottomAnchor constant:20.0],
-        [_statusLabel.centerXAnchor constraintEqualToAnchor:safe.centerXAnchor],
-        [_statusLabel.widthAnchor constraintLessThanOrEqualToConstant:620.0],
-        [_statusLabel.leadingAnchor constraintGreaterThanOrEqualToAnchor:safe.leadingAnchor constant:32.0],
-        [_chooseButton.topAnchor constraintEqualToAnchor:_statusLabel.bottomAnchor constant:20.0],
-        [_chooseButton.centerXAnchor constraintEqualToAnchor:safe.centerXAnchor],
-        [_chooseButton.widthAnchor constraintEqualToConstant:220.0],
-        [_chooseButton.heightAnchor constraintEqualToConstant:50.0],
-        [_activityIndicator.centerXAnchor constraintEqualToAnchor:safe.centerXAnchor],
-        [_activityIndicator.topAnchor constraintEqualToAnchor:_chooseButton.bottomAnchor constant:8.0],
-        [diagnostics.bottomAnchor constraintEqualToAnchor:safe.bottomAnchor constant:-4.0],
-        [diagnostics.trailingAnchor constraintEqualToAnchor:safe.trailingAnchor constant:-16.0],
+        [scroll.topAnchor constraintEqualToAnchor:safe.topAnchor],
+        [scroll.bottomAnchor constraintEqualToAnchor:safe.bottomAnchor],
+        [scroll.leadingAnchor constraintEqualToAnchor:safe.leadingAnchor],
+        [scroll.trailingAnchor constraintEqualToAnchor:safe.trailingAnchor],
+        [scroll.contentLayoutGuide.widthAnchor constraintEqualToAnchor:scroll.frameLayoutGuide.widthAnchor],
+        [stack.centerXAnchor constraintEqualToAnchor:scroll.contentLayoutGuide.centerXAnchor],
+        [stack.topAnchor constraintEqualToAnchor:scroll.contentLayoutGuide.topAnchor constant:20.0],
+        [stack.bottomAnchor constraintEqualToAnchor:scroll.contentLayoutGuide.bottomAnchor constant:-20.0],
+        [stack.widthAnchor constraintLessThanOrEqualToConstant:620.0], width,
+        [_chooseButton.heightAnchor constraintEqualToConstant:46.0],
+        [_folderButton.heightAnchor constraintEqualToConstant:44.0],
         [diagnostics.heightAnchor constraintEqualToConstant:44.0],
     ]];
 }
@@ -693,23 +701,46 @@ static UIAlertController *BPProblemReportPrompt(UIViewController *presenter, UIV
 }
 
 - (void)documentPickerWasCancelled:(UIDocumentPickerViewController *)controller {
-    (void)controller; BellpadLog(@"disc picker cancelled");
+    (void)controller;
+    BellpadLog(@"disc picker cancelled");
+    [self setBusy:NO status:@"No image imported. Try again, or copy your image into BellPad → Import in Files and use Import from BellPad folder."];
 }
 
 - (void)chooseGameData {
-    BellpadLog(@"disc picker presented");
+    if (_importing || self.presentedViewController) return;
+    BellpadLog(@"disc picker presented mode=copy types=item");
+    // File providers and container hosts do not consistently support open-in-place.
+    // Let the system deliver a local copy, then validate its actual contents.
     UIDocumentPickerViewController *picker =
-        [[UIDocumentPickerViewController alloc] initForOpeningContentTypes:@[ UTTypeData ] asCopy:NO];
+        [[UIDocumentPickerViewController alloc] initForOpeningContentTypes:@[ UTTypeItem ] asCopy:YES];
     picker.delegate = self;
     picker.allowsMultipleSelection = NO;
     [self presentViewController:picker animated:YES completion:nil];
 }
 
+- (void)importFromFolder {
+    if (_importing || self.presentedViewController) return;
+    NSError *error = nil;
+    NSURL *directory = BPPrepareDiscImportDirectory(_documentsURL, &error);
+    NSURL *source = directory ? BPFindDiscInImportDirectory(directory, &error) : nil;
+    if (!source) {
+        BellpadLog(@"manual import unavailable: %@", error.localizedDescription);
+        [self finishWithError:error.localizedDescription ?: @"The BellPad import folder is unavailable."];
+        return;
+    }
+    BellpadLog(@"manual disc import selected");
+    [self importDisc:source pickerCopy:NO];
+}
+
 - (void)setBusy:(BOOL)busy status:(NSString *)status {
+    _importing = busy;
     _chooseButton.enabled = !busy;
+    _folderButton.enabled = !busy;
     _chooseButton.alpha = busy ? 0.45 : 1.0;
+    _folderButton.alpha = busy ? 0.45 : 1.0;
     _statusLabel.text = status;
     _statusLabel.textColor = [UIColor colorWithWhite:1.0 alpha:0.76];
+    _activityIndicator.hidden = !busy;
     if (busy) [_activityIndicator startAnimating];
     else [_activityIndicator stopAnimating];
 }
@@ -723,65 +754,34 @@ static UIAlertController *BPProblemReportPrompt(UIViewController *presenter, UIV
 - (void)documentPicker:(UIDocumentPickerViewController *)controller
     didPickDocumentsAtURLs:(NSArray<NSURL *> *)urls {
     (void)controller;
+    if (_importing) return;
     NSURL *sourceURL = urls.firstObject;
-    if (!sourceURL) return;
+    if (!sourceURL) {
+        [self finishWithError:@"Files returned no image. Try the BellPad → Import folder in Files instead."];
+        return;
+    }
+    BellpadLog(@"disc picker returned selection; coordinated import started");
+    [self importDisc:sourceURL pickerCopy:YES];
+}
 
-    BellpadLog(@"disc picker returned selection; validation started");
-    [self setBusy:YES status:@"Validating and importing game data…"];
+- (void)importDisc:(NSURL *)sourceURL pickerCopy:(BOOL)pickerCopy {
+    if (_importing) return;
+    [self setBusy:YES status:@"Reading and validating the image… Large files can take a while."];
     __weak BPDiscImportViewController *weakSelf = self;
     dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
         BPDiscImportViewController *strongSelf = weakSelf;
         if (!strongSelf) return;
-        BOOL accessed = [sourceURL startAccessingSecurityScopedResource];
-        const BellpadDiscValidationResult sourceResult =
-            BellpadValidateDiscImage(sourceURL.fileSystemRepresentation);
-        if (!sourceResult.valid()) {
-            const std::string text = BellpadDiscValidationMessage(sourceResult);
-            if (accessed) [sourceURL stopAccessingSecurityScopedResource];
-            dispatch_async(dispatch_get_main_queue(), ^{
-                [strongSelf finishWithError:[NSString stringWithUTF8String:text.c_str()]];
-            });
-            return;
-        }
-
-        NSFileManager *files = NSFileManager.defaultManager;
-        NSURL *directory = [strongSelf.applicationSupportURL URLByAppendingPathComponent:@"Game Data"
-                                                                             isDirectory:YES];
-        NSURL *destination = [directory URLByAppendingPathComponent:@"Animal Crossing.iso"];
-        NSURL *staging = [directory URLByAppendingPathComponent:@"Animal Crossing.importing.iso"];
         NSError *error = nil;
-        [files createDirectoryAtURL:directory withIntermediateDirectories:YES attributes:nil error:&error];
-        if (!error && [files fileExistsAtPath:staging.path]) [files removeItemAtURL:staging error:&error];
-        if (!error) [files copyItemAtURL:sourceURL toURL:staging error:&error];
-        if (accessed) [sourceURL stopAccessingSecurityScopedResource];
-
-        if (!error) {
-            const BellpadDiscValidationResult stagedResult =
-                BellpadValidateDiscImage(staging.fileSystemRepresentation);
-            if (!stagedResult.valid()) {
-                error = [NSError errorWithDomain:@"dev.bellpad.import" code:2
-                                         userInfo:@{NSLocalizedDescriptionKey:
-                                             @"The copied file failed validation. The previous game data was kept."}];
-            }
-        }
-        if (!error) {
-            if ([files fileExistsAtPath:destination.path]) {
-                [files replaceItemAtURL:destination withItemAtURL:staging backupItemName:nil
-                                options:0 resultingItemURL:nil error:&error];
-            } else {
-                [files moveItemAtURL:staging toURL:destination error:&error];
-            }
-        }
-        if (error) {
-            [files removeItemAtURL:staging error:nil];
-            NSString *message = [NSString stringWithFormat:@"Import failed: %@", error.localizedDescription];
+        NSURL *destination = BPImportDiscImage(sourceURL, strongSelf.applicationSupportURL, &error);
+        if (pickerCopy) BPRemoveImportedInboxCopy(sourceURL, strongSelf->_documentsURL);
+        if (!destination) {
+            NSString *message = [NSString stringWithFormat:@"Import failed: %@\nDownload the complete ISO or GCM in Files, or copy it into BellPad → Import and try again.", error.localizedDescription];
             dispatch_async(dispatch_get_main_queue(), ^{ [strongSelf finishWithError:message]; });
             return;
         }
-
         dispatch_async(dispatch_get_main_queue(), ^{
             [strongSelf setBusy:NO status:@"Supported game data imported. Starting BellPad…"];
-            BellpadLog(@"disc import validated and committed");
+            BellpadLog(@"disc import validated and committed route=%@", pickerCopy ? @"picker-copy" : @"manual-folder");
             if (strongSelf.completion) strongSelf.completion(destination);
         });
     });
@@ -1417,9 +1417,8 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
                               message:@"BellPad has not finished preparing Application Support yet."];
         return;
     }
-    UTType *gciType = [UTType typeWithFilenameExtension:@"gci"] ?: UTTypeData;
     UIDocumentPickerViewController *picker =
-        [[UIDocumentPickerViewController alloc] initForOpeningContentTypes:@[ gciType ] asCopy:NO];
+        [[UIDocumentPickerViewController alloc] initForOpeningContentTypes:@[ UTTypeItem ] asCopy:YES];
     picker.delegate = self;
     picker.allowsMultipleSelection = NO;
     _documentPickerMode = BPDocumentPickerModeImportSave;
@@ -1526,10 +1525,14 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
     if (!source) return;
     __weak BPGameOverlay *weakSelf = self;
     dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
-        BOOL accessed = [source startAccessingSecurityScopedResource];
-        NSData *data = nil;
-        NSString *message = BellpadLoadValidatedGCI(source, &data);
-        if (accessed) [source stopAccessingSecurityScopedResource];
+        __block NSData *data = nil;
+        __block NSString *message = nil;
+        NSError *readError = nil;
+        BPCoordinateDiscRead(source, &readError, ^(NSURL *readableURL) {
+            message = BellpadLoadValidatedGCI(readableURL, &data);
+        });
+        if (!message && readError) message = readError.localizedDescription;
+        if (!message && !data) message = @"Files did not supply a GCI save. Download it in Files and try again.";
 
         NSURL *pending = BellpadPendingSaveURL();
         NSError *error = nil;
@@ -1543,6 +1546,10 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
                                                             error.localizedDescription];
         }
         if (!message) message = BellpadLoadValidatedGCI(pending, nullptr);
+        if (!message) {
+            NSURL *documents = [NSFileManager.defaultManager URLsForDirectory:NSDocumentDirectory inDomains:NSUserDomainMask].firstObject;
+            BPRemoveImportedInboxCopy(source, documents);
+        }
 
         dispatch_async(dispatch_get_main_queue(), ^{
             BPGameOverlay *strongSelf = weakSelf;
