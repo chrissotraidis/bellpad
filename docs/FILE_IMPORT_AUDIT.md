@@ -16,7 +16,7 @@ The categories are disjoint: 5 + 5 + 20 + 9 = 39. There is no telemetry establis
 
 [BellPad 0.2.3](https://github.com/chrissotraidis/bellpad/releases/tag/v0.2.3) now ships broad copy-mode file selection, coordinated reads, a Files-visible Import folder and a direct folder-import action. Clean PadMint builds passed before tagging and from the published release. iPhone/iPad import/control tests and a full production Simulator startup passed; the exact reporter device/provider remains unverified. Both public assets are recipe/checksum only.
 
-[SquirrelPad 0.1.3](https://github.com/chrissotraidis/squirrelpad/releases/tag/v0.1.3) now delivers the already-merged import fix through normal PadMint rebuilds. Its release preparation also fixed hardcoded bundle metadata: the package now derives its version from `version.json` and rejects mismatches. The clean pre-tag build and actual 0.1.3/build 4 metadata passed; the affected iOS 27.2 RC device remains unconfirmed.
+[SquirrelPad 0.1.3](https://github.com/chrissotraidis/squirrelpad/releases/tag/v0.1.3) now delivers the already-merged import fix through normal PadMint rebuilds. Its release preparation also fixed hardcoded bundle metadata: the package now derives its version from `version.json` and rejects mismatches. Clean pre-tag and published-route builds passed with actual 0.1.3/build 4 metadata; the affected iOS 27.2 RC device remains unconfirmed.
 
 ## Follow-up: reproduced defects
 
@@ -28,12 +28,22 @@ defects supported by failing-before/passing-after regression evidence:
 
 | Project | Confirmed failure | Correction and evidence |
 | --- | --- | --- |
-| UTP | Recovery moved backup files into place one at a time. If recovery failed, the next attempt deleted already-restored files whose backups had been consumed. | [0.1.1](https://github.com/chrissotraidis/utp/releases/tag/v0.1.1) keeps backup copies until restoration finishes and checkpoints completed restoration before cleanup. Forced interruption, retry, cleanup, replacement and existing transaction tests pass. Clean PadMint pre-tag and published-route builds pass with version 0.1.1/build 4. |
+| UTP | Recovery moved backups into place, so retrying a partial rollback could delete already-restored files. The first fix also missed journals left by recovery already interrupted in 0.1.0. | [0.1.2](https://github.com/chrissotraidis/utp/releases/tag/v0.1.2) preserves ambiguous older recovery state, offers a verified replacement through existing setup actions, and restores the prior journal if that repair fails. New journals record original items and verify their backup set before deletion. Engine startup requires complete data and runtime support. Native regressions cover legacy upgrades, repair preparation/failure/retry, cleanup interruption, missing backups and originally absent items. |
 | VaultPad | A missing source could report success after replacing existing data with zero bytes. Selecting the app's own source folder deleted inputs before reading them. Name-only readiness then let empty required files bypass setup. | [Preview 2](https://github.com/chrissotraidis/vaultpad/releases/tag/v0.1.0-preview.2) stages all inputs, checks their lengths, and reapplies required-file validation before replacing each complete file atomically. Ten Foundation regressions cover failed reads, changed sizes or headers, self-import, saves, replacement failures and readiness. Full iPad Simulator startup also returns empty required files to setup. Activation is atomic per file, not across the entire data set. |
 | SunPad | The directory exporter logs individual write failures and continues. A truncated output retains its filename and can pass the old existence/file-count checks, replacing working data. | [0.2.3](https://github.com/chrissotraidis/sunpad/releases/tag/v0.2.3) verifies every extracted file's type and length against the verified disc's file table before reporting success. The production app extractor wrapper, tested with synthetic DiscIO outputs, passes complete, truncated, missing and directory-instead-of-file cases under address/undefined-behavior sanitizers. Clean shell preparation also reproduced an incorrect host xxHash selection; the device script now forces its bundled library and clears stale xxHash detection when rerun. The previously broken warm build state now builds successfully. |
 | RAtouch | An invalid ISO selected alongside a complete valid MIX set was ignored; the other files were installed and the UI reported success. | [0.1.1](https://github.com/chrissotraidis/ratouch/releases/tag/v0.1.1) aborts the complete selection immediately on ISO extraction failure and reports that failure even when old playable data remains. Regression with private supported inputs and unmodified production size/hash/MIX validation proves rejection and preservation of installed receipt, saves and an existing pending replacement. |
 | BallPad | Setup incorrectly instructed players to import extracted folders. Discovery hid legitimate sibling folders sharing the retained-store name prefix, while stale picker copies could reappear as manual inputs. | [1.1.2](https://github.com/chrissotraidis/ballpad/releases/tag/v1.1.2) corrects the instructions, excludes only the actual store and Inbox, and removes only this app's picker-owned copy. Eight synthetic native checks cover discovery, modeled Documents/Inbox and temporary bundle-Inbox locations, exact parent/bundle matching, symlinks and original-file preservation. The old scanner fails the same fixture. |
 | MeleePad | The same void directory-export failure as SunPad: a short game-data file retains its name and passes the old required-name/count checks before activation. | [0.2.5](https://github.com/chrissotraidis/meleepad/releases/tag/v0.2.5) validates every exported file against the verified disc's file table before success. The production app extractor wrapper, tested with synthetic DiscIO outputs, fails the truncated-output fixture before the fix; complete, truncated, missing and directory-replaced cases now pass with address/undefined-behavior sanitizers and the full repository suite. |
+
+A subsequent independent code review reproduced the UTP upgrade gap against the
+actual 0.1.1 implementation. The corrective [PR #18](https://github.com/chrissotraidis/utp/pull/18)
+adds conservative legacy recovery and a retryable repair path. Startup leaves
+unresolved recovery files untouched; incomplete content-only imports stay in
+setup, and a successful replacement stages the app-owned shader before checking
+readiness. Old recovery files remain preserved after a successful repair.
+The corrected 0.1.2/build 5 package passed clean pre-tag and published-route
+PadMint checks, required CI, the full native suite, content gates and anonymous
+recipe/checksum readback.
 
 These are specific failures, not proof that every installation is affected or
 that every “cannot select” report has the same cause. GalaxyPad's bounded
@@ -45,11 +55,20 @@ behavior, so no speculative F0X change was released.
 
 Clean Mac-hosted iOS PadMint checks passed before tagging and through the published
 release for UTP, BallPad, SunPad and MeleePad. Each used Apple's Python 3.9 and an
-empty PadMint folder. Actual package metadata confirms UTP 0.1.1/build 4,
+empty PadMint folder. Actual package metadata confirms UTP 0.1.2/build 5,
 BallPad 1.1.2/build 10, SunPad 0.2.3/build 17 and MeleePad 0.2.5/build 35.
 RAtouch and VaultPad retain their direct-download routes. All six releases' public
 assets passed the required content gates, and anonymous downloads matched the
 audited bytes. Regression checks and applicable required CI passed.
+
+An independent delivery recheck downloaded all 18 public assets across the original
+six game releases (including UTP 0.1.1) and PadMint 0.5.26. Their digests and published checksums matched;
+the four game recipes matched their tagged source. Fresh BellPad and SquirrelPad
+recipe downloads also matched their checksums and tags.
+RAtouch's two Linux/Clang jobs passed all 24 tests but failed afterward in the
+formatting check: all 21 files in that formatter diff were unchanged from the
+pre-merge parent and outside the importer change. This is pre-existing formatting
+debt, not an importer test or build failure.
 
 A separate SunPad developer Simulator helper correction merged in
 [PR #81](https://github.com/chrissotraidis/sunpad/pull/81)
