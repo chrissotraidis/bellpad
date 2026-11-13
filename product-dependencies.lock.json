@@ -36,7 +36,7 @@
       "license": "Zlib; compiled HIDAPI and yuv2rgb portions are BSD-3-Clause",
       "purpose": "Apple application, audio, input, controller, and lifecycle platform layer",
       "reusedComponents": "Vendored static SDL3 build, including HIDAPI controller backends and yuv2rgb conversion",
-      "requiredChanges": "No Apple source changes; Aurora's configured Android patch commands do not alter the Apple build",
+      "requiredChanges": "One Apple source change through Aurora's SDL patch chain: cmake/patches/apply-sdl3-uikit-scene-geometry.cmake (UIKit scene geometry shared with the other SDL3 Pad ports). The two Android patch commands still do not alter the Apple build",
       "disposition": "Static product dependency through Aurora"
     },
     {

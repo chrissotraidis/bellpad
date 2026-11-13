@@ -294,7 +294,7 @@ ARM64. They are not Bellpad product targets and do not run Animal Crossing.
 ```
 
 Both commands verify pinned Aurora commit
-`5a0b160e4bcc0a37316f55a02c0bb4a7e3ddfd67` (base
+`29c4f946e64e78e9aefaf78b292916d0525b28c2` (base
 `5027ed63a73dfba28de9eceed00481fb09a19c35`). The macOS probe uses Aurora's
 prebuilt Darwin ARM64 Dawn package. The iOS Simulator probe builds Dawn and SDL3
 from pinned source dependencies with Ninja because Aurora's released iOS Dawn
