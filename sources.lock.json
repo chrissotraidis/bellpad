@@ -20,8 +20,8 @@
       "url": "https://github.com/chrissotraidis/aurora.git",
       "upstream": "https://github.com/encounter/aurora.git",
       "base": "5027ed63a73dfba28de9eceed00481fb09a19c35",
-      "commit": "5a0b160e4bcc0a37316f55a02c0bb4a7e3ddfd67",
-      "tree": "5e4a904a362fcbc7dfdf01d63bccec32828a917d",
+      "commit": "29c4f946e64e78e9aefaf78b292916d0525b28c2",
+      "tree": "1456170f3ef2ddc3aa14086aeb0b348cb67fb284",
       "preparedTree": "11edea7d78583e936c919c1f7aefae4c0136ea71",
       "branch": "bellpad/apple",
       "license": "Upstream LICENSE and per-file notices; Bellpad additions retain existing no-outbound-license terms (BELLPAD.md)"
