@@ -72,8 +72,16 @@ It runs in the source-release suite/CI.
 uses a separate `dev.bellpad.overlaytests` app without game data. It exercises the
 real UIKit overlay's menu/data-action inventory, held-input clearing, edit-mode
 input suppression, connected-controller layout editing, auto-hide override,
-native text transitions and iPhone/iPad bounds. It does not claim real finger,
+Show Touch Controls recovery with a controller or manual hide, the saved
+auto-hide choice, hidden-input cancellation, native text transitions and
+iPhone/iPad bounds. It does not claim real finger,
 Bluetooth, haptic, share-destination or gameplay acceptance.
+
+Touch controls auto-hide only while Aurora has a physical gamepad on player 1,
+the port touch drives (**Controls → Auto-hide Touch Controls with Controller**,
+on by default). While they are hidden, **Show Touch Controls** at the top of the
+three-dot menu brings them back with the controller still connected, clears the
+manual hide and turns auto-hide off until it is turned on again.
 
 Post-migration PC dependency changes include commit
 `f918823fd8743bf2e1dc67830a161469844cc020` on `bellpad/diagnostics-controls`:

@@ -102,6 +102,53 @@ static void BPTestFloatingMovement(BPGameOverlay *overlay) {
     [overlay setValue:@NO forKey:@"manualControlsHidden"]; [overlay updateControlAppearance];
 }
 
+// The controller is injected through the overlay's own state because the
+// Simulator has no physical pad; the hide, release and Show paths are real.
+static void BPTestControllerVisibility(BPGameOverlay *overlay) {
+    [overlay closeSettingsPanel];
+    UIButton *menu = [overlay valueForKey:@"settingsButton"];
+    BPGameButton *a = [overlay button:@"A"];
+    BPStickView *camera = [overlay valueForKey:@"cameraStick"];
+    NSUserDefaults *defaults = NSUserDefaults.standardUserDefaults;
+    [overlay setValue:@NO forKey:@"manualControlsHidden"];
+    [overlay setValue:@NO forKey:@"controllerConnected"];
+    [overlay setAutoHideTouchControls:YES];
+    assert(!a.hidden);
+    // Hiding for a controller releases held touch input.
+    [overlay buttonDown:a]; [overlay stick:2 changedX:90 y:0];
+    assert((BellpadGetMergedInputState().buttons & BellpadButtonA) && BellpadGetMergedInputState().cStickX == 90);
+    [overlay setValue:@YES forKey:@"controllerConnected"]; [overlay updateControlAppearance]; [overlay refreshMenu];
+    assert(a.hidden && !a.userInteractionEnabled && camera.hidden && !menu.hidden);
+    assert(BellpadGetMergedInputState().buttons == 0 && BellpadGetMergedInputState().cStickX == 0);
+    // Touches already in flight press nothing while hidden.
+    [overlay buttonDown:a]; [overlay stick:2 changedX:90 y:0];
+    assert(BellpadGetMergedInputState().buttons == 0 && BellpadGetMergedInputState().cStickX == 0);
+    assert([menu.menu.children[0].title isEqualToString:@"Show Touch Controls"]);
+    // Show wins over the connected controller, turns auto-hide off and saves it.
+    [overlay showTouchControls];
+    assert(!a.hidden && a.userInteractionEnabled && ![[overlay valueForKey:@"autoHideControls"] boolValue]);
+    assert([defaults objectForKey:[overlay settingsKey:@"autoHide"]] != nil &&
+           ![defaults boolForKey:[overlay settingsKey:@"autoHide"]]);
+    assert([menu.menu.children[0].title isEqualToString:@"Display"]);
+    [overlay buttonDown:a]; assert(BellpadGetMergedInputState().buttons & BellpadButtonA);
+    [overlay buttonUp:a];
+    // Turning auto-hide back on applies the connected controller immediately;
+    // disconnecting shows the controls again.
+    [overlay setAutoHideTouchControls:YES]; assert(a.hidden);
+    [overlay setValue:@NO forKey:@"controllerConnected"]; [overlay updateControlAppearance];
+    assert(!a.hidden);
+    // Show is also the recovery for the manual hide, with a controller attached.
+    UISwitch *hide = [overlay valueForKey:@"hideControlsSwitch"];
+    hide.on = YES; [hide sendActionsForControlEvents:UIControlEventValueChanged];
+    assert(a.hidden && [menu.menu.children[0].title isEqualToString:@"Show Touch Controls"]);
+    [overlay setValue:@YES forKey:@"controllerConnected"];
+    [overlay showTouchControls];
+    assert(!a.hidden && !hide.on && ![defaults boolForKey:[overlay settingsKey:@"hidden"]]);
+    [overlay setValue:@NO forKey:@"controllerConnected"];
+    [overlay setAutoHideTouchControls:YES];
+    assert(!a.hidden && menu.menu.children.count == 5);
+}
+
 static void BPTestDiscImport(void (^completion)(void)) {
     BPDiscImportViewController *importer = [BPDiscImportViewController new];
     NSURL *root = [NSFileManager.defaultManager.temporaryDirectory URLByAppendingPathComponent:NSUUID.UUID.UUIDString];
@@ -181,6 +228,7 @@ static void BPTestDiscImport(void (^completion)(void)) {
             assert(report.preferredAction == report.actions[2]);
             UIMenu *data = (UIMenu *)menu.menu.children[2];
             assert(data.children.count == 4); // export/import/change/remove all retained
+            BPTestControllerVisibility(overlay);
             BPGameButton *a = [overlay button:@"A"];
             [overlay buttonDown:a];
             assert(BellpadGetMergedInputState().buttons & BellpadButtonA);
@@ -217,7 +265,7 @@ static void BPTestDiscImport(void (^completion)(void)) {
                 assert(CGRectContainsRect(overlay.bounds, menu.frame));
                 assert(CGRectContainsRect(overlay.bounds, panel.frame));
             }
-            NSDictionary *result = @{ @"passed": @YES, @"checks": @"real import buttons/empty folder/invalid disc preservation/cancel/empty picker; floating-stick ownership/region/deadzone/multitouch/cancel/layout/state preservation; unified reporting prompt; menu/data actions; held-input release; layout editing; controller auto-hide override; native text; lifecycle; iPhone/iPad bounds" };
+            NSDictionary *result = @{ @"passed": @YES, @"checks": @"real import buttons/empty folder/invalid disc preservation/cancel/empty picker; floating-stick ownership/region/deadzone/multitouch/cancel/layout/state preservation; unified reporting prompt; menu/data actions; held-input release; layout editing; controller auto-hide override; Show Touch Controls with a controller/manual hide; saved auto-hide; hidden-input cancellation; native text; lifecycle; iPhone/iPad bounds" };
             BPTestDiscImport(^{
                 NSData *json = [NSJSONSerialization dataWithJSONObject:result options:NSJSONWritingPrettyPrinted error:nil];
                 [json writeToFile:[NSHomeDirectory() stringByAppendingPathComponent:@"Documents/overlay-tests.json"] atomically:YES];

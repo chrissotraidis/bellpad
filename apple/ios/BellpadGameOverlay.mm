@@ -1,6 +1,7 @@
 #import "BellpadGameOverlay.h"
 #import "BellpadDiagnostics.h"
 #import "BellpadDiscImport.h"
+#include <SDL3/SDL_gamepad.h>
 #include <SDL3/SDL_log.h>
 
 #import <AVFAudio/AVAudioSession.h>
@@ -25,6 +26,7 @@
 #include <string>
 #include <unistd.h>
 #include <utility>
+#include <vector>
 
 @protocol BPStickDelegate <NSObject>
 - (void)stick:(NSInteger)tag changedX:(std::int8_t)x y:(std::int8_t)y;
@@ -124,6 +126,25 @@ static std::atomic_bool sAudioInterruptionBegan{false};
 static std::atomic_bool sAudioInterruptionEnded{false};
 static std::atomic_bool sAudioRouteChanged{false};
 static NSURL *sApplicationSupportURL;
+
+// Aurora assigns physical gamepads to ports through SDL player indexes, and
+// touch drives port 0, so that assignment decides whether a controller stands
+// in for the touch controls.
+static BOOL BPTouchPlayerHasController(void) {
+#if TARGET_OS_SIMULATOR
+    // The Simulator can report virtual controllers that would hide the touch
+    // controls during testing.
+    return NO;
+#else
+    int count = 0;
+    SDL_JoystickID *gamepads = SDL_GetGamepads(&count);
+    std::vector<int> players;
+    for (int i = 0; gamepads != nullptr && i < count; ++i)
+        players.push_back(SDL_GetGamepadPlayerIndexForID(gamepads[i]));
+    SDL_free(gamepads);
+    return BellpadTouchPlayerHasController(players.data(), players.size());
+#endif
+}
 
 static NSString *const BPChangeGameDataOnNextLaunchKey = @"BellpadChangeGameDataOnNextLaunch";
 static NSString *const BPRemoveGameDataOnNextLaunchKey = @"BellpadRemoveGameDataOnNextLaunch";
@@ -1118,12 +1139,10 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
     UIAction *touch = [UIAction actionWithTitle:@"Touch Control Settings…" image:[UIImage systemImageNamed:@"hand.draw"] identifier:nil handler:^(__kindof UIAction *a) {
         (void)a; [weakSelf toggleSettings];
     }];
-    UIAction *autoHide = [UIAction actionWithTitle:@"Hide Touch Controls with Controller" image:nil identifier:nil handler:^(__kindof UIAction *a) {
+    UIAction *autoHide = [UIAction actionWithTitle:@"Auto-hide Touch Controls with Controller" image:nil identifier:nil handler:^(__kindof UIAction *a) {
         (void)a;
         BPGameOverlay *owner = weakSelf; if (!owner) return;
-        owner->_autoHideControls = !owner->_autoHideControls;
-        [NSUserDefaults.standardUserDefaults setBool:owner->_autoHideControls forKey:[owner settingsKey:@"autoHide"]];
-        [owner updateControlAppearance]; [owner refreshMenu];
+        [owner setAutoHideTouchControls:!owner->_autoHideControls];
     }];
     autoHide.state = _autoHideControls ? UIMenuElementStateOn : UIMenuElementStateOff;
     UIAction *haptics = [UIAction actionWithTitle:@"Touch Button Haptics" image:nil identifier:nil handler:^(__kindof UIAction *a) {
@@ -1147,7 +1166,34 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
         NSBundle *bundle = NSBundle.mainBundle;
         [weakSelf presentMessageWithTitle:@"BellPad" message:[NSString stringWithFormat:@"Version %@ (build %@)\n\nNative Apple integration of birabittoh/ACGC-PC-Port, ACreTeam/ac-decomp and encounter/aurora. Source provenance and third-party notices are included with this build.\n\nDiagnostic logs stay on this device until you choose to share them. No game images, saves, text input or signing material are attached.", [bundle objectForInfoDictionaryKey:@"CFBundleShortVersionString"], [bundle objectForInfoDictionaryKey:@"CFBundleVersion"]]];
     }];
-    _settingsButton.menu = [UIMenu menuWithTitle:@"BellPad" children:@[display, controls, _dataMenu, report, about]];
+    NSMutableArray<UIMenuElement *> *items = [NSMutableArray array];
+    if (_manualControlsHidden || (_controllerConnected && _autoHideControls)) {
+        [items addObject:[UIAction actionWithTitle:@"Show Touch Controls" image:[UIImage systemImageNamed:@"hand.tap"] identifier:nil handler:^(__kindof UIAction *a) {
+            (void)a; [weakSelf showTouchControls];
+        }]];
+    }
+    [items addObjectsFromArray:@[display, controls, _dataMenu, report, about]];
+    _settingsButton.menu = [UIMenu menuWithTitle:@"BellPad" children:items];
+}
+
+// The saved "Auto-hide Touch Controls with Controller" choice. Off shows the
+// controls immediately; on applies the current controller state immediately.
+- (void)setAutoHideTouchControls:(BOOL)autoHide {
+    _autoHideControls = autoHide;
+    [NSUserDefaults.standardUserDefaults setBool:autoHide forKey:[self settingsKey:@"autoHide"]];
+    [self updateControlAppearance];
+    [self refreshMenu];
+}
+
+// Recovery for both kinds of hiding: clears the manual hide and turns auto-hide
+// off, so the controls stay up with a controller connected until the player
+// turns auto-hide back on.
+- (void)showTouchControls {
+    _manualControlsHidden = NO;
+    _hideControlsSwitch.on = NO;
+    [NSUserDefaults.standardUserDefaults setBool:NO forKey:[self settingsKey:@"hidden"]];
+    BellpadLog(@"touch controls shown from the menu; auto-hide off");
+    [self setAutoHideTouchControls:NO];
 }
 
 - (void)deadzoneChanged:(UISlider *)slider {
@@ -1160,6 +1206,9 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
     double fps = bellpad_diagnostics_fps();
     _fpsLabel.hidden = ![NSUserDefaults.standardUserDefaults boolForKey:@"Bellpad.ShowFPS"] || _nativeTextActive;
     _fpsLabel.text = [NSString stringWithFormat:@"%.0f FPS", fps];
+    // Aurora assigns a newly connected pad to a port on its own frame, after
+    // the GameController notification, so the assignment is rechecked here.
+    if (BPTouchPlayerHasController() != _controllerConnected) [self refreshControllerVisibility];
     if (++_diagnosticsTicks % 60 == 0)
         BellpadLog(@"health frame-loop=%.1fHz thermal=%ld active=%d controllers=%lu render=%d", fps, (long)NSProcessInfo.processInfo.thermalState, UIApplication.sharedApplication.applicationState == UIApplicationStateActive, (unsigned long)GCController.controllers.count, sFrameBufferScaleMode.load());
 }
@@ -1596,6 +1645,7 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
         [self editLayoutChanged:_editLayoutSwitch];
     }
     [self updateControlAppearance];
+    [self refreshMenu];
 }
 
 - (void)editLayoutChanged:(UISwitch *)toggle {
@@ -1658,8 +1708,13 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
     [self setNeedsLayout];
 }
 
+- (BOOL)touchControlsHidden {
+    return _nativeTextActive || BellpadTouchControlsHidden(_editingLayout, _manualControlsHidden,
+                                                           _autoHideControls, _controllerConnected);
+}
+
 - (void)updateControlAppearance {
-    BOOL hidden = _nativeTextActive || (!_editingLayout && (_manualControlsHidden || (_controllerConnected && _autoHideControls)));
+    BOOL hidden = [self touchControlsHidden];
     if (hidden) [self clearTouchInput];
     for (UIView *control in [self gameplayControls]) {
         control.hidden = hidden || (control == _moveStick && !_editingLayout && !_moveTouch);
@@ -1792,8 +1847,7 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
 }
 
 - (BOOL)floatingMoveEnabled {
-    return !_editingLayout && !_nativeTextActive && !_manualControlsHidden &&
-           !(_controllerConnected && _autoHideControls) && _settingsPanel.hidden;
+    return !_editingLayout && ![self touchControlsHidden] && _settingsPanel.hidden;
 }
 
 - (void)endFloatingMove {
@@ -1846,7 +1900,8 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
 }
 
 - (void)buttonDown:(BPGameButton *)button {
-    if (_editingLayout) return;
+    // A touch that began before the controls hid presses nothing.
+    if (_editingLayout || [self touchControlsHidden]) return;
     if (_hapticsEnabled) [_feedback impactOccurred];
     _state.buttons |= button.inputMask;
     if (button.inputMask == BellpadButtonL) _state.triggerL = 255;
@@ -1865,7 +1920,7 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
 }
 
 - (void)stick:(NSInteger)tag changedX:(std::int8_t)x y:(std::int8_t)y {
-    if (_editingLayout) return;
+    if (_editingLayout || [self touchControlsHidden]) return;
     if (tag == 1) { _state.stickX = x; _state.stickY = y; }
     else { _state.cStickX = x; _state.cStickY = y; }
     BellpadSetInputState(BellpadInputSource::Touch, _state);
@@ -1968,15 +2023,9 @@ typedef NS_ENUM(NSInteger, BPDocumentPickerMode) {
 }
 
 - (void)refreshControllerVisibility {
-    BOOL connected = NO;
-#if !TARGET_OS_SIMULATOR
-    for (GCController *controller in GCController.controllers) {
-        if (controller.extendedGamepad) { connected = YES; break; }
-    }
-#endif
-    if (connected) [self clearTouchInput];
-    else BellpadClearInputState(BellpadInputSource::Controller);
-    if (_controllerConnected != connected) BellpadLog(@"controller connection=%@ count=%lu", connected ? @"connected" : @"disconnected", (unsigned long)GCController.controllers.count);
+    BOOL connected = BPTouchPlayerHasController();
+    if (!connected) BellpadClearInputState(BellpadInputSource::Controller);
+    if (_controllerConnected != connected) BellpadLog(@"touch-player controller=%@ count=%lu", connected ? @"connected" : @"disconnected", (unsigned long)GCController.controllers.count);
     _controllerConnected = connected;
     [self refreshMenu];
     [self updateControlAppearance];

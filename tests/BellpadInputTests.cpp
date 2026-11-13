@@ -275,5 +275,24 @@ int main() {
     gci[saveOffset + 8] = 0;
     assert(BellpadValidateGCI(gci.data(), gci.size()).code == BellpadGCIValidationCode::InvalidTownId);
     assert(BellpadValidateGCI(gci.data(), gci.size() - 1).code == BellpadGCIValidationCode::WrongSize);
+
+    // Touch-control visibility: only a gamepad on player 0 (the touch port)
+    // counts, and Show Touch Controls (manual and auto-hide off) wins over a
+    // connected controller.
+    assert(!BellpadTouchPlayerHasController(nullptr, 0));
+    const int playerOne[] = {0};
+    const int twoPads[] = {1, 0};
+    const int otherPortOnly[] = {1};
+    const int unassigned[] = {-1, 2};
+    assert(BellpadTouchPlayerHasController(playerOne, 1));
+    assert(BellpadTouchPlayerHasController(twoPads, 2));
+    assert(BellpadTouchPlayerHasController(twoPads, 1) == false); // player 0 removed, player 1 stays
+    assert(!BellpadTouchPlayerHasController(otherPortOnly, 1));
+    assert(!BellpadTouchPlayerHasController(unassigned, 2));
+    assert(BellpadTouchControlsHidden(false, false, true, true));
+    assert(!BellpadTouchControlsHidden(false, false, false, true));
+    assert(!BellpadTouchControlsHidden(false, false, true, false));
+    assert(BellpadTouchControlsHidden(false, true, false, false));
+    assert(!BellpadTouchControlsHidden(true, true, true, true));
     return 0;
 }

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 
 enum BellpadButton : std::uint16_t {
@@ -44,3 +45,22 @@ extern "C" int bellpad_copy_normalized_pad_state(
     std::int8_t* cStickY,
     std::uint8_t* triggerL,
     std::uint8_t* triggerR);
+
+// Touch drives port 0. Aurora assigns each physical gamepad a player index, so
+// only a gamepad on player 0 stands in for the touch controls; a gamepad on
+// another port, or one with no port, never hides them.
+inline bool BellpadTouchPlayerHasController(const int* playerIndexes, std::size_t count) {
+    for (std::size_t i = 0; i < count; ++i) {
+        if (playerIndexes[i] == 0) return true;
+    }
+    return false;
+}
+
+// Layout editing always shows the controls so it stays escapable. Otherwise a
+// manual hide, or auto-hide while the touch player has a controller, hides
+// them. "Show Touch Controls" clears both, so it wins with a controller still
+// connected.
+inline bool BellpadTouchControlsHidden(bool editingLayout, bool manuallyHidden,
+                                       bool autoHide, bool touchPlayerHasController) {
+    return !editingLayout && (manuallyHidden || (autoHide && touchPlayerHasController));
+}
