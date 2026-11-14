@@ -63,7 +63,7 @@ Linux or any computer with a web browser: follow
 | Apple Silicon macOS | **Playable baseline** | The native `Bellpad.app` reaches a generated town, creates/reloads a Dolphin-compatible GCI save, and has desktop rendering/input evidence. |
 | iPhone and iPad Simulator | **Current development target** | Files import, retained game data, Metal rendering, touch input, native name entry, save import/export, and relaunch have evidence on sequential Simulator runs. |
 | ARM64 iPhone/iPad device build | **Physical iPad validated** | Local version 0.1.0 build 6 was signed and installed in place; on-device logs confirm retained-image validation and save preparation at startup. Preview 3 provides this same audited build 6. Game data, saves, controller settings, and touch preferences were byte-identical after readback. Physical controller scenarios remain acceptance gates. |
-| Make your own with PadMint | **Available (0.2.3)** | See [Get BellPad](#get-bellpad). Releases hold the recipe only. PadMint builds iPhone/iPad and, from 0.5.5, Mac copies on an Apple Silicon Mac. Without a Mac, PadMint can build the iPhone/iPad app on [GitHub's free Mac](https://github.com/chrissotraidis/padmint#no-mac-build-on-githubs-mac). |
+| Make your own with PadMint | **Available (0.2.4)** | See [Get BellPad](#get-bellpad). Releases hold the recipe only. PadMint builds iPhone/iPad and, from 0.5.5, Mac copies on an Apple Silicon Mac. Without a Mac, PadMint can build the iPhone/iPad app on [GitHub's free Mac](https://github.com/chrissotraidis/padmint#no-mac-build-on-githubs-mac). |
 | App Store / TestFlight | **Not available** | BellPad is not store-distributed. |
 
 The source-release workflow verifies the clean-room and reproducibility gates
