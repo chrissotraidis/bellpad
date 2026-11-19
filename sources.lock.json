@@ -8,10 +8,10 @@
       "url": "https://github.com/chrissotraidis/ACGC-PC-Port.git",
       "upstream": "https://github.com/birabittoh/ACGC-PC-Port.git",
       "base": "915fb86ba9a6c2144dabda9143d93af7a3f92be7",
-      "commit": "dbbb789e3404c94fe17520fb7ad3f048a3870cdc",
-      "tree": "130329cc866c5e59f79982615e266161b4d2a89c",
+      "commit": "1ec4eb09d3b4dfce6df59e2f167cb5bf559e6012",
+      "tree": "5a88d7c0be98f1ed0cb2a468f4a6b1e92811a7ed",
       "preparedTree": "9e158781cfdc52dbc97dac4f0892d00558564309",
-      "branch": "bellpad/diagnostics-controls",
+      "branch": "codex/tv-extended-display",
       "license": "Upstream LICENSE and per-file notices; Bellpad additions retain existing no-outbound-license terms (BELLPAD.md)"
     },
     {
@@ -20,10 +20,10 @@
       "url": "https://github.com/chrissotraidis/aurora.git",
       "upstream": "https://github.com/encounter/aurora.git",
       "base": "5027ed63a73dfba28de9eceed00481fb09a19c35",
-      "commit": "29c4f946e64e78e9aefaf78b292916d0525b28c2",
-      "tree": "1456170f3ef2ddc3aa14086aeb0b348cb67fb284",
+      "commit": "b1e276f7a74f7f57fd6332a44e43a4baff6e511d",
+      "tree": "0d5ae06433c77354504084075ecb0babe2397df4",
       "preparedTree": "11edea7d78583e936c919c1f7aefae4c0136ea71",
-      "branch": "bellpad/apple",
+      "branch": "codex/tv-extended-display",
       "license": "Upstream LICENSE and per-file notices; Bellpad additions retain existing no-outbound-license terms (BELLPAD.md)"
     }
   ]

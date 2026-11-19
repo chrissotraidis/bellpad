@@ -42,6 +42,8 @@
     </array>
     <key>UIRequiresFullScreen</key>
     <true/>
+    <key>UIRequiresFullScreenIgnoredStartingWithVersion</key>
+    <string>26</string>
     <key>UISupportedInterfaceOrientations</key>
     <array>
         <string>UIInterfaceOrientationLandscapeLeft</string>
@@ -49,6 +51,8 @@
     </array>
     <key>UISupportedInterfaceOrientations~ipad</key>
     <array>
+        <string>UIInterfaceOrientationPortrait</string>
+        <string>UIInterfaceOrientationPortraitUpsideDown</string>
         <string>UIInterfaceOrientationLandscapeLeft</string>
         <string>UIInterfaceOrientationLandscapeRight</string>
     </array>

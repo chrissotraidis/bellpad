@@ -576,7 +576,7 @@ static BellpadPadState BellpadStateFromGamepad(GCExtendedGamepad *gamepad) {
 }
 
 - (UIInterfaceOrientationMask)supportedInterfaceOrientations {
-    return UIInterfaceOrientationMaskLandscape;
+    return UIDevice.currentDevice.userInterfaceIdiom == UIUserInterfaceIdiomPad ? UIInterfaceOrientationMaskAll : UIInterfaceOrientationMaskLandscape;
 }
 
 @end
@@ -591,6 +591,9 @@ static BellpadPadState BellpadStateFromGamepad(GCExtendedGamepad *gamepad) {
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
     (void)application;
     (void)launchOptions;
+    setenv("SDL_ORIENTATIONS", UIDevice.currentDevice.userInterfaceIdiom == UIUserInterfaceIdiomPad
+        ? "Portrait PortraitUpsideDown LandscapeLeft LandscapeRight"
+        : "LandscapeLeft LandscapeRight", 1);
     self.window = [[UIWindow alloc] initWithFrame:UIScreen.mainScreen.bounds];
     self.window.rootViewController = [BellpadViewController new];
     [self.window makeKeyAndVisible];
